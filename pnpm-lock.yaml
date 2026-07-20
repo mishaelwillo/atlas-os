@@ -27,9 +27,6 @@ importers:
         specifier: ^5.0.0
         version: 5.10.0
     devDependencies:
-      '@atlas/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
       '@types/node':
         specifier: ^20.12.12
         version: 20.19.43
