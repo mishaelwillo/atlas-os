@@ -12,10 +12,13 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml package.json turbo.json tsconfig.base.js
 COPY packages ./packages
 COPY apps/api ./apps/api
 RUN pnpm install --frozen-lockfile --filter @atlas/api... --filter @atlas/registry
-RUN pnpm --filter @atlas/registry gen && \
-    pnpm --filter @atlas/api... run build
-# prune to production deps for @atlas/api (bundles workspace dist/ folders)
-RUN pnpm --filter @atlas/api --prod deploy /out
+# api's own build runs codegen (pnpm run gen) before tsc, so no separate gen step.
+RUN pnpm --filter @atlas/api... run build
+# Prune to a self-contained runtime for @atlas/api (bundles the workspace dist/
+# folders into node_modules/@atlas/*). --legacy is REQUIRED on pnpm v10+ (this
+# repo pins pnpm@11): without it, deploy aborts with ERR_PNPM_DEPLOY_NONINJECTED_WORKSPACE
+# and workspace deps (@atlas/router, @atlas/scheduler) are not bundled.
+RUN pnpm --filter @atlas/api --prod --legacy deploy /out
 
 # ---- runtime stage ----
 FROM node:22-slim AS runtime
