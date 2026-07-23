@@ -1,28 +1,28 @@
-# Atlas OS — API service (Railway root directory = apps/api, Dockerfile deploy)
-# Self-contained: builds inside the container so it does NOT depend on a
-# committed dist/ or the monorepo build context. The API has no @atlas/*
-# runtime deps, so a standalone tsc build is correct.
+# Atlas OS — API service (P1). The API now depends on @atlas/{registry,router,
+# scheduler}, so this is a pnpm MONOREPO build: set the Docker build context to
+# the repo root (Railway: root directory = repo root, dockerfilePath =
+# apps/api/Dockerfile). Same image serves the web process (dist/server.js) and
+# the scheduler worker (dist/worker.js — set the start command per service).
 
 # ---- build stage ----
 FROM node:22-slim AS build
-WORKDIR /app
-COPY package.json ./
-# install runtime deps + a pinned typescript for the standalone build
-# (api has no @atlas/* runtime deps, so plain npm resolves cleanly)
-RUN npm install --omit=dev --no-audit --no-fund && \
-    npm install --no-save --no-audit --no-fund typescript@5.4.5
-COPY tsconfig.docker.json ./tsconfig.json
-COPY src ./src
-RUN npx tsc -p tsconfig.json
+RUN corepack enable
+WORKDIR /repo
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json turbo.json tsconfig.base.json ./
+COPY packages ./packages
+COPY apps/api ./apps/api
+RUN pnpm install --frozen-lockfile --filter @atlas/api... --filter @atlas/registry
+RUN pnpm --filter @atlas/registry gen && \
+    pnpm --filter @atlas/api... run build
+# prune to production deps for @atlas/api (bundles workspace dist/ folders)
+RUN pnpm --filter @atlas/api --prod deploy /out
 
 # ---- runtime stage ----
 FROM node:22-slim AS runtime
 RUN groupadd -g 10001 nodeapp && \
     useradd -u 10000 -g nodeapp -m -s /bin/bash nodeapp
 WORKDIR /app
-COPY package.json ./
-RUN npm install --omit=dev --no-audit --no-fund && npm cache clean --force
-COPY --from=build /app/dist ./dist
+COPY --from=build /out ./
 USER nodeapp
 ENV NODE_ENV=production
 ENV PORT=3000

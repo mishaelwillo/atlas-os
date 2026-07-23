@@ -1,5 +1,8 @@
 import { HealthStatus } from '@atlas/shared';
 
+// Generated per-capability client (codegen from packages/registry/registry.ts)
+export * from './client.gen.js';
+
 export interface AtlasClient {
   healthz(): Promise<HealthStatus>;
 }

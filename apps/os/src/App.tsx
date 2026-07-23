@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import styles from './App.module.css';
+import { MissionControlLive } from './MissionControl';
 
 const SECTIONS = [
   { name: 'Mission Control', path: '/' },
@@ -101,11 +102,8 @@ export function MissionControlPage() {
       </header>
       <div className={styles.grid}>
         <ApiStatusCard />
-        <div className={styles.infoCard}>
-          <h3>Core Control Hub</h3>
-          <p>Welcome to Atlas OS command center. This interface coordinates intelligence workspace operations, pipelines, and autonomous agent executions.</p>
-        </div>
       </div>
+      <MissionControlLive />
     </div>
   );
 }

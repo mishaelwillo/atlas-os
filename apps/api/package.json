@@ -5,18 +5,25 @@
   "type": "module",
   "main": "./dist/server.js",
   "scripts": {
-    "build": "tsc",
+    "gen": "tsx ../../packages/registry/codegen.ts",
+    "build": "pnpm run gen && tsc",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
-    "test": "vitest run"
+    "start:worker": "node dist/worker.js",
+    "test": "vitest run --pool=forks"
   },
   "dependencies": {
+    "@atlas/registry": "workspace:*",
+    "@atlas/router": "workspace:*",
+    "@atlas/scheduler": "workspace:*",
     "@fastify/cors": "^10.0.0",
     "dotenv": "^16.4.5",
-    "fastify": "^5.0.0"
+    "fastify": "^5.0.0",
+    "pg": "^8.12.0"
   },
   "devDependencies": {
     "@types/node": "^20.12.12",
+    "@types/pg": "^8.11.0",
     "tsx": "^4.11.0",
     "typescript": "^5.4.5",
     "vitest": "^1.6.0"

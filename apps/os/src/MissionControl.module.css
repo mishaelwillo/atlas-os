@@ -1,0 +1,167 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.tokenInput {
+  flex: 0 1 340px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #3a3f58;
+  background: #14172b;
+  color: #e6e8f2;
+  font-size: 12px;
+}
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+}
+.card {
+  background: #171a2e;
+  border: 1px solid #2a2f4a;
+  border-radius: 10px;
+  padding: 16px;
+  color: #d9dcec;
+}
+.card h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #9aa3d0;
+}
+.count {
+  display: inline-block;
+  min-width: 20px;
+  text-align: center;
+  background: #4453c7;
+  color: #fff;
+  border-radius: 10px;
+  font-size: 12px;
+  padding: 1px 6px;
+  margin-left: 6px;
+}
+.empty {
+  color: #6c7396;
+  font-size: 13px;
+}
+.error {
+  color: #ff7d7d;
+  font-size: 13px;
+}
+.approvalItem {
+  border-top: 1px solid #262b45;
+  padding: 10px 0;
+}
+.approvalHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.kind {
+  color: #8fd0ff;
+  font-size: 12px;
+}
+.when {
+  color: #6c7396;
+  font-size: 11px;
+}
+.reason {
+  margin: 6px 0;
+  font-size: 13px;
+}
+.payload summary {
+  cursor: pointer;
+  font-size: 11px;
+  color: #6c7396;
+}
+.payload pre {
+  font-size: 11px;
+  background: #10131f;
+  padding: 8px;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+.decisionRow {
+  display: flex;
+  gap: 14px;
+  margin: 8px 0 6px;
+  font-size: 13px;
+}
+.radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+.notesRow {
+  display: flex;
+  gap: 8px;
+}
+.notesRow input {
+  flex: 1;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid #3a3f58;
+  background: #14172b;
+  color: #e6e8f2;
+  font-size: 12px;
+}
+.notesRow button {
+  padding: 5px 14px;
+  border-radius: 6px;
+  border: none;
+  background: #4453c7;
+  color: #fff;
+  cursor: pointer;
+  font-size: 12px;
+}
+.notesRow button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.table td {
+  padding: 4px 6px;
+  border-top: 1px solid #262b45;
+}
+.status {
+  padding: 1px 8px;
+  border-radius: 8px;
+  background: #2a2f4a;
+  font-size: 11px;
+}
+.status_succeeded { background: #1d4028; color: #8fe3a4; }
+.status_failed    { background: #45202a; color: #ff9aa8; }
+.status_running   { background: #1e3350; color: #8fc7ff; }
+.status_review    { background: #4a3a1c; color: #ffd88f; }
+.status_queued    { background: #2a2f4a; color: #b9c0e0; }
+.chainRow {
+  font-size: 12px;
+  color: #b9c0e0;
+  margin: 4px 0;
+}
+.bigNumbers {
+  display: flex;
+  gap: 28px;
+  margin: 8px 0;
+}
+.bigNumbers > div {
+  display: flex;
+  flex-direction: column;
+}
+.big {
+  font-size: 26px;
+  font-weight: 700;
+  color: #e6e8f2;
+}
+.label {
+  font-size: 11px;
+  color: #6c7396;
+}
