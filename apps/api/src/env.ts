@@ -3,7 +3,11 @@ export interface Env {
   databaseUrl: string;
   /** Sole operator email pinned in is_operator() (SECURITY.md). */
   operatorEmail: string;
-  /** HS256 secret for verifying Supabase Auth JWTs (operator sign-in). */
+  /** Supabase project URL — used to fetch the JWKS for ES256/RS256 operator
+   *  tokens (new Supabase "JWT Signing Keys"). */
+  supabaseUrl: string;
+  /** HS256 secret for legacy symmetric Supabase JWTs (and the local test
+   *  harness). Empty/legacy projects only; asymmetric keys use the JWKS. */
   supabaseJwtSecret: string;
   /** OpenRouter-compatible endpoint for the model router. */
   modelBaseUrl: string;
@@ -27,6 +31,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
   return {
     databaseUrl: source.DATABASE_URL ?? '',
     operatorEmail: source.OPERATOR_EMAIL ?? 'mobiledynamic876@gmail.com',
+    supabaseUrl: (source.SUPABASE_URL ?? '').replace(/\/+$/, ''),
     supabaseJwtSecret: source.SUPABASE_JWT_SECRET ?? '',
     modelBaseUrl: source.ATLAS_MODEL_BASE_URL ?? 'https://openrouter.ai/api',
     modelApiKey: source.ATLAS_MODEL_API_KEY ?? '',

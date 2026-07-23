@@ -8,6 +8,7 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import type { Db } from './db.js';
 import type { Env } from './env.js';
+import { verifyJwksSignature, type Fetcher } from './jwks.js';
 
 export type AuthContext =
   | { kind: 'operator'; actor: string; spaceId: string | null; scopes: ['*'] }
@@ -32,23 +33,54 @@ function b64urlDecode(part: string): Buffer {
   return Buffer.from(part.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
 }
 
-/** Minimal HS256 JWT verify — enough for Supabase Auth access tokens. */
-export function verifyOperatorJwt(token: string, env: Env): { email: string } | null {
+/**
+ * Verify a Supabase Auth access token and return its email claim.
+ * Supports both signing schemes:
+ *  - **ES256/RS256** — the new "JWT Signing Keys" (asymmetric); verified
+ *    against the project JWKS (see jwks.ts). This is the production path.
+ *  - **HS256** — the legacy symmetric secret; also what the local test
+ *    harness mints. Requires `supabaseJwtSecret`.
+ * `fetcher` is injectable for tests; production uses global fetch.
+ */
+export async function verifyOperatorJwt(
+  token: string,
+  env: Env,
+  fetcher?: Fetcher,
+): Promise<{ email: string } | null> {
   const parts = token.split('.');
-  if (parts.length !== 3 || !env.supabaseJwtSecret) return null;
+  if (parts.length !== 3) return null;
   const [headerB64, payloadB64, sigB64] = parts;
-  let header: { alg?: string };
+  let header: { alg?: string; kid?: string };
   let payload: { email?: string; exp?: number };
   try {
-    header = JSON.parse(b64urlDecode(headerB64).toString('utf8')) as { alg?: string };
+    header = JSON.parse(b64urlDecode(headerB64).toString('utf8')) as { alg?: string; kid?: string };
     payload = JSON.parse(b64urlDecode(payloadB64).toString('utf8')) as { email?: string; exp?: number };
   } catch {
     return null;
   }
-  if (header.alg !== 'HS256') return null;
-  const expected = createHmac('sha256', env.supabaseJwtSecret).update(`${headerB64}.${payloadB64}`).digest();
-  const given = b64urlDecode(sigB64);
-  if (expected.length !== given.length || !timingSafeEqual(expected, given)) return null;
+
+  const signingInput = `${headerB64}.${payloadB64}`;
+  const signature = b64urlDecode(sigB64);
+
+  if (header.alg === 'HS256') {
+    if (!env.supabaseJwtSecret) return null;
+    const expected = createHmac('sha256', env.supabaseJwtSecret).update(signingInput).digest();
+    if (expected.length !== signature.length || !timingSafeEqual(expected, signature)) return null;
+  } else if (header.alg === 'ES256' || header.alg === 'RS256') {
+    if (!header.kid) return null;
+    const ok = await verifyJwksSignature({
+      supabaseUrl: env.supabaseUrl,
+      alg: header.alg,
+      kid: header.kid,
+      signingInput,
+      signature,
+      fetcher,
+    });
+    if (!ok) return null;
+  } else {
+    return null; // unsupported alg (incl. 'none' — never trust an unsigned token)
+  }
+
   if (typeof payload.exp === 'number' && payload.exp * 1000 < Date.now()) return null;
   if (typeof payload.email !== 'string') return null;
   return { email: payload.email };
@@ -71,7 +103,7 @@ export async function authenticate(
 
   // Operator path: JWTs have exactly two dots and a JSON header.
   if (bearer.split('.').length === 3) {
-    const jwt = verifyOperatorJwt(bearer, deps.env);
+    const jwt = await verifyOperatorJwt(bearer, deps.env);
     if (jwt) {
       if (jwt.email !== deps.env.operatorEmail) throw new AuthError(403, 'not the pinned operator');
       return { kind: 'operator', actor: jwt.email, spaceId: spaceHeader ?? null, scopes: ['*'] };
