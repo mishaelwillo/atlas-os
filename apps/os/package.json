@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "node scripts/write-build-info.cjs && pnpm --filter \"@atlas/os^...\" build && tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest run --pool=forks"
+    "test": "vitest run --pool=forks",
+    "verify:build-info": "node scripts/verify-build-info.cjs"
   },
   "dependencies": {
     "react": "^18.3.1",

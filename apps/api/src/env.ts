@@ -33,15 +33,51 @@ function list(v: string | undefined, fallback: string[]): string[] {
     .filter(Boolean);
 }
 
-function knownValue(...values: Array<string | undefined>): string | undefined {
-  return values.find((value) => value !== undefined && value !== '' && value !== 'unknown');
+function normalizedValue(value: string | undefined): string | undefined {
+  const normalized = value?.trim();
+  if (!normalized || normalized.toLowerCase() === 'unknown') return undefined;
+  return normalized;
+}
+
+function gitSha(...values: Array<string | undefined>): string {
+  for (const value of values) {
+    const normalized = normalizedValue(value);
+    if (normalized && /^[0-9a-f]{7,64}$/i.test(normalized)) return normalized.toLowerCase();
+  }
+  return 'unknown';
+}
+
+function buildTime(value: string | undefined): string {
+  const normalized = normalizedValue(value);
+  if (!normalized) return 'unknown';
+  const match = normalized.match(
+    /^(\d{4})-(\d{2})-(\d{2})T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/i,
+  );
+  if (!match) return 'unknown';
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const daysInMonth =
+    month >= 1 && month <= 12 ? new Date(Date.UTC(year, month, 0)).getUTCDate() : 0;
+  if (day < 1 || day > daysInMonth) return 'unknown';
+
+  const timestamp = Date.parse(normalized);
+  return Number.isNaN(timestamp) ? 'unknown' : new Date(timestamp).toISOString();
+}
+
+function schemaVersion(value: string | undefined): string {
+  if (value === undefined) return '0001_init';
+  const normalized = normalizedValue(value);
+  if (normalized === undefined) return 'unknown';
+  return /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(normalized) ? normalized : 'unknown';
 }
 
 export function loadBuildEnv(source: NodeJS.ProcessEnv = process.env): BuildEnv {
   return {
-    gitSha: knownValue(source.ATLAS_GIT_SHA, source.RAILWAY_GIT_COMMIT_SHA) ?? 'unknown',
-    buildTime: knownValue(source.ATLAS_BUILD_TIME) ?? 'unknown',
-    schemaVersion: knownValue(source.ATLAS_SCHEMA_VERSION) ?? '0001_init',
+    gitSha: gitSha(source.ATLAS_GIT_SHA, source.RAILWAY_GIT_COMMIT_SHA),
+    buildTime: buildTime(source.ATLAS_BUILD_TIME),
+    schemaVersion: schemaVersion(source.ATLAS_SCHEMA_VERSION),
   };
 }
 

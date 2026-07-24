@@ -5,6 +5,14 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", "build/**"]
     },
+    "@atlas/os#build": {
+      "env": [
+        "ATLAS_GIT_SHA",
+        "RAILWAY_GIT_COMMIT_SHA",
+        "ATLAS_BUILD_TIME",
+        "ATLAS_SCHEMA_VERSION"
+      ]
+    },
     "dev": {
       "cache": false,
       "persistent": true

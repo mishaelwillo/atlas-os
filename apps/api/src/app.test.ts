@@ -9,7 +9,7 @@ describe('API Smoke Tests', () => {
       buildInfo: {
         service: 'atlas-api',
         appVersion: '0.1.0',
-        gitSha: 'abc123',
+        gitSha: 'abc1234',
         buildTime: '2026-07-24T00:00:00Z',
         schemaVersion: '0001_init',
         registryVersion: 1,
@@ -22,7 +22,7 @@ describe('API Smoke Tests', () => {
       ok: true,
       service: 'atlas-api',
       appVersion: '0.1.0',
-      gitSha: 'abc123',
+      gitSha: 'abc1234',
       buildTime: '2026-07-24T00:00:00Z',
       schemaVersion: '0001_init',
       registryVersion: 1,
@@ -53,14 +53,14 @@ describe('API Smoke Tests', () => {
     const originalAtlasSha = process.env.ATLAS_GIT_SHA;
     const originalRailwaySha = process.env.RAILWAY_GIT_COMMIT_SHA;
     process.env.ATLAS_GIT_SHA = 'unknown';
-    process.env.RAILWAY_GIT_COMMIT_SHA = 'railway123';
+    process.env.RAILWAY_GIT_COMMIT_SHA = 'abcdef123';
 
     try {
       const app = buildApp({ deps: buildTestDeps(new FakeDb()) });
       const response = await app.inject({ method: 'GET', url: '/healthz' });
       const body = JSON.parse(response.body) as { gitSha: string };
 
-      expect(body.gitSha).toBe('railway123');
+      expect(body.gitSha).toBe('abcdef123');
     } finally {
       if (originalAtlasSha === undefined) delete process.env.ATLAS_GIT_SHA;
       else process.env.ATLAS_GIT_SHA = originalAtlasSha;
