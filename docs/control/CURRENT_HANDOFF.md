@@ -3,7 +3,7 @@
 **Handoff ID:** `atlas-capabilities-research-regions-task-1`
 **Status:** active
 **Started:** 2026-07-24T20:51:28.110Z
-**Updated:** 2026-07-24T20:51:28.110Z
+**Updated:** 2026-07-24T21:57:10.710Z
 **Actor:** Codex
 **Objective:** Implement typed capability lifecycle metadata from the approved capabilities, research, and regions plan.
 
@@ -11,15 +11,17 @@
 
 - Work item: `P2A-CAPABILITIES-001`
 - Branch: `codex/atlas-continuity`
-- Base commit: `a9596d5012d868ba5f11bd79c0815ce45b1260ef`
-- Head commit: `b82b500b98eebb77f05f216380503a463ad12cae`
+- Base commit: `6df24dbb89a050beca6c190f6a4e7823ba5ca48a`
+- Head commit: `af655ef5007fc6882c5661e2800a62c4a5638c9b`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Task 6 base: `81285f1a17a39a09ce0cf8edc9e8e2054a349401`.
-- Task 6 code boundary: `b82b500b98eebb77f05f216380503a463ad12cae`.
-- Boundary note: the commit following the Task 6 code boundary is metadata-only and changes the roadmap, work queue, and this current handoff; it does not change executable code, tests, build configuration, or an archive.
+- Capability Task 1 base: `6df24dbb89a050beca6c190f6a4e7823ba5ca48a`.
+- Capability Task 1 code boundary: `af655ef5007fc6882c5661e2800a62c4a5638c9b`.
+- Boundary note: the commit following the Task 1 code boundary is metadata-only
+  and changes this current handoff; it does not change executable code, tests,
+  build configuration, the work queue, or an archive.
 
 ## Current working tree
 
@@ -27,9 +29,14 @@
 
 ## Verification evidence
 
-- TDD RED: the CI contract failed on pnpm 9 and the two missing continuity gates.
-- Focused GREEN: 85 of 85 control-schema tests passed.
-- pnpm install --frozen-lockfile, pnpm build, pnpm test, pnpm control:verify, YAML parsing, generated artifact diff, git diff check, and focused secret scan passed.
+- TDD RED: the metadata suite failed with 5 assertions because the lifecycle
+  map had no entries.
+- Focused GREEN: 7 of 7 registry metadata tests passed.
+- Registry and API builds passed; registry generation remained byte-stable at
+  15 API routes and 15 client methods.
+- `pnpm install --frozen-lockfile`, the 8-package build, all 141 tests,
+  `pnpm control:verify`, generated artifact diff, `git diff --check`, and the
+  focused secret scan passed.
 
 ## Database actions
 
@@ -41,7 +48,12 @@
 
 ## External side effects
 
-- Created local commit `b82b500b98eebb77f05f216380503a463ad12cae`; no push, deployment, live refresh, or external write performed.
+- Created local commit `af655ef5007fc6882c5661e2800a62c4a5638c9b`;
+  no push, deployment, database mutation, hosting mutation, or external write
+  performed.
+- The required read-only `pnpm control:status` check refreshed ignored local
+  generated observations and reconfirmed the known Railway route blocker; it
+  performed no external mutation.
 
 ## Blockers
 
@@ -49,8 +61,13 @@
 
 ## Next exact action
 
-Independently review Task 6 from base `81285f1a17a39a09ce0cf8edc9e8e2054a349401` through code boundary `b82b500b98eebb77f05f216380503a463ad12cae`; after approval, implement Task 1 of the approved Atlas capabilities, research, and regions plan using tests first.
+Independently review Capability Task 1 from base
+`6df24dbb89a050beca6c190f6a4e7823ba5ca48a` through code boundary
+`af655ef5007fc6882c5661e2800a62c4a5638c9b`; after approval, implement Task 2
+of the approved Atlas capabilities, research, and regions plan using tests first.
 
 ## Definition of done
 
-The Task 6 reviewer confirms no important or critical findings remain, then the typed capability lifecycle metadata task passes its focused tests, dependent builds, static control verification, and independent review.
+The Capability Task 1 reviewer confirms no important or critical findings
+remain, then the inherited regional-pack task passes its focused tests, static
+control verification, and independent review.
