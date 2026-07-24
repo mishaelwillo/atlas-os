@@ -1,7 +1,7 @@
 # Atlas Continuity Control Plane — Design
 
-**Status:** Proposed for approval
-**Date:** 2026-07-24
+**Status:** Approved
+**Approval date:** 2026-07-24
 **Product:** Atlas OS
 **Repository:** `mishaelwillo/atlas-os`
 **Initial regions:** United States, wider North America, Caribbean
@@ -528,7 +528,7 @@ The initial observed baseline is:
   - `POST /v1/memory/ingest` returns `404`.
 - Therefore P1 code is complete but P1 production API deployment closure is incomplete.
 
-This baseline must become the first generated drift report.
+This human-authored baseline is historical context only. The collector must independently observe the live authorities before producing the first generated drift report.
 
 ## 15. Implementation boundaries
 
@@ -569,9 +569,9 @@ The design is successfully implemented when:
 9. Regional packs inherit from global policy without forking application code.
 10. No continuity artifact contains a secret value.
 
-## 17. Decision requested
+## 17. Implementation sequence
 
-Approve this design as the continuity foundation for Atlas. After approval, the implementation plan will break it into independently testable work:
+Implementation proceeds through independently testable work:
 
 1. Documentation and schemas.
 2. Runtime fingerprints.
@@ -581,3 +581,7 @@ Approve this design as the continuity foundation for Atlas. After approval, the 
 6. Regional-pack foundation.
 7. CI and deployment verification.
 8. P1 production deployment closure.
+
+## 18. Approval record
+
+Approved on 2026-07-24 as the continuity foundation for Atlas.

@@ -1,10 +1,12 @@
 # Atlas Current State
 
-## Generated state
+## Generated observed state
 
-The authoritative generated reconciliation output is `generated/drift-report.md`. Until the collector creates or refreshes it, use the verified baseline below and do not infer live state.
+Generated observed state and drift are unavailable until Continuity Task 4 installs the collector. Do not treat the historical baseline below as live or generated evidence.
 
-## Verified baseline
+## Historical verified baseline
+
+The following human-authored snapshot was verified on 2026-07-24. It is historical context, not a substitute for live authority checks:
 
 - GitHub repository: `mishaelwillo/atlas-os`.
 - GitHub `main`: `6b70726b1e`.
@@ -15,9 +17,9 @@ The authoritative generated reconciliation output is `generated/drift-report.md`
 - P1 code is complete.
 - P1 production API deployment closure is incomplete and blocking.
 
-## Blocking drift
+## Historical blocking finding
 
-The production Railway API does not yet prove that it serves the selected P1 commit or P1 route set.
+As of 2026-07-24, the production Railway API did not prove that it served the selected P1 commit or P1 route set. Recheck the live authorities before making a current completion claim.
 
 ## Next exact action
 

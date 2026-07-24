@@ -7,7 +7,7 @@
 3. Active work: `CURRENT_HANDOFF.md`
 4. Machine work queue: `WORK_QUEUE.yaml`
 5. Environment inventory: `ENVIRONMENTS.yaml`
-6. Generated reality: `generated/drift-report.md`
+6. Generated observed state and drift: unavailable until Continuity Task 4 installs the collector
 
 ## Current phase
 
