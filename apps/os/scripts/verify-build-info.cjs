@@ -1,9 +1,15 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { pathToFileURL } = require('node:url');
 
 const repositoryRoot = path.resolve(__dirname, '../../..');
 const pnpmCli = process.env.npm_execpath;
+
+async function main() {
+const { REGISTRY_VERSION } = await import(
+  pathToFileURL(path.resolve(repositoryRoot, 'packages/registry/dist/registry.js')).href
+);
 
 const fixedEnvironment = {
   ...process.env,
@@ -78,7 +84,7 @@ const expected = {
   gitSha: secondSha,
   buildTime: fixedEnvironment.ATLAS_BUILD_TIME,
   schemaVersion: fixedEnvironment.ATLAS_SCHEMA_VERSION,
-  registryVersion: 1,
+  registryVersion: REGISTRY_VERSION,
 };
 if (JSON.stringify(generated) !== JSON.stringify(expected)) {
   throw new Error(
@@ -99,3 +105,9 @@ console.log(
     2,
   ),
 );
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

@@ -3,6 +3,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { REGISTRY_VERSION } from '../../../packages/registry/registry.js';
 
 const temporaryDirectories: string[] = [];
 const script = resolve(process.cwd(), 'scripts/write-build-info.cjs');
@@ -35,7 +36,7 @@ describe('OS build metadata generator', () => {
       gitSha: 'abc1234',
       buildTime: '2026-07-24T00:00:00.000Z',
       schemaVersion: '0001_init',
-      registryVersion: 1,
+      registryVersion: REGISTRY_VERSION,
     });
   });
 

@@ -64,6 +64,27 @@ function structuredHandoffWorkItem(handoff: string): string | undefined {
   return /^\s*-\s*Work item:\s*`([^`]+)`\s*$/im.exec(handoff)?.[1];
 }
 
+function structuredHandoffNextAction(handoff: string): string | undefined {
+  const lines = handoff.split(/\r?\n/);
+  const start = lines.findIndex(
+    (line) => line.trim().toLowerCase() === '## next exact action',
+  );
+  if (start < 0) return undefined;
+  const end = lines.findIndex(
+    (line, index) => index > start && line.trim().startsWith('## '),
+  );
+  return lines.slice(start + 1, end < 0 ? undefined : end).join('\n').trim();
+}
+
+function taskReferences(action: string | undefined): string[] {
+  if (!action) return [];
+  return [
+    ...new Set(
+      [...action.matchAll(/\bTask\s+(\d+)\b/gi)].map((match) => match[1]),
+    ),
+  ];
+}
+
 async function parseYamlFile(path: string): Promise<unknown> {
   return parse(await readFile(path, 'utf8'));
 }
@@ -132,14 +153,32 @@ export async function verifyStatic(root: string): Promise<Finding[]> {
           `expected exactly one in_progress work item, found ${activeItems.length}`,
         ),
       );
-    } else if (structuredHandoffWorkItem(handoff) !== activeItems[0].id) {
-      findings.push(
-        blocking(
-          'control.handoff_active_work',
-          relative(root, handoffPath),
-          `handoff does not mention active work item ${activeItems[0].id}`,
-        ),
-      );
+    } else {
+      const activeItem = activeItems[0];
+      if (structuredHandoffWorkItem(handoff) !== activeItem.id) {
+        findings.push(
+          blocking(
+            'control.handoff_active_work',
+            relative(root, handoffPath),
+            `handoff does not mention active work item ${activeItem.id}`,
+          ),
+        );
+      }
+
+      const queueTasks = taskReferences(activeItem.next_action);
+      const handoffTasks = taskReferences(structuredHandoffNextAction(handoff));
+      if (
+        (queueTasks.length > 0 || handoffTasks.length > 0) &&
+        JSON.stringify(queueTasks) !== JSON.stringify(handoffTasks)
+      ) {
+        findings.push(
+          blocking(
+            'control.handoff_next_action',
+            relative(root, queuePath),
+            `active work item ${activeItem.id} next_action contradicts CURRENT_HANDOFF.md`,
+          ),
+        );
+      }
     }
 
     await Promise.all(

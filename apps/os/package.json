@@ -5,12 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/write-build-info.cjs && pnpm --filter \"@atlas/os^...\" build && tsc && vite build",
+    "build": "pnpm --filter \"@atlas/os^...\" build && node scripts/write-build-info.cjs && tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run --pool=forks",
     "verify:build-info": "node scripts/verify-build-info.cjs"
   },
   "dependencies": {
+    "@atlas/registry": "workspace:*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.23.1",

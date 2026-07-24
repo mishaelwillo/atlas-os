@@ -1,3 +1,4 @@
+import { REGISTRY_VERSION } from '@atlas/registry';
 import { loadBuildEnv } from './env.js';
 
 export interface BuildInfo {
@@ -18,6 +19,6 @@ export function loadBuildInfo(source: NodeJS.ProcessEnv = process.env): BuildInf
     gitSha: env.gitSha,
     buildTime: env.buildTime,
     schemaVersion: env.schemaVersion,
-    registryVersion: 1,
+    registryVersion: REGISTRY_VERSION,
   };
 }

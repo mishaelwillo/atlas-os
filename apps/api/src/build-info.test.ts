@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { REGISTRY_VERSION } from '@atlas/registry';
 import { loadBuildInfo } from './build-info.js';
 
 describe('loadBuildInfo', () => {
@@ -15,7 +16,7 @@ describe('loadBuildInfo', () => {
       gitSha: 'abc1234',
       buildTime: '2026-07-24T00:00:00.000Z',
       schemaVersion: '0001_init',
-      registryVersion: 1,
+      registryVersion: REGISTRY_VERSION,
     });
   });
 
@@ -26,7 +27,7 @@ describe('loadBuildInfo', () => {
       gitSha: 'unknown',
       buildTime: 'unknown',
       schemaVersion: '0001_init',
-      registryVersion: 1,
+      registryVersion: REGISTRY_VERSION,
     });
   });
 

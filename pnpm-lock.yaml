@@ -60,6 +60,9 @@ importers:
       '@atlas/client':
         specifier: workspace:*
         version: link:../../packages/client
+      '@atlas/registry':
+        specifier: workspace:*
+        version: link:../../packages/registry
       '@atlas/shared':
         specifier: workspace:*
         version: link:../../packages/shared

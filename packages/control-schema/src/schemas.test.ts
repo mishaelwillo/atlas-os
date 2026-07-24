@@ -277,6 +277,64 @@ environments:
     ]);
   });
 
+  test('rejects an active queue action that repeats a completed task instead of the handoff sequence', async () => {
+    const root = await makeControlRoot({
+      queue: {
+        ...validQueue,
+        items: [
+          {
+            ...validQueue.items[0],
+            next_action: 'Implement Task 1 using tests first',
+          },
+        ],
+      },
+      handoff: `# Current Handoff
+
+- Work item: \`P2A-CONTROL-001\`
+
+## Next exact action
+
+Independently review Task 1; after approval, implement Task 2 using tests first.
+`,
+    });
+
+    await expect(verifyStatic(root)).resolves.toContainEqual(
+      expect.objectContaining({
+        code: 'control.handoff_next_action',
+        severity: 'blocking',
+      }),
+    );
+  });
+
+  test('accepts the same review and execution task sequence in the queue and handoff', async () => {
+    const root = await makeControlRoot({
+      queue: {
+        ...validQueue,
+        items: [
+          {
+            ...validQueue.items[0],
+            next_action:
+              'Independently review Task 1; after approval, execute Task 2 using tests first',
+          },
+        ],
+      },
+      handoff: `# Current Handoff
+
+- Work item: \`P2A-CONTROL-001\`
+
+## Next exact action
+
+Independently review Task 1; after approval, implement Task 2 using tests first.
+
+## Definition of done
+
+The review passes.
+`,
+    });
+
+    await expect(verifyStatic(root)).resolves.toEqual([]);
+  });
+
   test('checks repo-root-relative index paths regardless of extension', async () => {
     const root = await makeControlRoot({
       index:

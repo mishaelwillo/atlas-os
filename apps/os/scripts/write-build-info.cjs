@@ -1,5 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 
 const normalizedValue = (value) => {
   const normalized = value?.trim();
@@ -41,21 +42,32 @@ const schemaVersion = (value) => {
   return /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(normalized) ? normalized : 'unknown';
 };
 
-const info = {
-  service: 'atlas-os',
-  appVersion: '0.1.0',
-  gitSha: gitSha(process.env.ATLAS_GIT_SHA, process.env.RAILWAY_GIT_COMMIT_SHA),
-  buildTime:
-    process.env.ATLAS_BUILD_TIME === undefined
-      ? new Date().toISOString()
-      : buildTime(process.env.ATLAS_BUILD_TIME),
-  schemaVersion: schemaVersion(process.env.ATLAS_SCHEMA_VERSION),
-  registryVersion: 1,
-};
+async function main() {
+  const registryModule = pathToFileURL(
+    path.resolve(__dirname, '../../../packages/registry/dist/registry.js'),
+  ).href;
+  const { REGISTRY_VERSION } = await import(registryModule);
+  const info = {
+    service: 'atlas-os',
+    appVersion: '0.1.0',
+    gitSha: gitSha(process.env.ATLAS_GIT_SHA, process.env.RAILWAY_GIT_COMMIT_SHA),
+    buildTime:
+      process.env.ATLAS_BUILD_TIME === undefined
+        ? new Date().toISOString()
+        : buildTime(process.env.ATLAS_BUILD_TIME),
+    schemaVersion: schemaVersion(process.env.ATLAS_SCHEMA_VERSION),
+    registryVersion: REGISTRY_VERSION,
+  };
 
-const publicDirectory = path.resolve('public');
-fs.mkdirSync(publicDirectory, { recursive: true });
-fs.writeFileSync(
-  path.resolve(publicDirectory, 'build-info.json'),
-  `${JSON.stringify(info, null, 2)}\n`,
-);
+  const publicDirectory = path.resolve('public');
+  fs.mkdirSync(publicDirectory, { recursive: true });
+  fs.writeFileSync(
+    path.resolve(publicDirectory, 'build-info.json'),
+    `${JSON.stringify(info, null, 2)}\n`,
+  );
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
