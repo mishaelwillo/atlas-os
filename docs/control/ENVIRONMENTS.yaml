@@ -1,0 +1,43 @@
+schema_version: 1
+environments:
+  production:
+    github:
+      repository: mishaelwillo/atlas-os
+      branch: main
+    supabase:
+      project_ref: yyyspvralawnvhtmuyvg
+      expected_migration: 0001_init
+      required_tables:
+        - spaces
+        - api_tokens
+        - runs
+        - run_logs
+        - approvals
+        - audit_log
+        - schedules
+        - memory_cards
+        - ingest_queue
+        - memory_nodes
+        - memory_edges
+        - answer_cache
+        - playbooks
+        - sites
+        - leads
+        - conversations
+        - messages
+        - bench_results
+    railway:
+      api:
+        public_url: https://api-production-78a5.up.railway.app
+        health_path: /healthz
+      os:
+        public_url: https://os-production-8faf.up.railway.app
+        health_path: /build-info.json
+    required_variable_names:
+      - DATABASE_URL
+      - SUPABASE_URL
+      - SUPABASE_SERVICE_ROLE_KEY
+      - OS_APP_ORIGIN
+      - VITE_API_URL
+      - VITE_SUPABASE_URL
+      - VITE_SUPABASE_ANON_KEY

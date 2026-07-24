@@ -1,0 +1,62 @@
+schema_version: 1
+items:
+  - id: P1-DEPLOY-001
+    phase: P1 deployment closure
+    title: Close the P1 production API deployment gap
+    status: ready
+    priority: critical
+    dependencies:
+      - P2A-CONTROL-001
+    specification: DEPLOYMENT_RUNBOOK.md
+    acceptance_checks:
+      - Railway API fingerprint matches the selected P1 commit
+      - Required P1 routes exist
+      - P1 live acceptance passes
+    next_action: Select the deployment SHA after continuity verification is operational
+  - id: P2A-CONTROL-001
+    phase: P2A
+    title: Establish the Atlas continuity control plane
+    status: in_progress
+    priority: critical
+    dependencies: []
+    specification: CONTINUITY_DESIGN.md
+    acceptance_checks:
+      - Canonical control files validate
+      - Observed-state collection reports authority-specific facts
+      - Blocking P0-versus-P1 Railway API drift is detected
+    next_action: Install the canonical control entry points
+  - id: P2A-MEMORY-001
+    phase: P2A
+    title: Establish the Intelligence Bank foundation
+    status: queued
+    priority: high
+    dependencies:
+      - P2A-CONTROL-001
+    specification: CONTINUITY_DESIGN.md
+    acceptance_checks:
+      - Intelligence foundation specification is approved
+      - Owned memory remains governed and verifiable
+    next_action: Begin after continuity controls are verified
+  - id: P2B-FACTORY-001
+    phase: P2B
+    title: Build the Website Factory
+    status: queued
+    priority: high
+    dependencies:
+      - P2A-CONTROL-001
+      - P2A-MEMORY-001
+    specification: CONTINUITY_DESIGN.md
+    acceptance_checks:
+      - GBP or profile URL becomes an approved live demo in under 30 minutes
+    next_action: Approve the Website Factory specification after P2A
+  - id: P2C-REVENUE-001
+    phase: P2C
+    title: Run the minimum complete revenue pilot
+    status: queued
+    priority: high
+    dependencies:
+      - P2B-FACTORY-001
+    specification: CONTINUITY_DESIGN.md
+    acceptance_checks:
+      - One real hosting-paying customer completes an approval-gated sequence
+    next_action: Define the supervised pilot after Website Factory acceptance
