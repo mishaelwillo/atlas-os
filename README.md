@@ -1,5 +1,10 @@
 # Atlas OS — web app (P0)
 
+## Start here
+
+Humans and models begin with `AGENTS.md` and `docs/control/CONTROL_INDEX.md`.
+Run `pnpm control:status` before making status claims.
+
 The studio's generic AI backend / Agent OS. Spec: `../ATLAS-OS-SPEC.md` (v1.2). Vetted build plan: Fable = judgment/security/review, Codex 5.6 = bulk implementation, Antigravity = scaffold/tests ($0). Delegation happens at task boundaries via `briefs/`.
 
 ## What's here now (Fable lane, done)

@@ -20,9 +20,9 @@ jobs:
           node-version: 22
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 11.15.1
 
       - name: Get pnpm store directory
         shell: bash
@@ -40,8 +40,14 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Verify Atlas control plane
+        run: pnpm control:verify
+
       - name: Build Workspace
         run: pnpm run build
+
+      - name: Verify generated files are committed
+        run: git diff --exit-code -- apps/api/src/routes.gen.ts packages/client/src/client.gen.ts
 
       - name: Run Tests
         run: pnpm run test
