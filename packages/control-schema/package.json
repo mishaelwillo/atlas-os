@@ -14,11 +14,13 @@
     "archive-handoff": "tsx src/archive-handoff.ts"
   },
   "dependencies": {
+    "pg": "^8.12.0",
     "yaml": "^2.8.1",
     "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/node": "^20.12.12",
+    "@types/pg": "^8.11.0",
     "tsx": "^4.20.3",
     "typescript": "^5.4.5",
     "vitest": "^1.6.0"

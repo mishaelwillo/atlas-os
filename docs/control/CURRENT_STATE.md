@@ -2,7 +2,11 @@
 
 ## Generated observed state
 
-Generated observed state and drift are unavailable until Continuity Task 4 installs the collector. Do not treat the historical baseline below as live or generated evidence.
+The read-only collector is installed. A user-invoked `pnpm control:status`
+refresh writes uncommitted `docs/control/generated/observed-state.json` and
+`drift-report.md` with collection timestamps and provenance. If those files are
+absent, no live refresh has been performed in the current worktree. Do not treat
+the historical baseline below as live or generated evidence.
 
 ## Historical verified baseline
 
@@ -23,4 +27,5 @@ As of 2026-07-24, the production Railway API did not prove that it served the se
 
 ## Next exact action
 
-Complete continuity-control implementation and verification before selecting and deploying the P1 production commit.
+Independently review Continuity Task 4, then implement Task 5 handoff creation
+and archival tooling before selecting and deploying the P1 production commit.

@@ -11,7 +11,9 @@ Other code spans are commands or identifiers and are not interpreted as paths.
 3. Active work: `path:docs/control/CURRENT_HANDOFF.md`
 4. Machine work queue: `path:docs/control/WORK_QUEUE.yaml`
 5. Environment inventory: `path:docs/control/ENVIRONMENTS.yaml`
-6. Generated observed state and drift: unavailable until Continuity Task 4 installs the collector
+6. Generated observed state and drift: run `pnpm control:status` to refresh the
+   uncommitted files in `docs/control/generated/`; absence means no live refresh
+   has been performed in this worktree
 
 ## Current phase
 
