@@ -201,6 +201,35 @@ describe('observed-state collection and drift', () => {
     expect(findings.filter((finding) => finding.severity === 'blocking')).toEqual([]);
   });
 
+  it.each([401, 403])(
+    'recognizes Mission Control status %i as an existing protected route',
+    async (missionControlStatus) => {
+      const root = await fixtureRoot();
+      const observed = await collectObservedState({
+        root,
+        collectedAt,
+        environment,
+        run: injectedRun(),
+        fetch: injectedFetch({
+          healthSha: githubSha,
+          ingestStatus: 401,
+          missionControlStatus,
+          missionControlBody: { error: 'authentication required' },
+        }),
+        queryTables: async () => ['memory_cards', 'memory_nodes'],
+        databaseUrl: 'opaque-test-database-url',
+      });
+
+      expect(observed.railwayApi.status).toBe('ok');
+      expect(observed.railwayApi.value?.routes.missionControl.exists).toBe(true);
+      expect(
+        detectDrift(desired({ now: collectedAt }), observed).filter(
+          (finding) => finding.severity === 'blocking',
+        ),
+      ).toEqual([]);
+    },
+  );
+
   it('records unavailable authorities explicitly without throwing or leaking error secrets', async () => {
     const root = await fixtureRoot();
     const secrets = [
@@ -459,6 +488,38 @@ describe('observed-state collection and drift', () => {
     );
   });
 
+  it.each([
+    ['missing', undefined],
+    ['invalid', 'not-a-handoff-timestamp'],
+  ])('warns explicitly when the handoff Updated timestamp is %s', async (_name, handoffUpdatedAt) => {
+    const root = await fixtureRoot();
+    const observed = await collectObservedState({
+      root,
+      collectedAt,
+      environment,
+      run: injectedRun(),
+      fetch: injectedFetch({ healthSha: githubSha, ingestStatus: 401 }),
+      queryTables: async () => ['memory_cards', 'memory_nodes'],
+      databaseUrl: 'opaque-test-database-url',
+    });
+
+    expect(
+      detectDrift(
+        desired({
+          handoffUpdatedAt,
+          now: collectedAt,
+        }),
+        observed,
+      ),
+    ).toContainEqual(
+      expect.objectContaining({
+        severity: 'warning',
+        code: 'control.handoff_timestamp_invalid',
+        message: expect.stringContaining('invalid or unavailable'),
+      }),
+    );
+  });
+
   it('sorts findings by locale-independent codepoint order', () => {
     const findings = sortDriftFindings([
       { severity: 'warning', code: 'ä.code', message: 'second' },
@@ -519,6 +580,30 @@ describe('observed-state collection and drift', () => {
         'utf8',
       ),
     ).toContain('"schemaVersion": 1');
+  });
+
+  it('returns zero end to end when both production routes are protected', async () => {
+    const root = await fixtureRoot();
+    const lines: string[] = [];
+    const exitCode = await runStatusCli({
+      root,
+      collectedAt,
+      environment,
+      desired: desired({ now: collectedAt }),
+      run: injectedRun(githubSha),
+      fetch: injectedFetch({
+        healthSha: githubSha,
+        missionControlStatus: 401,
+        missionControlBody: { error: 'authentication required' },
+        ingestStatus: 401,
+      }),
+      queryTables: async () => ['memory_cards', 'memory_nodes'],
+      databaseUrl: 'opaque-test-database-url',
+      writeLine: (line) => lines.push(line),
+    });
+
+    expect(exitCode).toBe(0);
+    expect(lines.some((line) => line.startsWith('BLOCKING '))).toBe(false);
   });
 
   it('writes stable JSON and Markdown with provenance and final newlines', async () => {

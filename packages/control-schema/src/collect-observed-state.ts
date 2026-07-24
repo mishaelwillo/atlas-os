@@ -410,19 +410,21 @@ async function collectRailwayApi(
                 ? `API health returned unexpected status ${health.status}.`
                 : 'API health returned malformed JSON.',
           };
-    const missionValid =
+    const missionBodyValid =
       missionControl.status === 200 &&
       missionBody.parsed &&
       isObject(missionBody.value) &&
       missionBody.value.ok === true &&
       Array.isArray(missionBody.value.cards);
+    const missionProtected = [401, 403].includes(missionControl.status);
+    const missionExists = missionBodyValid || missionProtected;
     const ingestExists =
       [400, 401, 403, 415].includes(memoryIngest.status) &&
       ingestBody.parsed &&
       isObject(ingestBody.value);
     const errors = [
       healthValidation.error,
-      ...(missionValid
+      ...(missionExists
         ? []
         : [
             `Mission Control probe returned invalid status or body (${missionControl.status}).`,
@@ -439,7 +441,7 @@ async function collectRailwayApi(
           method: 'GET' as const,
           path: '/v1/status/mission_control',
           status: missionControl.status,
-          exists: missionValid,
+          exists: missionExists,
         },
         memoryIngest: {
           method: 'POST' as const,

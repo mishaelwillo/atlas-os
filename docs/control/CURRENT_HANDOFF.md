@@ -11,16 +11,17 @@
 - Work item: `P2A-CONTROL-001`
 - Branch: `codex/atlas-continuity`
 - Specification: `CONTINUITY_DESIGN.md`
-- Task state: Task 4 review findings fixed and locally verified; pending independent re-review
+- Task state: Task 4 R2 findings fixed and locally verified; pending final independent re-review
 - Task 4 base commit: `780a752f5940e66bf78fd7649cb6fc04d66a8941`
 - Task 4 initial implementation: `7504d07fa48f9f08d59eeb8de2c6697ad761c487`
-- Task 4 review-fix boundary: the fix commit containing this handoff
+- Task 4 review hardening: `8a1d1a589b4d1506c5719318f361ee2fe4775922`
+- Task 4 R2 boundary: the fix commit containing this handoff
 - Task 3 base commit: `0c65770ee50a52397cbbffe34e5c99fad9eff291`
 - Task 3 implementation head: `2c97df9950436210b372c2cee1d8964f725bcb07`
 - Task 3 cache-safe fix: `810c05fe7a4920a2c16fc9dcfcc9fcdb51ff519f`
 - Task 3 reviewed-code candidate boundary: `d997d279225c345b5f9c203f760a26ba23aa2553`
 - Boundary note: the commit after `d997d279225c345b5f9c203f760a26ba23aa2553` is metadata-only and records these immutable code boundaries; it does not change executable code, tests, or build configuration.
-- Review status: Task 3 approved; Task 4 pending independent re-review
+- Review status: Task 3 approved; Task 4 pending final independent re-review
 
 ## Files changed
 
@@ -71,6 +72,12 @@
   blocking/non-blocking status CLI exits.
 - Task 4 review-fix GREEN: full repository tests and builds, control
   verification, and diff checks pass.
+- Task 4 R2 RED: 5 regression cases failed because protected Mission Control
+  responses (`401`/`403`) were treated as invalid and missing/invalid handoff
+  timestamps were silently treated as fresh.
+- Task 4 R2 GREEN: all 47 control-schema tests pass, including an end-to-end
+  matching-SHA status run where both production routes return `401` and the CLI
+  exits `0`.
 
 ## Verified baseline
 
@@ -109,16 +116,22 @@ None.
   malformed fingerprints cannot become `ok` evidence.
 - GitHub head evidence may remain known while CI evidence is explicitly
   unknown; missing or non-terminal CI conclusions do not become success.
+- Mission Control `401` and `403` prove the protected route exists without
+  claiming its body is a successful response. A `200` is accepted only with
+  `{ ok: true, cards: [] }`; `404` is missing and other/malformed responses are
+  invalid.
+- Missing or invalid active-handoff update time is an explicit freshness
+  warning, not an assumed age of zero.
 
 ## Blockers
 
 Production P1 deployment closure remains blocked by the Railway API serving the P0 route set.
-Task 5 is gated on independent re-approval of the Task 4 hardening.
+Task 5 is gated on final independent re-approval of Task 4 R2.
 
 ## Next exact action
 
 Independently re-review Task 4 from base
-`780a752f5940e66bf78fd7649cb6fc04d66a8941` through the review-fix commit
+`780a752f5940e66bf78fd7649cb6fc04d66a8941` through the R2 fix commit
 containing this handoff. If approved, begin Task 5 by writing failing temporary
 fixture tests for handoff creation and collision-safe archival.
 
@@ -132,7 +145,7 @@ fixture tests for handoff creation and collision-safe archival.
 - The OS Turbo override explicitly preserves dependency builds and cacheable outputs.
 - Public fingerprint values are normalized and invalid values become `unknown`.
 - The handoff retains the active work-item identity and records Task 4 as pending
-  independent re-review.
+  final independent re-review.
 - Authority failures cannot prevent an observed-state report, cannot invent live
   truth, and cannot expose a database URL or secret-like error value.
 - A known API SHA mismatch, a `404` P1 route, missing required tables, missing

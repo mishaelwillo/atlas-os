@@ -182,10 +182,18 @@ export function detectDrift(
       ),
     );
   }
-  if (
-    desired.handoffUpdatedAt &&
-    (ageMilliseconds(desired.handoffUpdatedAt, now) ?? 0) > 24 * 60 * 60 * 1_000
-  ) {
+  const handoffAge = desired.handoffUpdatedAt
+    ? ageMilliseconds(desired.handoffUpdatedAt, now)
+    : undefined;
+  if (handoffAge === undefined) {
+    findings.push(
+      finding(
+        'warning',
+        'control.handoff_timestamp_invalid',
+        'The active handoff Updated timestamp is invalid or unavailable.',
+      ),
+    );
+  } else if (handoffAge > 24 * 60 * 60 * 1_000) {
     findings.push(
       finding(
         'warning',
