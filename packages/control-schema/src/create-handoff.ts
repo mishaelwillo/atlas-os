@@ -65,6 +65,7 @@ function parseArguments(args: string[]): ParsedArguments {
     }
     const scalarKey = flag ? SCALAR_ARGUMENTS[flag] : undefined;
     if (scalarKey) {
+      validateSafeHandoffText(flag!, value, scalarKey === 'actor' ? 80 : 500);
       parsed[scalarKey] = value;
       continue;
     }
@@ -154,6 +155,29 @@ function codeField(markdown: string, label: string): string | undefined {
   return new RegExp(`^- ${escaped}: \\x60([^\\x60]+)\\x60\\s*$`, 'im').exec(markdown)?.[1];
 }
 
+function headingCodeField(markdown: string, label: string): string | undefined {
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^\\*\\*${escaped}:\\*\\* \\x60([^\\x60]+)\\x60\\s*$`, 'im').exec(
+    markdown,
+  )?.[1];
+}
+
+function headingTextField(markdown: string, label: string): string | undefined {
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^\\*\\*${escaped}:\\*\\* (.+?)\\s*$`, 'im').exec(markdown)?.[1];
+}
+
+function canonicalTimestamp(value: string | undefined): string | undefined {
+  if (
+    value &&
+    Number.isFinite(Date.parse(value)) &&
+    new Date(value).toISOString() === value
+  ) {
+    return value;
+  }
+  return undefined;
+}
+
 async function git(root: string, args: string[]): Promise<string> {
   const result = await execFileAsync('git', args, {
     cwd: root,
@@ -187,6 +211,7 @@ export async function runCreateHandoffCli(
       );
     }
     const activeWorkItem = activeItems[0]!;
+    validateSafeHandoffText('active work item', activeWorkItem.id, 200);
     if (parsed.workItem && !isSafeWorkItemId(parsed.workItem)) {
       throw new Error('--work-item contains unsafe characters');
     }
@@ -205,6 +230,8 @@ export async function runCreateHandoffCli(
       readObservedActionSummary(controlRoot),
     ]);
     const previousBase = codeField(previous, 'Base commit');
+    const previousId = headingCodeField(previous, 'Handoff ID');
+    const previousStarted = canonicalTimestamp(headingTextField(previous, 'Started'));
     const changed = status ? status.split(/\r?\n/).filter(Boolean) : [];
 
     const input: HandoffInput = {
@@ -228,9 +255,11 @@ export async function runCreateHandoffCli(
       databaseActions.push(observedSummary.database);
       hostingActions.push(observedSummary.hosting);
     }
+    const updatedAt = now.toISOString();
     const observed: HandoffObservedState = {
-      startedAt: now.toISOString(),
-      updatedAt: now.toISOString(),
+      startedAt:
+        previousId === input.id && previousStarted ? previousStarted : updatedAt,
+      updatedAt,
       branch,
       baseCommit: previousBase ?? headCommit,
       headCommit,

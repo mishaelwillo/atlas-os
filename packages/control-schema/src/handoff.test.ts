@@ -34,7 +34,15 @@ function git(root: string, ...args: string[]): string {
   }).trim();
 }
 
-async function fixtureRoot(options: { dirty?: boolean; generated?: unknown | 'absent' } = {}): Promise<string> {
+async function fixtureRoot(
+  options: {
+    dirty?: boolean;
+    generated?: unknown | 'absent';
+    currentId?: string;
+    currentStarted?: string;
+    activeWorkItemId?: string;
+  } = {},
+): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), 'atlas-handoff-'));
   roots.push(root);
   await mkdir(join(root, 'docs', 'control', 'generated'), { recursive: true });
@@ -43,7 +51,7 @@ async function fixtureRoot(options: { dirty?: boolean; generated?: unknown | 'ab
     join(root, 'docs', 'control', 'WORK_QUEUE.yaml'),
     `schema_version: 1
 items:
-  - id: P2A-CONTROL-001
+  - id: ${options.activeWorkItemId ?? 'P2A-CONTROL-001'}
     phase: P2A
     title: Establish continuity
     status: in_progress
@@ -71,9 +79,9 @@ items:
     join(root, 'docs', 'control', 'CURRENT_HANDOFF.md'),
     `# Current Handoff
 
-**Handoff ID:** \`previous-handoff\`
+**Handoff ID:** \`${options.currentId ?? 'previous-handoff'}\`
 **Status:** active
-**Started:** 2026-07-24T13:00:00.000Z
+**Started:** ${options.currentStarted ?? '2026-07-24T13:00:00.000Z'}
 **Updated:** 2026-07-24T14:00:00.000Z
 **Actor:** Codex
 **Objective:** Finish the prior task.
@@ -304,6 +312,161 @@ describe('handoff creation CLI', () => {
     expect(await readFile(join(root, 'docs', 'control', 'CURRENT_HANDOFF.md'), 'utf8')).toBe(
       original,
     );
+  });
+
+  it.each([
+    {
+      label: '--id',
+      args: [
+        '--id',
+        'sk-abcdef',
+        '--objective',
+        'Reject a secret-like ID.',
+        '--next',
+        'Keep the current handoff.',
+      ],
+      options: {},
+    },
+    {
+      label: '--actor',
+      args: [
+        '--id',
+        'safe-handoff',
+        '--actor',
+        'sk-abcdef',
+        '--objective',
+        'Reject a secret-like actor.',
+        '--next',
+        'Keep the current handoff.',
+      ],
+      options: {},
+    },
+    {
+      label: '--work-item',
+      args: [
+        '--id',
+        'safe-handoff',
+        '--objective',
+        'Reject a secret-like work item.',
+        '--next',
+        'Keep the current handoff.',
+        '--work-item',
+        'sk-abcdef',
+      ],
+      options: { activeWorkItemId: 'sk-abcdef' },
+    },
+  ])('rejects secret-like $label scalar input without changing current', async ({ args, options }) => {
+    const root = await fixtureRoot({ generated: 'absent', ...options });
+    const currentPath = join(root, 'docs', 'control', 'CURRENT_HANDOFF.md');
+    const original = await readFile(currentPath, 'utf8');
+    const lines: string[] = [];
+
+    expect(
+      await runCreateHandoffCli(root, args, (line) => lines.push(line), now),
+    ).toBe(1);
+    expect(lines.join('\n')).toMatch(/secret-like content/i);
+    expect(await readFile(currentPath, 'utf8')).toBe(original);
+  });
+
+  it('rejects a secret-like queue-sourced active work item before rendering', async () => {
+    const root = await fixtureRoot({
+      generated: 'absent',
+      activeWorkItemId: 'sk-abcdef',
+    });
+    const currentPath = join(root, 'docs', 'control', 'CURRENT_HANDOFF.md');
+    const original = await readFile(currentPath, 'utf8');
+    const lines: string[] = [];
+
+    expect(
+      await runCreateHandoffCli(
+        root,
+        [
+          '--id',
+          'safe-handoff',
+          '--objective',
+          'Reject unsafe queue data.',
+          '--next',
+          'Keep the current handoff.',
+        ],
+        (line) => lines.push(line),
+        now,
+      ),
+    ).toBe(1);
+    expect(lines.join('\n')).toMatch(/secret-like content/i);
+    expect(await readFile(currentPath, 'utf8')).toBe(original);
+  });
+
+  it('preserves a valid prior Started timestamp when updating the same handoff ID', async () => {
+    const root = await fixtureRoot({ generated: 'absent' });
+
+    expect(
+      await runCreateHandoffCli(
+        root,
+        [
+          '--id',
+          'previous-handoff',
+          '--objective',
+          'Continue the same handoff.',
+          '--next',
+          'Review the updated evidence.',
+        ],
+        () => undefined,
+        now,
+      ),
+    ).toBe(0);
+    const current = await readFile(join(root, 'docs', 'control', 'CURRENT_HANDOFF.md'), 'utf8');
+    expect(current).toContain('**Started:** 2026-07-24T13:00:00.000Z');
+    expect(current).toContain('**Updated:** 2026-07-24T15:30:00.000Z');
+  });
+
+  it('uses now as Started when the handoff ID changes', async () => {
+    const root = await fixtureRoot({ generated: 'absent' });
+
+    expect(
+      await runCreateHandoffCli(
+        root,
+        [
+          '--id',
+          'replacement-handoff',
+          '--objective',
+          'Start a replacement handoff.',
+          '--next',
+          'Review the replacement.',
+        ],
+        () => undefined,
+        now,
+      ),
+    ).toBe(0);
+    const current = await readFile(join(root, 'docs', 'control', 'CURRENT_HANDOFF.md'), 'utf8');
+    expect(current).toContain('**Started:** 2026-07-24T15:30:00.000Z');
+    expect(current).toContain('**Updated:** 2026-07-24T15:30:00.000Z');
+  });
+
+  it('does not preserve an invalid prior Started timestamp for the same ID', async () => {
+    const root = await fixtureRoot({
+      generated: 'absent',
+      currentStarted: 'not-a-timestamp',
+    });
+
+    expect(
+      await runCreateHandoffCli(
+        root,
+        [
+          '--id',
+          'previous-handoff',
+          '--objective',
+          'Repair invalid prior metadata.',
+          '--next',
+          'Review the repaired timestamp.',
+        ],
+        () => undefined,
+        now,
+      ),
+    ).toBe(0);
+    const current = await readFile(join(root, 'docs', 'control', 'CURRENT_HANDOFF.md'), 'utf8');
+    expect(current).toContain('**Started:** 2026-07-24T15:30:00.000Z');
+    expect(current).toContain('**Updated:** 2026-07-24T15:30:00.000Z');
+    expect(current).not.toContain('not-a-timestamp');
   });
 
   it.each([

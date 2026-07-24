@@ -43,10 +43,13 @@ export function validateSafeHandoffText(
 }
 
 export function validateHandoffInput(input: HandoffInput): void {
+  validateSafeHandoffText('--id', input.id, 200);
   if (!HANDOFF_ID.test(input.id)) {
     throw new Error('--id must be a stable lowercase kebab-case identifier');
   }
+  validateSafeHandoffText('--actor', input.actor, 80);
   if (!SAFE_ACTOR.test(input.actor)) throw new Error('--actor contains unsafe characters');
+  validateSafeHandoffText('--work-item', input.workItem, 200);
   if (!WORK_ITEM_ID.test(input.workItem)) {
     throw new Error('--work-item contains unsafe characters');
   }
@@ -60,11 +63,14 @@ function validateObservedState(observed: HandoffObservedState): void {
     ['startedAt', observed.startedAt],
     ['updatedAt', observed.updatedAt],
   ] as const) {
+    validateSafeHandoffText(name, timestamp, 100);
     if (!Number.isFinite(Date.parse(timestamp)) || new Date(timestamp).toISOString() !== timestamp) {
       throw new Error(`${name} must be a canonical ISO timestamp`);
     }
   }
   validateSafeHandoffText('branch', observed.branch, 200);
+  validateSafeHandoffText('base commit', observed.baseCommit, 100);
+  validateSafeHandoffText('head commit', observed.headCommit, 100);
   if (!COMMIT.test(observed.baseCommit) || !COMMIT.test(observed.headCommit)) {
     throw new Error('base and head commits must be hexadecimal Git SHAs or unknown');
   }
@@ -155,9 +161,19 @@ ${input.definitionOfDone}
 }
 
 export function isSafeHandoffId(value: string): boolean {
-  return HANDOFF_ID.test(value);
+  try {
+    validateSafeHandoffText('handoff ID', value, 200);
+    return HANDOFF_ID.test(value);
+  } catch {
+    return false;
+  }
 }
 
 export function isSafeWorkItemId(value: string): boolean {
-  return WORK_ITEM_ID.test(value);
+  try {
+    validateSafeHandoffText('work item ID', value, 200);
+    return WORK_ITEM_ID.test(value);
+  } catch {
+    return false;
+  }
 }
