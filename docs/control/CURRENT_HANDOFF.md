@@ -1,19 +1,19 @@
 # Current Handoff
 
-**Handoff ID:** `atlas-continuity-implementation-20260724-01`
-**Status:** completed and approved
+**Handoff ID:** `atlas-continuity-implementation-20260724-02`
+**Status:** active
 **Updated:** 2026-07-24
 **Actor:** Codex
-**Objective:** Implement the approved Atlas continuity control plane without changing application code or external systems.
+**Objective:** Continue the approved Atlas continuity control-plane implementation without mutating external systems.
 
 ## Active work
 
 - Work item: `P2A-CONTROL-001`
 - Branch: `codex/atlas-continuity`
 - Specification: `CONTINUITY_DESIGN.md`
-- Completed task: Task 1, canonical control entry points
-- Final head: the commit containing this handoff closure, `docs(control): close task 1 handoff`
-- Base commit: `83af4e9`
+- Completed task: Task 2, typed control schemas and static verification
+- Final head: the commit containing this handoff update, `feat(control): validate Atlas control artifacts`
+- Task base commit: `52539c3`
 
 ## Verified baseline
 
@@ -40,11 +40,11 @@ Production P1 deployment closure remains blocked by the Railway API serving the 
 
 ## Next exact action
 
-Begin Task 2 from its approved continuity-foundation task brief.
+Begin Task 3 from the approved continuity-foundation plan: add API and OS runtime fingerprints.
 
 ## Definition of done
 
-- Task 1 was completed, reviewed, and approved on 2026-07-24.
-- Canonical control entry points, required references, and historical baseline facts are present.
+- Task 2 schema tests, package build, and static control verification pass.
+- `WORK_QUEUE.yaml` contains exactly one `in_progress` item: `P2A-CONTROL-001`.
+- The handoff names that active item and the next exact implementation action.
 - Generated observed state remains explicitly unavailable until Task 4 installs the collector.
-- Task 1 implementation and review corrections are committed with verification evidence recorded in the Task 1 report.

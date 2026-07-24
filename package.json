@@ -10,7 +10,11 @@
     "build": "turbo run build",
     "dev": "turbo run dev --parallel",
     "test": "turbo run test",
-    "lint": "turbo run lint"
+    "lint": "turbo run lint",
+    "control:verify": "pnpm --filter @atlas/control-schema verify",
+    "control:status": "pnpm --filter @atlas/control-schema status",
+    "control:handoff": "pnpm --filter @atlas/control-schema handoff",
+    "control:archive-handoff": "pnpm --filter @atlas/control-schema archive-handoff"
   },
   "devDependencies": {
     "turbo": "^2.0.4",
