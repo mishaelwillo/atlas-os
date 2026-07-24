@@ -74,7 +74,7 @@ async function makeControlRoot(options?: {
   );
   await writeFile(
     join(control, 'CONTROL_INDEX.md'),
-    options?.index ?? '# Control Index\n\n- Active work: `docs/control/CURRENT_HANDOFF.md`\n',
+    options?.index ?? '# Control Index\n\n- Active work: `path:docs/control/CURRENT_HANDOFF.md`\n',
   );
   if (options?.includeSpecification !== false) {
     await writeFile(join(control, 'CONTINUITY_DESIGN.md'), '# Continuity Design\n');
@@ -271,7 +271,7 @@ environments:
   test('checks repo-root-relative index paths regardless of extension', async () => {
     const root = await makeControlRoot({
       index:
-        '# Control Index\n\n- Registry: `packages/registry/registry.ts`\n- Manifest: `packages/registry/MANIFEST`\n',
+        '# Control Index\n\n- Registry: `path:packages/registry/registry.ts`\n- Manifest: `path:packages/registry/MANIFEST`\n',
     });
 
     const findings = await verifyStatic(root);
@@ -290,12 +290,40 @@ environments:
 
   test('rejects absolute and outside-repository index paths', async () => {
     const root = await makeControlRoot({
-      index: '# Control Index\n\n- Absolute: `/tmp/outside`\n- Traversal: `../outside.md`\n',
+      index:
+        '# Control Index\n\n- Absolute: `path:/tmp/outside`\n- Traversal: `path:../outside.md`\n',
     });
 
     const findings = await verifyStatic(root);
 
     expect(findings.filter((finding) => finding.code === 'control.index_path_unsafe')).toHaveLength(2);
+  });
+
+  test('validates marked root-level extensionless and space-containing paths', async () => {
+    const root = await makeControlRoot({
+      index:
+        '# Control Index\n\n- Container: `path:Dockerfile`\n- License: `path:LICENSE`\n- Playbook: `path:docs/control/My Playbook`\n',
+    });
+    await writeFile(join(root, 'LICENSE'), 'exists\n');
+
+    const findings = await verifyStatic(root);
+
+    expect(findings).toEqual([
+      expect.objectContaining({ code: 'control.index_path_missing', path: 'Dockerfile' }),
+      expect.objectContaining({
+        code: 'control.index_path_missing',
+        path: join('docs', 'control', 'My Playbook'),
+      }),
+    ]);
+  });
+
+  test('does not interpret non-path code spans as repository paths', async () => {
+    const root = await makeControlRoot({
+      index:
+        '# Control Index\n\n- Verify: `pnpm control:verify`\n- Active ID: `P2A-CONTROL-001`\n',
+    });
+
+    await expect(verifyStatic(root)).resolves.toEqual([]);
   });
 
   test.each([
@@ -350,7 +378,7 @@ environments:
     const root = await makeControlRoot({
       queue,
       handoff: '# Current Handoff\n\nNo matching work item here.\n',
-      index: '# Control Index\n\n- Missing: `MISSING_INDEX.md`\n',
+      index: '# Control Index\n\n- Missing: `path:MISSING_INDEX.md`\n',
       includeSpecification: true,
     });
     await writeFile(

@@ -42,17 +42,8 @@ function sortFindings(findings: Finding[]): Finding[] {
   );
 }
 
-function looksLikeRepositoryPath(value: string): boolean {
-  return (
-    !/\s/.test(value) &&
-    (value.includes('/') || value.includes('\\') || /\.[A-Za-z0-9_-]+$/.test(value))
-  );
-}
-
 function indexedRepositoryPaths(index: string): string[] {
-  return [...index.matchAll(/`([^`\r\n]+)`/g)]
-    .map((match) => match[1])
-    .filter(looksLikeRepositoryPath);
+  return [...index.matchAll(/`path:([^`\r\n]+)`/g)].map((match) => match[1]);
 }
 
 function pathIsWithin(base: string, target: string): boolean {
