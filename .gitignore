@@ -10,3 +10,4 @@ dist/
 .superpowers/
 _tmp_*
 *.log
+apps/os/public/build-info.json

@@ -19,12 +19,30 @@ export interface Env {
   modelTimeoutMs: number;
 }
 
+export interface BuildEnv {
+  gitSha: string;
+  buildTime: string;
+  schemaVersion: string;
+}
+
 function list(v: string | undefined, fallback: string[]): string[] {
   if (!v) return fallback;
   return v
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+function knownValue(...values: Array<string | undefined>): string | undefined {
+  return values.find((value) => value !== undefined && value !== '' && value !== 'unknown');
+}
+
+export function loadBuildEnv(source: NodeJS.ProcessEnv = process.env): BuildEnv {
+  return {
+    gitSha: knownValue(source.ATLAS_GIT_SHA, source.RAILWAY_GIT_COMMIT_SHA) ?? 'unknown',
+    buildTime: knownValue(source.ATLAS_BUILD_TIME) ?? 'unknown',
+    schemaVersion: knownValue(source.ATLAS_SCHEMA_VERSION) ?? '0001_init',
+  };
 }
 
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
