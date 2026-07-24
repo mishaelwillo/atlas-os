@@ -1,4 +1,9 @@
-# Atlas OS — web app (P0)
+# Atlas OS — web app (P1 code complete; deployment closure pending)
+
+The repository contains the P1 core-services implementation. Production cannot
+be called P1-complete until the Railway API fingerprint matches the selected P1
+commit and the required P1 routes pass live acceptance. See
+`docs/control/CURRENT_HANDOFF.md` for the current execution boundary.
 
 ## Start here
 
