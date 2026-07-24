@@ -10,7 +10,7 @@ import {
   WorkStatusSchema,
 } from './schemas.js';
 import { loadControlFiles } from './load.js';
-import { verifyStatic } from './verify-static.js';
+import { runStaticVerificationCli, verifyStatic } from './verify-static.js';
 
 const temporaryRoots: string[] = [];
 
@@ -70,11 +70,11 @@ async function makeControlRoot(options?: {
   await writeFile(join(control, 'WORK_QUEUE.yaml'), JSON.stringify(options?.queue ?? validQueue));
   await writeFile(
     join(control, 'CURRENT_HANDOFF.md'),
-    options?.handoff ?? '# Current Handoff\n\nActive work item: `P2A-CONTROL-001`\n',
+    options?.handoff ?? '# Current Handoff\n\n- Work item: `P2A-CONTROL-001`\n',
   );
   await writeFile(
     join(control, 'CONTROL_INDEX.md'),
-    options?.index ?? '# Control Index\n\n- Active work: `CURRENT_HANDOFF.md`\n',
+    options?.index ?? '# Control Index\n\n- Active work: `docs/control/CURRENT_HANDOFF.md`\n',
   );
   if (options?.includeSpecification !== false) {
     await writeFile(join(control, 'CONTINUITY_DESIGN.md'), '# Continuity Design\n');
@@ -105,6 +105,70 @@ describe('control schemas', () => {
     };
 
     expect(() => EnvironmentFileSchema.parse(secretBearingEnvironment)).toThrow(/secret value/i);
+  });
+
+  test('rejects nested secret keys and values recursively', () => {
+    expect(() =>
+      EnvironmentFileSchema.parse({
+        ...validEnvironment,
+        environments: {
+          production: {
+            ...validEnvironment.environments.production,
+            railway: {
+              ...validEnvironment.environments.production.railway,
+              api: {
+                ...validEnvironment.environments.production.railway.api,
+                nested: { private_key: 'not-even-a-real-key' },
+              },
+            },
+          },
+        },
+      }),
+    ).toThrow(/secret key/i);
+
+    expect(() =>
+      EnvironmentFileSchema.parse({
+        ...validEnvironment,
+        environments: {
+          production: {
+            ...validEnvironment.environments.production,
+            railway: {
+              ...validEnvironment.environments.production.railway,
+              api: {
+                ...validEnvironment.environments.production.railway.api,
+                nested: { harmless: ['safe', { deeper: 'sk-examplevalue' }] },
+              },
+            },
+          },
+        },
+      }),
+    ).toThrow(/secret value/i);
+  });
+
+  test('allows only the literal secret-metadata key allowlist', () => {
+    expect(() =>
+      EnvironmentFileSchema.parse({
+        ...validEnvironment,
+        environments: {
+          production: {
+            ...validEnvironment.environments.production,
+            expected_secret_names: ['SUPABASE_SERVICE_ROLE_KEY'],
+          },
+        },
+      }),
+    ).not.toThrow();
+
+    expect(() =>
+      EnvironmentFileSchema.parse({
+        ...validEnvironment,
+        environments: {
+          production: {
+            ...validEnvironment.environments.production,
+            expected_secret_names_extra: ['SUPABASE_SERVICE_ROLE_KEY'],
+          },
+        },
+      }),
+    ).toThrow(/secret key/i);
   });
 
   test('exports only the specified enum values', () => {
@@ -145,6 +209,38 @@ describe('control file loading and static verification', () => {
     expect(files.currentHandoff).toContain('P2A-CONTROL-001');
   });
 
+  test('loads representative YAML rather than only JSON-compatible fixtures', async () => {
+    const root = await makeControlRoot();
+    await writeFile(
+      join(root, 'docs', 'control', 'ENVIRONMENTS.yaml'),
+      `schema_version: 1
+environments:
+  production:
+    github:
+      repository: example/atlas
+      branch: main
+    supabase:
+      project_ref: public-project-ref
+      expected_migration: 0001_init
+      required_tables:
+        - spaces
+    railway:
+      api:
+        public_url: https://api.example.test
+        health_path: /healthz
+      os:
+        public_url: https://os.example.test
+        health_path: /build-info.json
+    required_variable_names:
+      - DATABASE_URL
+`,
+    );
+
+    await expect(loadControlFiles(root)).resolves.toMatchObject({
+      environments: { schema_version: 1 },
+    });
+  });
+
   test('returns no findings for a coherent control set', async () => {
     const root = await makeControlRoot();
 
@@ -158,6 +254,84 @@ describe('control file loading and static verification', () => {
 
     await expect(verifyStatic(root)).resolves.toEqual([
       expect.objectContaining({ code: 'control.handoff_active_work', severity: 'blocking' }),
+    ]);
+  });
+
+  test('requires an exact structured Work item field match', async () => {
+    const root = await makeControlRoot({
+      handoff:
+        '# Current Handoff\n\n- Work item: `P2A-CONTROL-0010`\n\nHistorical note: P2A-CONTROL-001\n',
+    });
+
+    await expect(verifyStatic(root)).resolves.toEqual([
+      expect.objectContaining({ code: 'control.handoff_active_work', severity: 'blocking' }),
+    ]);
+  });
+
+  test('checks repo-root-relative index paths regardless of extension', async () => {
+    const root = await makeControlRoot({
+      index:
+        '# Control Index\n\n- Registry: `packages/registry/registry.ts`\n- Manifest: `packages/registry/MANIFEST`\n',
+    });
+
+    const findings = await verifyStatic(root);
+
+    expect(findings).toEqual([
+      expect.objectContaining({
+        code: 'control.index_path_missing',
+        path: join('packages', 'registry', 'MANIFEST'),
+      }),
+      expect.objectContaining({
+        code: 'control.index_path_missing',
+        path: join('packages', 'registry', 'registry.ts'),
+      }),
+    ]);
+  });
+
+  test('rejects absolute and outside-repository index paths', async () => {
+    const root = await makeControlRoot({
+      index: '# Control Index\n\n- Absolute: `/tmp/outside`\n- Traversal: `../outside.md`\n',
+    });
+
+    const findings = await verifyStatic(root);
+
+    expect(findings.filter((finding) => finding.code === 'control.index_path_unsafe')).toHaveLength(2);
+  });
+
+  test.each([
+    ['../../package.json', ['package.json']],
+    ['../outside.md', ['docs', 'outside.md']],
+  ])(
+    'rejects specification path %s when its outside target exists',
+    async (specification, targetParts) => {
+      const root = await makeControlRoot({
+        queue: {
+          ...validQueue,
+          items: [{ ...validQueue.items[0], specification }],
+        },
+      });
+      await writeFile(join(root, ...targetParts), 'existing outside target\n');
+
+      await expect(verifyStatic(root)).resolves.toContainEqual(
+        expect.objectContaining({
+          code: 'control.specification_path_unsafe',
+          path: `docs/control/${specification}`,
+        }),
+      );
+    },
+  );
+
+  test('CLI runner prints blocking findings and returns exit status 1', async () => {
+    const root = await makeControlRoot({
+      handoff: '# Current Handoff\n\n- Work item: `WRONG-ID`\n',
+    });
+    const lines: string[] = [];
+
+    const exitStatus = await runStaticVerificationCli(root, (line) => lines.push(line));
+
+    expect(exitStatus).toBe(1);
+    expect(lines).toEqual([
+      'BLOCKING control.handoff_active_work docs/control/CURRENT_HANDOFF.md: handoff does not mention active work item P2A-CONTROL-001',
     ]);
   });
 

@@ -2,11 +2,13 @@
 
 ## Five-minute orientation
 
-1. Product doctrine: `PRODUCT_DIRECTION.md`
-2. Phase definitions: `ROADMAP.md`
-3. Active work: `CURRENT_HANDOFF.md`
-4. Machine work queue: `WORK_QUEUE.yaml`
-5. Environment inventory: `ENVIRONMENTS.yaml`
+All code-formatted file paths in this index are repository-root-relative.
+
+1. Product doctrine: `docs/control/PRODUCT_DIRECTION.md`
+2. Phase definitions: `docs/control/ROADMAP.md`
+3. Active work: `docs/control/CURRENT_HANDOFF.md`
+4. Machine work queue: `docs/control/WORK_QUEUE.yaml`
+5. Environment inventory: `docs/control/ENVIRONMENTS.yaml`
 6. Generated observed state and drift: unavailable until Continuity Task 4 installs the collector
 
 ## Current phase

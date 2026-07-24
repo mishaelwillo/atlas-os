@@ -1,5 +1,5 @@
 import { access, readFile, readdir } from 'node:fs/promises';
-import { dirname, join, relative, resolve } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'yaml';
 import { EnvironmentFileSchema, WorkQueueSchema, type Finding, type WorkQueue } from './schemas.js';
@@ -42,8 +42,31 @@ function sortFindings(findings: Finding[]): Finding[] {
   );
 }
 
-function indexedControlPaths(index: string): string[] {
-  return [...index.matchAll(/`([^`\r\n]+\.(?:md|ya?ml|json))`/gi)].map((match) => match[1]);
+function looksLikeRepositoryPath(value: string): boolean {
+  return (
+    !/\s/.test(value) &&
+    (value.includes('/') || value.includes('\\') || /\.[A-Za-z0-9_-]+$/.test(value))
+  );
+}
+
+function indexedRepositoryPaths(index: string): string[] {
+  return [...index.matchAll(/`([^`\r\n]+)`/g)]
+    .map((match) => match[1])
+    .filter(looksLikeRepositoryPath);
+}
+
+function pathIsWithin(base: string, target: string): boolean {
+  const relativePath = relative(base, target);
+  return (
+    relativePath === '' ||
+    (relativePath !== '..' &&
+      !relativePath.startsWith(`..${sep}`) &&
+      !isAbsolute(relativePath))
+  );
+}
+
+function structuredHandoffWorkItem(handoff: string): string | undefined {
+  return /^\s*-\s*Work item:\s*`([^`]+)`\s*$/im.exec(handoff)?.[1];
 }
 
 async function parseYamlFile(path: string): Promise<unknown> {
@@ -114,7 +137,7 @@ export async function verifyStatic(root: string): Promise<Finding[]> {
           `expected exactly one in_progress work item, found ${activeItems.length}`,
         ),
       );
-    } else if (!handoff.includes(activeItems[0].id)) {
+    } else if (structuredHandoffWorkItem(handoff) !== activeItems[0].id) {
       findings.push(
         blocking(
           'control.handoff_active_work',
@@ -126,7 +149,17 @@ export async function verifyStatic(root: string): Promise<Finding[]> {
 
     await Promise.all(
       queue.items.map(async (item) => {
-        const specificationPath = join(controlRoot, item.specification);
+        const specificationPath = resolve(controlRoot, item.specification);
+        if (isAbsolute(item.specification) || !pathIsWithin(controlRoot, specificationPath)) {
+          findings.push(
+            blocking(
+              'control.specification_path_unsafe',
+              `docs/control/${item.specification.replaceAll('\\', '/')}`,
+              `specification for ${item.id} must be relative to docs/control`,
+            ),
+          );
+          return;
+        }
         if (!(await pathExists(specificationPath))) {
           findings.push(
             blocking(
@@ -141,8 +174,18 @@ export async function verifyStatic(root: string): Promise<Finding[]> {
   }
 
   await Promise.all(
-    indexedControlPaths(index).map(async (indexedPath) => {
-      const absolutePath = join(controlRoot, indexedPath);
+    indexedRepositoryPaths(index).map(async (indexedPath) => {
+      const absolutePath = resolve(root, indexedPath);
+      if (isAbsolute(indexedPath) || !pathIsWithin(root, absolutePath)) {
+        findings.push(
+          blocking(
+            'control.index_path_unsafe',
+            indexedPath,
+            'path named in CONTROL_INDEX.md must be repository-root-relative',
+          ),
+        );
+        return;
+      }
       if (!(await pathExists(absolutePath))) {
         findings.push(
           blocking(
@@ -175,17 +218,23 @@ export async function verifyStatic(root: string): Promise<Finding[]> {
 }
 
 function formatFinding(finding: Finding): string {
-  return `${finding.severity.toUpperCase()} ${finding.code} ${finding.path}: ${finding.message}`;
+  const repositoryPath = finding.path.replaceAll('\\', '/');
+  return `${finding.severity.toUpperCase()} ${finding.code} ${repositoryPath}: ${finding.message}`;
+}
+
+export async function runStaticVerificationCli(
+  root: string,
+  writeLine: (line: string) => void = console.log,
+): Promise<0 | 1> {
+  const findings = await verifyStatic(root);
+  findings.forEach((finding) => writeLine(formatFinding(finding)));
+  return findings.some((finding) => finding.severity === 'blocking') ? 1 : 0;
 }
 
 async function main(): Promise<void> {
   const moduleDirectory = dirname(fileURLToPath(import.meta.url));
   const repositoryRoot = resolve(moduleDirectory, '../../..');
-  const findings = await verifyStatic(repositoryRoot);
-  findings.forEach((finding) => console.log(formatFinding(finding)));
-  if (findings.some((finding) => finding.severity === 'blocking')) {
-    process.exitCode = 1;
-  }
+  process.exitCode = await runStaticVerificationCli(repositoryRoot);
 }
 
 const invokedPath = process.argv[1] ? resolve(process.argv[1]) : '';
