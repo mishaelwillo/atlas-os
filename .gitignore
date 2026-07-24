@@ -6,5 +6,6 @@ dist/
 .env.test.local
 .env.production.local
 .turbo/
+.worktrees/
 _tmp_*
 *.log
