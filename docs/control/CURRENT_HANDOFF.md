@@ -1,41 +1,35 @@
 # Current Handoff
 
-**Handoff ID:** `atlas-continuity-task-5-review-boundary`
+**Handoff ID:** `atlas-capabilities-research-regions-task-1`
 **Status:** active
-**Started:** 2026-07-24T20:25:05.215Z
-**Updated:** 2026-07-24T20:36:35.537Z
+**Started:** 2026-07-24T20:51:28.110Z
+**Updated:** 2026-07-24T20:51:28.110Z
 **Actor:** Codex
-**Objective:** Preserve the final Task 5 review boundary.
+**Objective:** Implement typed capability lifecycle metadata from the approved capabilities, research, and regions plan.
 
 ## Active work
 
-- Work item: `P2A-CONTROL-001`
+- Work item: `P2A-CAPABILITIES-001`
 - Branch: `codex/atlas-continuity`
 - Base commit: `a9596d5012d868ba5f11bd79c0815ce45b1260ef`
-- Head commit: `7dcb6d36dade3b270e808093746b9f0945d45b2e`
+- Head commit: `b82b500b98eebb77f05f216380503a463ad12cae`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Task 5 base: `a9596d5012d868ba5f11bd79c0815ce45b1260ef`.
-- Original Task 5 implementation: `786e49d0c11e41c270e04dcfd8fb8da8b2f56d02`.
-- Prior Task 5 review-fix code boundary: `34f621c4875fa561160b51facadf96456544ea1e`.
-- Final Task 5 scalar-validation code boundary: `7dcb6d36dade3b270e808093746b9f0945d45b2e`.
-- Boundary note: the commit following `7dcb6d36dade3b270e808093746b9f0945d45b2e` is metadata-only and changes only this current handoff; it does not change executable code, tests, build configuration, or an archive.
+- Task 6 base: `81285f1a17a39a09ce0cf8edc9e8e2054a349401`.
+- Task 6 code boundary: `b82b500b98eebb77f05f216380503a463ad12cae`.
+- Boundary note: the commit following the Task 6 code boundary is metadata-only and changes the roadmap, work queue, and this current handoff; it does not change executable code, tests, build configuration, or an archive.
 
 ## Current working tree
 
-- Clean.
+- Clean after the metadata-only handoff commit.
 
 ## Verification evidence
 
-- TDD RED: 5/33 focused tests failed for the missing scalar-secret rejection and same-ID Started preservation.
-- Focused GREEN: 33/33 handoff tests passed.
-- `pnpm --filter @atlas/control-schema test` passed: 81/81 tests.
-- `pnpm test` passed: 13/13 Turbo tasks.
-- `pnpm build` passed: 8/8 Turbo tasks.
-- `pnpm control:verify`, `git diff --check`, and the generated API/client diff gate passed.
-- Real-root same-ID `pnpm control:handoff` smoke preserved Started, advanced Updated, captured a clean tree, and created no archive.
+- TDD RED: the CI contract failed on pnpm 9 and the two missing continuity gates.
+- Focused GREEN: 85 of 85 control-schema tests passed.
+- pnpm install --frozen-lockfile, pnpm build, pnpm test, pnpm control:verify, YAML parsing, generated artifact diff, git diff check, and focused secret scan passed.
 
 ## Database actions
 
@@ -47,17 +41,16 @@
 
 ## External side effects
 
-- Updated the repository-local current handoff.
+- Created local commit `b82b500b98eebb77f05f216380503a463ad12cae`; no push, deployment, live refresh, or external write performed.
 
 ## Blockers
 
-- Task 6 is gated pending independent review of Task 5 through `7dcb6d36dade3b270e808093746b9f0945d45b2e`.
 - Production P1 deployment closure remains blocked by the Railway API serving the P0 route set.
 
 ## Next exact action
 
-Independently review Task 5 from base `a9596d5012d868ba5f11bd79c0815ce45b1260ef` through final scalar-validation boundary `7dcb6d36dade3b270e808093746b9f0945d45b2e`; begin Task 6 only after approval.
+Independently review Task 6 from base `81285f1a17a39a09ce0cf8edc9e8e2054a349401` through code boundary `b82b500b98eebb77f05f216380503a463ad12cae`; after approval, implement Task 1 of the approved Atlas capabilities, research, and regions plan using tests first.
 
 ## Definition of done
 
-The independent reviewer verifies the original implementation, both review-fix code boundaries, scalar-secret coverage, and Started preservation; confirms no important or critical findings remain; and explicitly approves or rejects Task 6 entry.
+The Task 6 reviewer confirms no important or critical findings remain, then the typed capability lifecycle metadata task passes its focused tests, dependent builds, static control verification, and independent review.

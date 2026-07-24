@@ -16,7 +16,7 @@ items:
   - id: P2A-CONTROL-001
     phase: P2A
     title: Establish the Atlas continuity control plane
-    status: in_progress
+    status: done
     priority: critical
     dependencies: []
     specification: CONTINUITY_DESIGN.md
@@ -24,7 +24,21 @@ items:
       - Canonical control files validate
       - Observed-state collection reports authority-specific facts
       - Blocking P0-versus-P1 Railway API drift is detected
-    next_action: Independently review Task 5 handoff tooling, then add Task 6 static CI continuity gates
+    next_action: Preserve the static CI gate and use the control entry point for every subsequent work item
+  - id: P2A-CAPABILITIES-001
+    phase: P2A
+    title: Add capability lifecycle, research evidence, and inherited regional packs
+    status: in_progress
+    priority: high
+    dependencies:
+      - P2A-CONTROL-001
+    specification: CONTINUITY_DESIGN.md
+    acceptance_checks:
+      - Every executable capability has typed lifecycle and monetization metadata
+      - Video observations resolve through a validated research evidence ledger
+      - Global, North American, and Caribbean region packs validate through inheritance
+      - Deferred discoveries remain catalogued without generating executable routes
+    next_action: Implement Task 1 of the approved Atlas capabilities, research, and regions plan using tests first
   - id: P2A-MEMORY-001
     phase: P2A
     title: Establish the Intelligence Bank foundation
@@ -32,6 +46,7 @@ items:
     priority: high
     dependencies:
       - P2A-CONTROL-001
+      - P2A-CAPABILITIES-001
     specification: CONTINUITY_DESIGN.md
     acceptance_checks:
       - Intelligence foundation specification is approved

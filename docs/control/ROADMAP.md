@@ -12,4 +12,10 @@
 
 ## Current sequencing
 
-P1 deployment closure blocks its production completion claim. P2A establishes the foundation used by P2B and P2C. P3 follows evidence from the revenue pilot.
+The P2A continuity foundation is complete. The approved capability lifecycle,
+research-ledger, and regional-pack work is next; it extends the control plane
+before the Intelligence Bank and Website Factory build.
+
+P1 deployment closure still blocks the P1 production completion claim and
+remains a separate ready work item. P2B and P2C depend on the P2A foundation;
+P3 follows evidence from the revenue pilot.
