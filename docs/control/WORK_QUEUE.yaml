@@ -24,7 +24,7 @@ items:
       - Canonical control files validate
       - Observed-state collection reports authority-specific facts
       - Blocking P0-versus-P1 Railway API drift is detected
-    next_action: Independently review the Task 4 observed-state collector, then add Task 5 handoff tooling
+    next_action: Independently review Task 5 handoff tooling, then add Task 6 static CI continuity gates
   - id: P2A-MEMORY-001
     phase: P2A
     title: Establish the Intelligence Bank foundation

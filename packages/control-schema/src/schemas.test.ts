@@ -247,6 +247,15 @@ environments:
     await expect(verifyStatic(root)).resolves.toEqual([]);
   });
 
+  test('does not mistake a natural handoff task ID for an API key prefix', async () => {
+    const root = await makeControlRoot({
+      handoff:
+        '# Current Handoff\n\n**Handoff ID:** `atlas-continuity-task-5`\n\n- Work item: `P2A-CONTROL-001`\n',
+    });
+
+    await expect(verifyStatic(root)).resolves.toEqual([]);
+  });
+
   test('reports when the handoff omits the single active work item', async () => {
     const root = await makeControlRoot({
       handoff: '# Current Handoff\n\nNo matching work item here.\n',

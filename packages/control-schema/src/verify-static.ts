@@ -6,7 +6,7 @@ import { EnvironmentFileSchema, WorkQueueSchema, type Finding, type WorkQueue } 
 
 const SEVERITY_ORDER = { blocking: 0, warning: 1, info: 2 } as const;
 const DOCUMENT_SECRET_PATTERN =
-  /gho_|github_pat_|sb_secret_|sk-[A-Za-z0-9_-]+|postgres(?:ql)?:\/\/[^:\s]+:[^@\s]+@|-----BEGIN/g;
+  /\bgho_|\bgithub_pat_|\bsb_secret_|\bsk-[A-Za-z0-9_-]+|\bpostgres(?:ql)?:\/\/[^:\s]+:[^@\s]+@|-----BEGIN/g;
 
 function compareCodepoints(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
