@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parse } from 'yaml';
@@ -14,7 +14,13 @@ const now = new Date('2026-07-24T15:30:00.000Z');
 
 afterEach(async () => {
   const { rm } = await import('node:fs/promises');
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+  await Promise.all(
+    roots
+      .splice(0)
+      .map((root) =>
+        rm(root, { recursive: true, force: true, maxRetries: 3, retryDelay: 50 }),
+      ),
+  );
 });
 
 function git(root: string, ...args: string[]): string {
@@ -28,7 +34,7 @@ function git(root: string, ...args: string[]): string {
   }).trim();
 }
 
-async function fixtureRoot(): Promise<string> {
+async function fixtureRoot(options: { dirty?: boolean; generated?: unknown | 'absent' } = {}): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), 'atlas-handoff-'));
   roots.push(root);
   await mkdir(join(root, 'docs', 'control', 'generated'), { recursive: true });
@@ -67,6 +73,7 @@ items:
 
 **Handoff ID:** \`previous-handoff\`
 **Status:** active
+**Started:** 2026-07-24T13:00:00.000Z
 **Updated:** 2026-07-24T14:00:00.000Z
 **Actor:** Codex
 **Objective:** Finish the prior task.
@@ -81,14 +88,40 @@ items:
 `,
     'utf8',
   );
-  await writeFile(
-    join(root, 'docs', 'control', 'generated', 'observed-state.json'),
-    JSON.stringify({
-      localGit: { value: { branch: 'stale/branch', sha: '3333333' } },
-      accidental: 'PASSWORD=must-not-be-copied',
-    }),
-    'utf8',
-  );
+  if (options.generated !== 'absent') {
+    await writeFile(
+      join(root, 'docs', 'control', 'generated', 'observed-state.json'),
+      JSON.stringify(
+        options.generated ?? {
+          schemaVersion: 1,
+          collectedAt: '2026-07-24T15:00:00.000Z',
+          provenance: {
+            collector: '@atlas/control-schema',
+            mode: 'live-read-only',
+            sources: ['local Git', 'GitHub', 'Supabase', 'Railway'],
+          },
+          localGit: { status: 'ok', checkedAt: '2026-07-24T15:00:00.000Z' },
+          github: { status: 'ok', checkedAt: '2026-07-24T15:00:00.000Z' },
+          supabase: {
+            status: 'ok',
+            checkedAt: '2026-07-24T15:00:00.000Z',
+            value: { tables: ['memory_cards'] },
+          },
+          railwayApi: {
+            status: 'drift',
+            checkedAt: '2026-07-24T15:00:00.000Z',
+            error: 'PASSWORD=must-not-be-copied',
+          },
+          railwayOs: {
+            status: 'ok',
+            checkedAt: '2026-07-24T15:00:00.000Z',
+          },
+          registry: { status: 'ok', checkedAt: '2026-07-24T15:00:00.000Z' },
+        },
+      ),
+      'utf8',
+    );
+  }
   await writeFile(join(root, 'tracked.txt'), 'baseline\n', 'utf8');
   git(root, 'init', '-b', 'codex/atlas-continuity');
   git(root, 'config', 'user.email', 'atlas-test@example.test');
@@ -96,7 +129,9 @@ items:
   git(root, 'config', 'core.autocrlf', 'false');
   git(root, 'add', '.');
   git(root, 'commit', '-m', 'fixture');
-  await writeFile(join(root, 'tracked.txt'), 'changed\n', 'utf8');
+  if (options.dirty !== false) {
+    await writeFile(join(root, 'tracked.txt'), 'changed\n', 'utf8');
+  }
   return root;
 }
 
@@ -112,12 +147,14 @@ describe('createHandoff', () => {
         definitionOfDone: 'Task 5 tests, build, and verification pass.',
       },
       {
+        startedAt: '2026-07-24T15:00:00.000Z',
         updatedAt: '2026-07-24T15:30:00.000Z',
         branch: 'codex/atlas-continuity',
         baseCommit: '1111111111111111111111111111111111111111',
         headCommit: '2222222222222222222222222222222222222222',
         reviewStatus: 'pending independent review',
-        filesChanged: [' M tracked.txt', ' M docs/control/CURRENT_HANDOFF.md'],
+        taskChangeEvidence: ['Commit abc123 implements the handoff writer.'],
+        workingTreeChanges: [' M tracked.txt'],
         testEvidence: ['RED: handoff implementation was absent.', 'GREEN: focused tests pass.'],
         databaseActions: ['None.'],
         hostingActions: ['None.'],
@@ -127,6 +164,8 @@ describe('createHandoff', () => {
     );
 
     expect(markdown).toContain('**Handoff ID:** `continuity-task-5`');
+    expect(markdown).toContain('**Started:** 2026-07-24T15:00:00.000Z');
+    expect(markdown).toContain('**Updated:** 2026-07-24T15:30:00.000Z');
     expect(markdown).toContain('**Actor:** Codex');
     expect(markdown).toContain('**Objective:** Automate safe model handoffs.');
     expect(markdown).toContain('- Work item: `P2A-CONTROL-001`');
@@ -134,6 +173,9 @@ describe('createHandoff', () => {
     expect(markdown).toContain('- Base commit: `1111111111111111111111111111111111111111`');
     expect(markdown).toContain('- Head commit: `2222222222222222222222222222222222222222`');
     expect(markdown).toContain('- Review status: pending independent review');
+    expect(markdown).toContain('## Task change evidence');
+    expect(markdown).toContain('- Commit abc123 implements the handoff writer.');
+    expect(markdown).toContain('## Current working tree');
     expect(markdown).toContain('- ` M tracked.txt`');
     expect(markdown).toContain('- RED: handoff implementation was absent.');
     expect(markdown).toContain('- None.\n\n## Hosting actions');
@@ -163,6 +205,20 @@ describe('handoff creation CLI', () => {
         'Run pnpm control:verify.',
         '--definition-of-done',
         'Task 5 is independently reviewed.',
+        '--task-change',
+        'Commit abc123 implements the task.',
+        '--evidence',
+        'Focused tests passed.',
+        '--evidence',
+        'Full build passed.',
+        '--database-action',
+        'No database mutation performed.',
+        '--hosting-action',
+        'No hosting mutation performed.',
+        '--side-effect',
+        'Created a repository-local handoff.',
+        '--blocker',
+        'Independent review remains pending.',
       ],
       (line) => lines.push(line),
       now,
@@ -179,12 +235,156 @@ describe('handoff creation CLI', () => {
     expect(current).toContain(`- Head commit: \`${head}\``);
     expect(current).toContain('- Base commit: `1111111111111111111111111111111111111111`');
     expect(current).toContain('- Review status: pending independent review');
+    expect(current).toContain('**Started:** 2026-07-24T15:30:00.000Z');
+    expect(current).toContain('**Updated:** 2026-07-24T15:30:00.000Z');
     expect(current).toContain('- ` M tracked.txt`');
-    expect(current).toContain('- Database actions: no actions recorded by this command.');
-    expect(current).toContain('- Hosting actions: no actions recorded by this command.');
+    expect(current).toContain('- Commit abc123 implements the task.');
+    expect(current).toContain('- Focused tests passed.');
+    expect(current).toContain('- Full build passed.');
+    expect(current).toContain('- No database mutation performed.');
+    expect(current).toContain('- No hosting mutation performed.');
+    expect(current).toContain('- Created a repository-local handoff.');
+    expect(current).toContain('- Independent review remains pending.');
+    expect(current).toContain(
+      '- Observed Supabase status: ok (live-read-only at 2026-07-24T15:00:00.000Z).',
+    );
+    expect(current).toContain(
+      '- Observed Railway API status: drift; OS status: ok (live-read-only at 2026-07-24T15:00:00.000Z).',
+    );
     expect(current).not.toContain('must-not-be-copied');
     expect(current).not.toContain('stale/branch');
     expect(lines).toEqual(['Created docs/control/CURRENT_HANDOFF.md']);
+  });
+
+  it('reports a clean current working tree without historical task files', async () => {
+    const root = await fixtureRoot({ dirty: false, generated: 'absent' });
+
+    const exitCode = await runCreateHandoffCli(
+      root,
+      [
+        '--id',
+        'clean-handoff',
+        '--objective',
+        'Capture a clean repository.',
+        '--next',
+        'Review the clean handoff.',
+      ],
+      () => undefined,
+      now,
+    );
+
+    expect(exitCode).toBe(0);
+    const current = await readFile(join(root, 'docs', 'control', 'CURRENT_HANDOFF.md'), 'utf8');
+    expect(current).toContain('## Current working tree\n\n- Clean.');
+    expect(current).toContain('## Task change evidence\n\n- Not supplied.');
+    expect(current).not.toContain('?? packages/');
+  });
+
+  it('fails safely when generated observed state is malformed', async () => {
+    const root = await fixtureRoot({ generated: { schemaVersion: 1, supabase: { status: 'ok' } } });
+    const original = await readFile(join(root, 'docs', 'control', 'CURRENT_HANDOFF.md'), 'utf8');
+    const lines: string[] = [];
+
+    const exitCode = await runCreateHandoffCli(
+      root,
+      [
+        '--id',
+        'malformed-observation',
+        '--objective',
+        'Reject malformed evidence.',
+        '--next',
+        'Repair observed state.',
+      ],
+      (line) => lines.push(line),
+      now,
+    );
+
+    expect(exitCode).toBe(1);
+    expect(lines.join('\n')).toMatch(/observed-state\.json is invalid/i);
+    expect(await readFile(join(root, 'docs', 'control', 'CURRENT_HANDOFF.md'), 'utf8')).toBe(
+      original,
+    );
+  });
+
+  it.each([
+    '--task-change',
+    '--evidence',
+    '--database-action',
+    '--hosting-action',
+    '--side-effect',
+    '--blocker',
+  ])('rejects secret-bearing repeatable %s input', async (flag) => {
+    const root = await fixtureRoot({ generated: 'absent' });
+    const lines: string[] = [];
+
+    const exitCode = await runCreateHandoffCli(
+      root,
+      [
+        '--id',
+        'safe-handoff',
+        '--objective',
+        'Capture safe evidence.',
+        '--next',
+        'Run verification.',
+        flag,
+        'PASSWORD=do-not-record',
+      ],
+      (line) => lines.push(line),
+      now,
+    );
+
+    expect(exitCode).toBe(1);
+    expect(lines.join('\n')).toMatch(/secret-like content/i);
+  });
+
+  it('selectively summarizes observed state without leaking raw values or errors', async () => {
+    const secret = ['postgresql:', '//admin:do-not-copy@example.test/database'].join('');
+    const root = await fixtureRoot({
+      generated: {
+        schemaVersion: 1,
+        collectedAt: '2026-07-24T15:00:00.000Z',
+        provenance: {
+          collector: '@atlas/control-schema',
+          mode: 'live-read-only',
+          sources: [secret],
+        },
+        localGit: { status: 'ok', checkedAt: '2026-07-24T15:00:00.000Z' },
+        github: { status: 'unknown', checkedAt: '2026-07-24T15:00:00.000Z' },
+        supabase: {
+          status: 'unknown',
+          checkedAt: '2026-07-24T15:00:00.000Z',
+          error: secret,
+        },
+        railwayApi: {
+          status: 'error',
+          checkedAt: '2026-07-24T15:00:00.000Z',
+          error: `Bearer ${secret}`,
+        },
+        railwayOs: { status: 'unknown', checkedAt: '2026-07-24T15:00:00.000Z' },
+        registry: { status: 'ok', checkedAt: '2026-07-24T15:00:00.000Z' },
+      },
+    });
+
+    expect(
+      await runCreateHandoffCli(
+        root,
+        [
+          '--id',
+          'safe-summary',
+          '--objective',
+          'Summarize observed status.',
+          '--next',
+          'Review the summary.',
+        ],
+        () => undefined,
+        now,
+      ),
+    ).toBe(0);
+    const output = await readFile(join(root, 'docs', 'control', 'CURRENT_HANDOFF.md'), 'utf8');
+    expect(output).toContain('Observed Supabase status: unknown');
+    expect(output).toContain('Observed Railway API status: error; OS status: unknown');
+    expect(output).not.toContain(secret);
+    expect(output).not.toContain('Bearer');
   });
 
   it.each([
@@ -274,6 +474,7 @@ describe('handoff archival', () => {
     );
     expect(archived).toContain('**Handoff ID:** `previous-handoff`');
     expect(current).toContain('**Handoff ID:** `unassigned-2026-07-24`');
+    expect(current).toContain('**Started:** 2026-07-24T15:30:00.000Z');
     expect(current).toContain('**Actor:** Unassigned');
     expect(current).toContain('- Work item: `P2A-CONTROL-001`');
     expect(current).toContain('- Base commit: `1111111111111111111111111111111111111111`');
@@ -285,6 +486,80 @@ describe('handoff archival', () => {
         parse(await readFile(join(root, 'docs', 'control', 'WORK_QUEUE.yaml'), 'utf8')),
       ).items.filter((item) => item.status === 'in_progress'),
     ).toHaveLength(1);
+  });
+
+  it.each(['write', 'rename'])(
+    'rolls back only its new archive when current replacement %s fails',
+    async (failure) => {
+      const root = await fixtureRoot();
+      const currentPath = join(root, 'docs', 'control', 'CURRENT_HANDOFF.md');
+      const original = await readFile(currentPath, 'utf8');
+      const archivePath = join(
+        root,
+        'docs',
+        'control',
+        'handoffs',
+        'archived',
+        '2026-07-24-previous-handoff.md',
+      );
+
+      await expect(
+        archiveCurrentHandoff(root, now, {
+          currentWriteOperations:
+            failure === 'write'
+              ? { writeFile: async () => Promise.reject(new Error('injected write failure')) }
+              : { rename: async () => Promise.reject(new Error('injected rename failure')) },
+        }),
+      ).rejects.toThrow(new RegExp(`injected ${failure} failure`));
+      expect(await readFile(currentPath, 'utf8')).toBe(original);
+      await expect(readFile(archivePath, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+      expect((await readdir(join(root, 'docs', 'control'))).some((name) => name.includes('.tmp-'))).toBe(
+        false,
+      );
+    },
+  );
+
+  it('recovers idempotently when an identical archive exists from an interrupted invocation', async () => {
+    const root = await fixtureRoot();
+    const currentPath = join(root, 'docs', 'control', 'CURRENT_HANDOFF.md');
+    const original = await readFile(currentPath, 'utf8');
+    const archivePath = join(
+      root,
+      'docs',
+      'control',
+      'handoffs',
+      'archived',
+      '2026-07-24-previous-handoff.md',
+    );
+    await writeFile(archivePath, original, 'utf8');
+
+    await expect(archiveCurrentHandoff(root, now)).resolves.toBe(
+      join('docs', 'control', 'handoffs', 'archived', '2026-07-24-previous-handoff.md'),
+    );
+    expect(await readFile(archivePath, 'utf8')).toBe(original);
+    expect(await readFile(currentPath, 'utf8')).toContain('**Actor:** Unassigned');
+  });
+
+  it('validates the replacement before creating an archive', async () => {
+    const root = await fixtureRoot();
+    const currentPath = join(root, 'docs', 'control', 'CURRENT_HANDOFF.md');
+    const original = (await readFile(currentPath, 'utf8')).replace(
+      '- Review status: approved',
+      '- Review status: unsafe`review',
+    );
+    await writeFile(currentPath, original, 'utf8');
+    const archivePath = join(
+      root,
+      'docs',
+      'control',
+      'handoffs',
+      'archived',
+      '2026-07-24-previous-handoff.md',
+    );
+
+    await expect(archiveCurrentHandoff(root, now)).rejects.toThrow(/unsafe Markdown/i);
+    await expect(readFile(archivePath, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+    expect(await readFile(currentPath, 'utf8')).toBe(original);
   });
 
   it('refuses an archive collision without changing either record', async () => {

@@ -34,5 +34,5 @@ P1 code is complete. P1 production API deployment closure is blocking. P2A follo
 
 - Refresh observed state: `pnpm control:status`
 - Validate control plane: `pnpm control:verify`
-- Start a handoff: `pnpm control:handoff -- --id <id> --objective "<objective>" --next "<next action>"`
+- Start a handoff: `pnpm control:handoff -- --id <id> --objective "<objective>" --next "<next action>" [--task-change "<change>"] [--evidence "<check>"] [--database-action "<action>"] [--hosting-action "<action>"] [--side-effect "<effect>"] [--blocker "<blocker>"]`
 - Archive a handoff: `pnpm control:archive-handoff`

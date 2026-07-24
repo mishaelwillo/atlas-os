@@ -11,17 +11,17 @@
 - Work item: `P2A-CONTROL-001`
 - Branch: `codex/atlas-continuity`
 - Specification: `CONTINUITY_DESIGN.md`
-- Task state: Task 4 R2 findings fixed and locally verified; pending final independent re-review
+- Task state: Task 4 approved after final independent review
 - Task 4 base commit: `780a752f5940e66bf78fd7649cb6fc04d66a8941`
 - Task 4 initial implementation: `7504d07fa48f9f08d59eeb8de2c6697ad761c487`
 - Task 4 review hardening: `8a1d1a589b4d1506c5719318f361ee2fe4775922`
-- Task 4 R2 boundary: the fix commit containing this handoff
+- Task 4 final implementation/fix boundary: `a9596d5012d868ba5f11bd79c0815ce45b1260ef`
 - Task 3 base commit: `0c65770ee50a52397cbbffe34e5c99fad9eff291`
 - Task 3 implementation head: `2c97df9950436210b372c2cee1d8964f725bcb07`
 - Task 3 cache-safe fix: `810c05fe7a4920a2c16fc9dcfcc9fcdb51ff519f`
 - Task 3 reviewed-code candidate boundary: `d997d279225c345b5f9c203f760a26ba23aa2553`
 - Boundary note: the commit after `d997d279225c345b5f9c203f760a26ba23aa2553` is metadata-only and records these immutable code boundaries; it does not change executable code, tests, or build configuration.
-- Review status: Task 3 approved; Task 4 pending final independent re-review
+- Review status: Task 3 approved; Task 4 approved
 
 ## Files changed
 
@@ -126,13 +126,12 @@ None.
 ## Blockers
 
 Production P1 deployment closure remains blocked by the Railway API serving the P0 route set.
-Task 5 is gated on final independent re-approval of Task 4 R2.
+No Task 4 review blocker remains.
 
 ## Next exact action
 
-Independently re-review Task 4 from base
-`780a752f5940e66bf78fd7649cb6fc04d66a8941` through the R2 fix commit
-containing this handoff. If approved, begin Task 5 by writing failing temporary
+Begin Task 5 from approved Task 4 boundary
+`a9596d5012d868ba5f11bd79c0815ce45b1260ef` by writing failing temporary
 fixture tests for handoff creation and collision-safe archival.
 
 ## Definition of done
@@ -144,8 +143,9 @@ fixture tests for handoff creation and collision-safe archival.
 - Turbo passes fingerprint inputs to the OS build and changes its cache hash when they change.
 - The OS Turbo override explicitly preserves dependency builds and cacheable outputs.
 - Public fingerprint values are normalized and invalid values become `unknown`.
-- The handoff retains the active work-item identity and records Task 4 as pending
-  final independent re-review.
+- The handoff retains the active work-item identity and records Task 4 as
+  independently approved at
+  `a9596d5012d868ba5f11bd79c0815ce45b1260ef`.
 - Authority failures cannot prevent an observed-state report, cannot invent live
   truth, and cannot expose a database URL or secret-like error value.
 - A known API SHA mismatch, a `404` P1 route, missing required tables, missing

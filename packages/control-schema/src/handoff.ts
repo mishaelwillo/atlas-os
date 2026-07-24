@@ -10,12 +10,14 @@ export interface HandoffInput {
 }
 
 export interface HandoffObservedState {
+  startedAt: string;
   updatedAt: string;
   branch: string;
   baseCommit: string;
   headCommit: string;
   reviewStatus: string;
-  filesChanged: string[];
+  taskChangeEvidence: string[];
+  workingTreeChanges: string[];
   testEvidence: string[];
   databaseActions: string[];
   hostingActions: string[];
@@ -28,7 +30,11 @@ const WORK_ITEM_ID = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
 const COMMIT = /^(?:[0-9a-f]{7,64}|unknown)$/;
 const SAFE_ACTOR = /^[A-Za-z0-9][A-Za-z0-9 ._-]{0,79}$/;
 
-function assertSingleLine(name: string, value: string, maxLength = 500): void {
+export function validateSafeHandoffText(
+  name: string,
+  value: string,
+  maxLength = 500,
+): void {
   if (!value.trim()) throw new Error(`${name} is required`);
   if (/[\r\n]/.test(value)) throw new Error(`${name} must be a single line`);
   if (value.length > maxLength) throw new Error(`${name} must be at most ${maxLength} characters`);
@@ -44,29 +50,35 @@ export function validateHandoffInput(input: HandoffInput): void {
   if (!WORK_ITEM_ID.test(input.workItem)) {
     throw new Error('--work-item contains unsafe characters');
   }
-  assertSingleLine('--objective', input.objective);
-  assertSingleLine('--next', input.nextAction);
-  assertSingleLine('--definition-of-done', input.definitionOfDone);
+  validateSafeHandoffText('--objective', input.objective);
+  validateSafeHandoffText('--next', input.nextAction);
+  validateSafeHandoffText('--definition-of-done', input.definitionOfDone);
 }
 
 function validateObservedState(observed: HandoffObservedState): void {
-  if (!Number.isFinite(Date.parse(observed.updatedAt))) {
-    throw new Error('updatedAt must be a valid timestamp');
+  for (const [name, timestamp] of [
+    ['startedAt', observed.startedAt],
+    ['updatedAt', observed.updatedAt],
+  ] as const) {
+    if (!Number.isFinite(Date.parse(timestamp)) || new Date(timestamp).toISOString() !== timestamp) {
+      throw new Error(`${name} must be a canonical ISO timestamp`);
+    }
   }
-  assertSingleLine('branch', observed.branch, 200);
+  validateSafeHandoffText('branch', observed.branch, 200);
   if (!COMMIT.test(observed.baseCommit) || !COMMIT.test(observed.headCommit)) {
     throw new Error('base and head commits must be hexadecimal Git SHAs or unknown');
   }
-  assertSingleLine('review status', observed.reviewStatus, 200);
+  validateSafeHandoffText('review status', observed.reviewStatus, 200);
   for (const [name, values] of Object.entries({
-    'files changed': observed.filesChanged,
+    'task change evidence': observed.taskChangeEvidence,
+    'working tree changes': observed.workingTreeChanges,
     'test evidence': observed.testEvidence,
     'database actions': observed.databaseActions,
     'hosting actions': observed.hostingActions,
     'external side effects': observed.externalSideEffects,
     blockers: observed.blockers,
   })) {
-    for (const value of values) assertSingleLine(name, value, 1_000);
+    for (const value of values) validateSafeHandoffText(name, value, 1_000);
   }
 }
 
@@ -74,10 +86,10 @@ function renderList(values: string[], fallback: string): string {
   return (values.length > 0 ? values : [fallback]).map((value) => `- ${value}`).join('\n');
 }
 
-function renderCodeList(values: string[]): string {
+function renderWorkingTree(values: string[]): string {
   return values.length > 0
     ? values.map((value) => `- \`${value}\``).join('\n')
-    : '- None.';
+    : '- Clean.';
 }
 
 export function createHandoff(
@@ -91,6 +103,7 @@ export function createHandoff(
 
 **Handoff ID:** \`${input.id}\`
 **Status:** active
+**Started:** ${observedState.startedAt}
 **Updated:** ${observedState.updatedAt}
 **Actor:** ${input.actor}
 **Objective:** ${input.objective}
@@ -103,29 +116,33 @@ export function createHandoff(
 - Head commit: \`${observedState.headCommit}\`
 - Review status: ${observedState.reviewStatus}
 
-## Files changed
+## Task change evidence
 
-${renderCodeList(observedState.filesChanged)}
+${renderList(observedState.taskChangeEvidence, 'Not supplied.')}
+
+## Current working tree
+
+${renderWorkingTree(observedState.workingTreeChanges)}
 
 ## Verification evidence
 
-${renderList(observedState.testEvidence, 'No test evidence recorded yet.')}
+${renderList(observedState.testEvidence, 'Not supplied.')}
 
 ## Database actions
 
-${renderList(observedState.databaseActions, 'None.')}
+${renderList(observedState.databaseActions, 'No external action reported.')}
 
 ## Hosting actions
 
-${renderList(observedState.hostingActions, 'None.')}
+${renderList(observedState.hostingActions, 'No external action reported.')}
 
 ## External side effects
 
-${renderList(observedState.externalSideEffects, 'None.')}
+${renderList(observedState.externalSideEffects, 'No external action reported.')}
 
 ## Blockers
 
-${renderList(observedState.blockers, 'None.')}
+${renderList(observedState.blockers, 'Not supplied.')}
 
 ## Next exact action
 
