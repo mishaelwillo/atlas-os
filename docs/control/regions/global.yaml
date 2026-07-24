@@ -1,0 +1,15 @@
+schema_version: 1
+id: global
+countries: []
+languages: [en]
+currencies: []
+preferred_channels: [email, phone]
+phone_regions: []
+directories: [google-business-profile]
+review_platforms: [google]
+outreach_policy:
+  default_autonomy: shadow
+  require_operator_approval: true
+  policy_review_required: true
+seo:
+  location_depth: country-and-locality

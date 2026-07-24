@@ -1,0 +1,9 @@
+schema_version: 1
+id: jamaica
+inherits: caribbean
+countries: [JM]
+languages: [en-JM]
+currencies: [JMD]
+phone_regions: [JM]
+outreach_policy:
+  policy_review_required: true

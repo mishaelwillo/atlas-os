@@ -2,6 +2,7 @@ import { access, readFile, readdir } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'yaml';
+import { loadRegionPacks } from './regions.js';
 import { EnvironmentFileSchema, WorkQueueSchema, type Finding, type WorkQueue } from './schemas.js';
 
 const SEVERITY_ORDER = { blocking: 0, warning: 1, info: 2 } as const;
@@ -95,6 +96,7 @@ export async function verifyStatic(root: string): Promise<Finding[]> {
   const queuePath = join(controlRoot, 'WORK_QUEUE.yaml');
   const handoffPath = join(controlRoot, 'CURRENT_HANDOFF.md');
   const indexPath = join(controlRoot, 'CONTROL_INDEX.md');
+  const regionsRoot = join(controlRoot, 'regions');
   const findings: Finding[] = [];
 
   let queue: WorkQueue | undefined;
@@ -118,6 +120,24 @@ export async function verifyStatic(root: string): Promise<Finding[]> {
         'control.work_queue_invalid',
         relative(root, queuePath),
         error instanceof Error ? error.message : 'invalid work queue',
+      ),
+    );
+  }
+
+  try {
+    const regionFiles = (await readdir(regionsRoot))
+      .filter((fileName) => fileName.endsWith('.yaml'))
+      .sort(compareCodepoints);
+    if (regionFiles.length === 0) {
+      throw new Error('no regional YAML packs found');
+    }
+    await loadRegionPacks(regionsRoot, regionFiles);
+  } catch (error) {
+    findings.push(
+      blocking(
+        'control.region_packs_invalid',
+        relative(root, regionsRoot),
+        error instanceof Error ? error.message : 'invalid regional packs',
       ),
     );
   }

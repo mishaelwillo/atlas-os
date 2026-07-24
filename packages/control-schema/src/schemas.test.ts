@@ -66,6 +66,7 @@ async function makeControlRoot(options?: {
   temporaryRoots.push(root);
   const control = join(root, 'docs', 'control');
   await mkdir(control, { recursive: true });
+  await mkdir(join(control, 'regions'), { recursive: true });
   await writeFile(join(control, 'ENVIRONMENTS.yaml'), JSON.stringify(options?.environment ?? validEnvironment));
   await writeFile(join(control, 'WORK_QUEUE.yaml'), JSON.stringify(options?.queue ?? validQueue));
   await writeFile(
@@ -79,6 +80,25 @@ async function makeControlRoot(options?: {
   if (options?.includeSpecification !== false) {
     await writeFile(join(control, 'CONTINUITY_DESIGN.md'), '# Continuity Design\n');
   }
+  await writeFile(
+    join(control, 'regions', 'global.yaml'),
+    `schema_version: 1
+id: global
+countries: []
+languages: [en]
+currencies: []
+preferred_channels: [email, phone]
+phone_regions: []
+directories: [google-business-profile]
+review_platforms: [google]
+outreach_policy:
+  default_autonomy: shadow
+  require_operator_approval: true
+  policy_review_required: true
+seo:
+  location_depth: country-and-locality
+`,
+  );
   return root;
 }
 
@@ -245,6 +265,25 @@ environments:
     const root = await makeControlRoot();
 
     await expect(verifyStatic(root)).resolves.toEqual([]);
+  });
+
+  test('blocks static verification when a regional pack is invalid', async () => {
+    const root = await makeControlRoot();
+    await writeFile(
+      join(root, 'docs', 'control', 'regions', 'bad-child.yaml'),
+      `schema_version: 1
+id: bad-child
+inherits: missing-parent
+`,
+    );
+
+    await expect(verifyStatic(root)).resolves.toContainEqual(
+      expect.objectContaining({
+        code: 'control.region_packs_invalid',
+        path: join('docs', 'control', 'regions'),
+        severity: 'blocking',
+      }),
+    );
   });
 
   test('does not mistake a natural handoff task ID for an API key prefix', async () => {

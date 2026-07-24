@@ -1,0 +1,9 @@
+schema_version: 1
+id: canada
+inherits: north-america
+countries: [CA]
+languages: [en-CA, fr-CA]
+currencies: [CAD]
+phone_regions: [CA]
+outreach_policy:
+  policy_review_required: true

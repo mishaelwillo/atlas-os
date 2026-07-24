@@ -1,0 +1,16 @@
+schema_version: 1
+id: saint-lucia
+inherits: caribbean
+countries: [LC]
+languages: [en-LC]
+currencies: [XCD]
+preferred_channels: [whatsapp, email, phone]
+phone_regions: [LC]
+directories: [google-business-profile]
+review_platforms: [google]
+outreach_policy:
+  default_autonomy: shadow
+  require_operator_approval: true
+  policy_review_required: true
+seo:
+  location_depth: country-and-locality

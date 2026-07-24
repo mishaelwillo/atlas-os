@@ -1,0 +1,9 @@
+schema_version: 1
+id: united-states
+inherits: north-america
+countries: [US]
+languages: [en-US]
+currencies: [USD]
+phone_regions: [US]
+outreach_policy:
+  policy_review_required: true

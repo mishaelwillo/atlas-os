@@ -1,0 +1,10 @@
+schema_version: 1
+id: north-america
+inherits: global
+countries: [US, CA]
+languages: [en-US, en-CA]
+currencies: [USD, CAD]
+preferred_channels: [email, phone, sms]
+phone_regions: [US, CA]
+outreach_policy:
+  policy_review_required: true
