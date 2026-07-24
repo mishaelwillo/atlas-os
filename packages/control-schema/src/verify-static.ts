@@ -8,6 +8,10 @@ const SEVERITY_ORDER = { blocking: 0, warning: 1, info: 2 } as const;
 const DOCUMENT_SECRET_PATTERN =
   /gho_|github_pat_|sb_secret_|sk-[A-Za-z0-9_-]+|postgres(?:ql)?:\/\/[^:\s]+:[^@\s]+@|-----BEGIN/g;
 
+function compareCodepoints(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 async function pathExists(path: string): Promise<boolean> {
   try {
     await access(path);
@@ -36,9 +40,9 @@ function sortFindings(findings: Finding[]): Finding[] {
   return findings.sort(
     (left, right) =>
       SEVERITY_ORDER[left.severity] - SEVERITY_ORDER[right.severity] ||
-      left.code.localeCompare(right.code) ||
-      left.path.localeCompare(right.path) ||
-      left.message.localeCompare(right.message),
+      compareCodepoints(left.code, right.code) ||
+      compareCodepoints(left.path, right.path) ||
+      compareCodepoints(left.message, right.message),
   );
 }
 

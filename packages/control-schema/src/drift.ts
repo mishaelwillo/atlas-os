@@ -46,12 +46,16 @@ function ageMilliseconds(earlier: string, later: string): number | undefined {
   return laterTime - earlierTime;
 }
 
+function compareCodepoints(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 export function sortDriftFindings(findings: DriftFinding[]): DriftFinding[] {
   return [...findings].sort(
     (left, right) =>
       SEVERITY_ORDER[left.severity] - SEVERITY_ORDER[right.severity] ||
-      left.code.localeCompare(right.code) ||
-      left.message.localeCompare(right.message),
+      compareCodepoints(left.code, right.code) ||
+      compareCodepoints(left.message, right.message),
   );
 }
 
@@ -82,11 +86,24 @@ export function detectDrift(
         'POST /v1/memory/ingest returned 404.',
       ),
     );
+  } else if (
+    observed.railwayApi.status === 'drift' ||
+    observed.railwayApi.status === 'error'
+  ) {
+    findings.push(
+      finding(
+        'blocking',
+        'railway.api.probe_invalid',
+        'Railway API probes did not satisfy the required status and body contracts.',
+      ),
+    );
   }
 
   if (observed.supabase.status === 'ok' && observed.supabase.value) {
     const present = new Set(observed.supabase.value.tables);
-    const missing = desired.requiredTables.filter((table) => !present.has(table)).sort();
+    const missing = desired.requiredTables
+      .filter((table) => !present.has(table))
+      .sort(compareCodepoints);
     if (missing.length > 0) {
       findings.push(
         finding(
@@ -156,6 +173,15 @@ export function detectDrift(
   }
 
   const now = desired.now ?? new Date().toISOString();
+  if (ageMilliseconds(observed.collectedAt, now) === undefined) {
+    findings.push(
+      finding(
+        'warning',
+        'control.observed_state_timestamp_invalid',
+        'Observed-state collection time is invalid or unavailable.',
+      ),
+    );
+  }
   if (
     desired.handoffUpdatedAt &&
     (ageMilliseconds(desired.handoffUpdatedAt, now) ?? 0) > 24 * 60 * 60 * 1_000

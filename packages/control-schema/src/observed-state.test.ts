@@ -1,14 +1,25 @@
+import { execFileSync } from 'node:child_process';
 import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   collectObservedState,
+  runStatusCli,
   type CollectorFetch,
   type CollectorRun,
 } from './collect-observed-state.js';
-import { detectDrift, renderDriftReport, type DesiredState } from './drift.js';
-import { writeObservedState } from './observed-state.js';
+import {
+  detectDrift,
+  renderDriftReport,
+  sortDriftFindings,
+  type DesiredState,
+} from './drift.js';
+import {
+  redactSecrets,
+  type ObservedState,
+  writeObservedState,
+} from './observed-state.js';
 
 const collectedAt = '2026-07-24T12:00:00.000Z';
 const githubSha = '6b70726b1e000000000000000000000000000000';
@@ -32,7 +43,10 @@ function jsonResponse(status: number, body: unknown): Response {
   });
 }
 
-function injectedRun(headSha = githubSha): CollectorRun {
+function injectedRun(
+  headSha = githubSha,
+  runs: unknown = [{ databaseId: 101, conclusion: 'success', headSha }],
+): CollectorRun {
   return async (command, args) => {
     const key = `${command} ${args.join(' ')}`;
     if (key === 'git rev-parse --abbrev-ref HEAD') {
@@ -50,7 +64,7 @@ function injectedRun(headSha = githubSha): CollectorRun {
     }
     if (key.includes('gh run list')) {
       return {
-        stdout: JSON.stringify([{ databaseId: 101, conclusion: 'success', headSha }]),
+        stdout: JSON.stringify(runs),
         stderr: '',
         exitCode: 0,
       };
@@ -63,22 +77,33 @@ function injectedFetch(options: {
   healthSha?: string;
   ingestStatus: number;
   missionControlStatus?: number;
+  healthStatus?: number;
+  healthBody?: unknown;
+  missionControlBody?: unknown;
+  osStatus?: number;
+  osBody?: unknown;
 }): CollectorFetch {
   return async (input, init) => {
     const url = String(input);
     if (url.endsWith('/healthz')) {
-      return jsonResponse(200, {
-        ok: true,
-        service: 'atlas-api',
-        appVersion: '0.1.0',
-        gitSha: options.healthSha ?? 'unknown',
-        buildTime: collectedAt,
-        schemaVersion: '0001_init',
-        registryVersion: 1,
-      });
+      return jsonResponse(
+        options.healthStatus ?? 200,
+        options.healthBody ?? {
+          ok: true,
+          service: 'atlas-api',
+          appVersion: '0.1.0',
+          gitSha: options.healthSha ?? 'unknown',
+          buildTime: collectedAt,
+          schemaVersion: '0001_init',
+          registryVersion: 1,
+        },
+      );
     }
     if (url.endsWith('/v1/status/mission_control')) {
-      return jsonResponse(options.missionControlStatus ?? 200, { ok: true, cards: [] });
+      return jsonResponse(
+        options.missionControlStatus ?? 200,
+        options.missionControlBody ?? { ok: true, cards: [] },
+      );
     }
     if (url.endsWith('/v1/memory/ingest')) {
       expect(init?.method).toBe('POST');
@@ -86,14 +111,17 @@ function injectedFetch(options: {
       return jsonResponse(options.ingestStatus, { error: 'probe response' });
     }
     if (url.endsWith('/build-info.json')) {
-      return jsonResponse(200, {
-        service: 'atlas-os',
-        appVersion: '0.1.0',
-        gitSha: options.healthSha ?? 'unknown',
-        buildTime: collectedAt,
-        schemaVersion: '0001_init',
-        registryVersion: 1,
-      });
+      return jsonResponse(
+        options.osStatus ?? 200,
+        options.osBody ?? {
+          service: 'atlas-os',
+          appVersion: '0.1.0',
+          gitSha: options.healthSha ?? 'unknown',
+          buildTime: collectedAt,
+          schemaVersion: '0001_init',
+          registryVersion: 1,
+        },
+      );
     }
     throw new Error(`unexpected fetch: ${url}`);
   };
@@ -175,21 +203,33 @@ describe('observed-state collection and drift', () => {
 
   it('records unavailable authorities explicitly without throwing or leaking error secrets', async () => {
     const root = await fixtureRoot();
-    const secret = ['postgresql:', '//admin:do-not-record@example.test/database'].join('');
+    const secrets = [
+      ['gh', 'p_examplePersonalAccessToken123'].join(''),
+      ['gh', 'o_exampleOauthToken123'].join(''),
+      ['github_', 'pat_exampleFineGrainedToken123'].join(''),
+      ['sb_', 'secret_exampleSupabaseToken123'].join(''),
+      ['sk', '-exampleOpenAiToken123'].join(''),
+      ['Bearer', ' exampleBearerToken123'].join(''),
+      ['eyJhbGciOiJIUzI1NiJ9', 'eyJzdWIiOiIxMjM0NTY3ODkwIn0', 'signature123'].join('.'),
+      ['postgresql:', '//admin:do-not-record@example.test/database'].join(''),
+      ['PASSWORD', '="do-not-record-password"'].join(''),
+      ['api_key', '=do-not-record-api-key'].join(''),
+    ];
+    const externalError = `probe context ${secrets.join(' ')}`;
     const observed = await collectObservedState({
       root,
       collectedAt,
       environment,
       run: async () => {
-        throw new Error(`CLI unavailable while using ${secret}`);
+        throw new Error(`CLI unavailable: ${externalError}`);
       },
       fetch: async () => {
-        throw new Error(`network unavailable near ${secret}`);
+        throw new Error(`HTTP unavailable: ${externalError}`);
       },
       queryTables: async () => {
-        throw new Error(`database unavailable at ${secret}`);
+        throw new Error(`PG unavailable: ${externalError}`);
       },
-      databaseUrl: secret,
+      databaseUrl: secrets[7],
     });
 
     expect(observed.localGit.status).toBe('unknown');
@@ -197,7 +237,53 @@ describe('observed-state collection and drift', () => {
     expect(observed.supabase.status).toBe('unknown');
     expect(observed.railwayApi.status).toBe('unknown');
     expect(observed.railwayOs.status).toBe('unknown');
-    expect(JSON.stringify(observed)).not.toContain(secret);
+    const serialized = JSON.stringify(observed);
+    for (const secret of secrets) {
+      expect(serialized).not.toContain(secret);
+    }
+    expect(serialized).toContain('probe context');
+    expect(serialized).toContain('[redacted]');
+  });
+
+  it('redacts secret forms directly and again at the output boundary', async () => {
+    const values = [
+      ['gh', 'p_abcdefghijklmnopqrstuvwxyz123456'].join(''),
+      ['gh', 'o_abcdefghijklmnopqrstuvwxyz123456'].join(''),
+      ['github_', 'pat_abcdefghijklmnopqrstuvwxyz123456'].join(''),
+      ['sb_', 'secret_abcdefghijklmnopqrstuvwxyz123456'].join(''),
+      ['sk', '-abcdefghijklmnopqrstuvwxyz123456'].join(''),
+      ['Bearer', ' abcdefghijklmnopqrstuvwxyz123456'].join(''),
+      ['eyJhbGciOiJIUzI1NiJ9', 'eyJzdWIiOiIxMjM0NTY3ODkwIn0', 'signature123'].join('.'),
+      ['postgres:', '//user:password@example.test/db'].join(''),
+      ['password', "='quoted-value'"].join(''),
+      ['SeCrEt', '=unquoted-value'].join(''),
+      ['TOKEN', ': another-value'].join(''),
+      ['api_key', '="api-value"'].join(''),
+    ];
+    const text = `Useful failure context ${values.join(' ')}`;
+    const redacted = redactSecrets(text);
+    expect(redacted).toContain('Useful failure context');
+    expect(redacted).toContain('[redacted]');
+    values.forEach((value) => expect(redacted).not.toContain(value));
+
+    const root = await fixtureRoot();
+    const observed = await collectObservedState({
+      root,
+      collectedAt,
+      environment,
+      run: injectedRun(),
+      fetch: injectedFetch({ healthSha: githubSha, ingestStatus: 401 }),
+      queryTables: async () => ['memory_cards', 'memory_nodes'],
+      databaseUrl: 'opaque-test-database-url',
+    });
+    observed.localGit.error = text;
+    await writeObservedState(root, observed, []);
+    const output = await readFile(
+      join(root, 'docs', 'control', 'generated', 'observed-state.json'),
+      'utf8',
+    );
+    values.forEach((value) => expect(output).not.toContain(value));
+    expect(output).toContain('Useful failure context');
   });
 
   it('does not query Supabase when DATABASE_URL is absent', async () => {
@@ -263,6 +349,176 @@ describe('observed-state collection and drift', () => {
       'control.handoff_stale',
       'control.observed_state_stale',
     ]);
+  });
+
+  it.each([
+    ['health 500', { healthStatus: 500, ingestStatus: 401 }],
+    ['mission-control 500', { missionControlStatus: 500, ingestStatus: 401 }],
+    ['memory 405', { ingestStatus: 405 }],
+    ['memory 429', { ingestStatus: 429 }],
+    [
+      'malformed health',
+      { ingestStatus: 401, healthBody: { ok: true, service: 'atlas-api' } },
+    ],
+    [
+      'malformed mission-control body',
+      { ingestStatus: 401, missionControlBody: { ok: true } },
+    ],
+  ])('does not report the Railway API as ok for %s', async (_name, fetchOptions) => {
+    const root = await fixtureRoot();
+    const observed = await collectObservedState({
+      root,
+      collectedAt,
+      environment,
+      run: injectedRun(),
+      fetch: injectedFetch({ healthSha: githubSha, ...fetchOptions }),
+      queryTables: async () => ['memory_cards', 'memory_nodes'],
+      databaseUrl: 'opaque-test-database-url',
+    });
+
+    expect(observed.railwayApi.status).not.toBe('ok');
+    expect(detectDrift(desired(), observed)).toContainEqual(
+      expect.objectContaining({
+        severity: 'blocking',
+        code: 'railway.api.probe_invalid',
+      }),
+    );
+  });
+
+  it('does not accept malformed JSON from API health', async () => {
+    const root = await fixtureRoot();
+    const baseline = injectedFetch({ healthSha: githubSha, ingestStatus: 401 });
+    const observed = await collectObservedState({
+      root,
+      collectedAt,
+      environment,
+      run: injectedRun(),
+      fetch: async (input, init) =>
+        String(input).endsWith('/healthz')
+          ? new Response('{not-json', {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            })
+          : baseline(input, init),
+      queryTables: async () => ['memory_cards', 'memory_nodes'],
+      databaseUrl: 'opaque-test-database-url',
+    });
+
+    expect(observed.railwayApi.status).not.toBe('ok');
+    expect(observed.railwayApi.error).toContain('health');
+  });
+
+  it.each([
+    ['no runs', []],
+    ['missing conclusion', [{ databaseId: 102, headSha: githubSha }]],
+    ['empty conclusion', [{ databaseId: 103, conclusion: '', headSha: githubSha }]],
+    [
+      'in-progress conclusion',
+      [{ databaseId: 104, conclusion: 'in_progress', headSha: githubSha }],
+    ],
+  ])('records GitHub CI as unknown for %s', async (_name, runs) => {
+    const root = await fixtureRoot();
+    const observed = await collectObservedState({
+      root,
+      collectedAt,
+      environment,
+      run: injectedRun(githubSha, runs),
+      fetch: injectedFetch({ healthSha: githubSha, ingestStatus: 401 }),
+      queryTables: async () => ['memory_cards', 'memory_nodes'],
+      databaseUrl: 'opaque-test-database-url',
+    });
+
+    expect(observed.github.status).toBe('unknown');
+    expect(observed.github.value?.headSha).toBe(githubSha);
+    expect(observed.github.evidence).toContain('CI');
+    expect(detectDrift(desired(), observed)).toContainEqual(
+      expect.objectContaining({
+        severity: 'warning',
+        code: 'github.state_unknown',
+      }),
+    );
+  });
+
+  it('warns explicitly when collectedAt is invalid', async () => {
+    const root = await fixtureRoot();
+    const observed = await collectObservedState({
+      root,
+      collectedAt: 'not-an-iso-timestamp',
+      environment,
+      run: injectedRun(),
+      fetch: injectedFetch({ healthSha: githubSha, ingestStatus: 401 }),
+      queryTables: async () => ['memory_cards', 'memory_nodes'],
+      databaseUrl: 'opaque-test-database-url',
+    });
+
+    expect(detectDrift(desired({ now: collectedAt }), observed)).toContainEqual(
+      expect.objectContaining({
+        severity: 'warning',
+        code: 'control.observed_state_timestamp_invalid',
+      }),
+    );
+  });
+
+  it('sorts findings by locale-independent codepoint order', () => {
+    const findings = sortDriftFindings([
+      { severity: 'warning', code: 'ä.code', message: 'second' },
+      { severity: 'warning', code: 'z.code', message: 'first' },
+    ]);
+    expect(findings.map((item) => item.code)).toEqual(['z.code', 'ä.code']);
+  });
+
+  it('ignores only the generated runtime evidence outputs while retaining .gitkeep', () => {
+    const repositoryRoot = resolve(process.cwd(), '../..');
+    for (const path of [
+      'docs/control/generated/observed-state.json',
+      'docs/control/generated/drift-report.md',
+    ]) {
+      expect(() =>
+        execFileSync('git', ['check-ignore', '--no-index', '--quiet', path], {
+          cwd: repositoryRoot,
+        }),
+      ).not.toThrow();
+    }
+    expect(() =>
+      execFileSync(
+        'git',
+        ['check-ignore', '--no-index', '--quiet', 'docs/control/generated/.gitkeep'],
+        { cwd: repositoryRoot },
+      ),
+    ).toThrow();
+  });
+
+  it.each([
+    ['blocking', 404, 1],
+    ['healthy', 401, 0],
+  ])('status CLI writes reports and returns the expected code for %s drift', async (_name, ingestStatus, exitCode) => {
+    const root = await fixtureRoot();
+    const lines: string[] = [];
+    const result = await runStatusCli({
+      root,
+      collectedAt,
+      environment,
+      desired: desired({ now: collectedAt }),
+      run: injectedRun(),
+      fetch: injectedFetch({ healthSha: githubSha, ingestStatus }),
+      queryTables: async () => ['memory_cards', 'memory_nodes'],
+      databaseUrl: 'opaque-test-database-url',
+      writeLine: (line) => lines.push(line),
+    });
+
+    expect(result).toBe(exitCode);
+    if (exitCode === 1) {
+      expect(lines.some((line) => line.startsWith('BLOCKING '))).toBe(true);
+    } else {
+      expect(lines.some((line) => line.startsWith('BLOCKING '))).toBe(false);
+    }
+    expect(lines.at(-1)).toContain('observed-state.json');
+    expect(
+      await readFile(
+        join(root, 'docs', 'control', 'generated', 'observed-state.json'),
+        'utf8',
+      ),
+    ).toContain('"schemaVersion": 1');
   });
 
   it('writes stable JSON and Markdown with provenance and final newlines', async () => {

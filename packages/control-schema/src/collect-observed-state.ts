@@ -9,6 +9,7 @@ import {
   type BuildFingerprint,
   type Observation,
   type ObservedState,
+  redactSecrets,
   writeObservedState,
 } from './observed-state.js';
 import { verifyStatic } from './verify-static.js';
@@ -19,8 +20,6 @@ from information_schema.tables
 where table_schema = 'public'
 order by table_name`;
 const DEFAULT_TIMEOUT_MS = 15_000;
-const SECRET_TEXT =
-  /gho_[A-Za-z0-9_-]+|github_pat_[A-Za-z0-9_-]+|sb_secret_[A-Za-z0-9_-]+|sk-[A-Za-z0-9_-]+|postgres(?:ql)?:\/\/\S+/gi;
 
 export interface RunResult {
   stdout: string;
@@ -70,13 +69,22 @@ export interface CollectObservedStateOptions {
   timeoutMs?: number;
 }
 
+export interface RunStatusCliOptions extends CollectObservedStateOptions {
+  desired: DesiredState;
+  writeLine?: (line: string) => void;
+}
+
 function safeError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
-  return message.replace(SECRET_TEXT, '[redacted]').slice(0, 500);
+  return redactSecrets(message).slice(0, 500);
 }
 
 function safeUrl(base: string, path: string): string {
   return `${base.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
+}
+
+function compareCodepoints(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
 }
 
 function ok<T>(checkedAt: string, value: T, evidence: string): Observation<T> {
@@ -158,22 +166,55 @@ function parseJson(text: string): unknown {
   return JSON.parse(text.trim());
 }
 
-function fingerprint(value: unknown): BuildFingerprint | undefined {
+function validatedFingerprint(
+  value: unknown,
+  expectedService: 'atlas-api' | 'atlas-os',
+  requireOk: boolean,
+): { fingerprint?: BuildFingerprint; error?: string } {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
-    return undefined;
+    return { error: `${expectedService} fingerprint body is not a JSON object.` };
   }
   const source = value as Record<string, unknown>;
+  if (requireOk && source.ok !== true) {
+    return { error: `${expectedService} fingerprint body does not report ok=true.` };
+  }
+  if (source.service !== expectedService) {
+    return { error: `${expectedService} fingerprint has an unexpected service field.` };
+  }
+  if (typeof source.appVersion !== 'string' || source.appVersion.trim() === '') {
+    return { error: `${expectedService} fingerprint has no application version.` };
+  }
+  if (
+    typeof source.gitSha !== 'string' ||
+    (source.gitSha !== 'unknown' && !/^[0-9a-f]{7,64}$/i.test(source.gitSha))
+  ) {
+    return { error: `${expectedService} fingerprint has an invalid Git SHA.` };
+  }
+  if (
+    typeof source.buildTime !== 'string' ||
+    (source.buildTime !== 'unknown' && !Number.isFinite(Date.parse(source.buildTime)))
+  ) {
+    return { error: `${expectedService} fingerprint has an invalid build time.` };
+  }
+  if (typeof source.schemaVersion !== 'string' || source.schemaVersion.trim() === '') {
+    return { error: `${expectedService} fingerprint has no schema version.` };
+  }
+  if (
+    typeof source.registryVersion !== 'number' ||
+    !Number.isInteger(source.registryVersion) ||
+    source.registryVersion < 1
+  ) {
+    return { error: `${expectedService} fingerprint has an invalid registry version.` };
+  }
   return {
-    ...(typeof source.service === 'string' ? { service: source.service } : {}),
-    ...(typeof source.appVersion === 'string' ? { appVersion: source.appVersion } : {}),
-    ...(typeof source.gitSha === 'string' ? { gitSha: source.gitSha } : {}),
-    ...(typeof source.buildTime === 'string' ? { buildTime: source.buildTime } : {}),
-    ...(typeof source.schemaVersion === 'string'
-      ? { schemaVersion: source.schemaVersion }
-      : {}),
-    ...(typeof source.registryVersion === 'number'
-      ? { registryVersion: source.registryVersion }
-      : {}),
+    fingerprint: {
+      service: expectedService,
+      appVersion: source.appVersion,
+      gitSha: source.gitSha,
+      buildTime: source.buildTime,
+      schemaVersion: source.schemaVersion,
+      registryVersion: source.registryVersion,
+    },
   };
 }
 
@@ -189,7 +230,11 @@ async function collectLocalGit(
       run('git', ['rev-parse', 'HEAD'], { cwd: root, timeoutMs }),
     ]);
     if (branch.exitCode !== 0 || sha.exitCode !== 0) {
-      return unknown(checkedAt, 'Local Git identity could not be read.');
+      return unknown(
+        checkedAt,
+        'Local Git identity could not be read.',
+        `${branch.stderr}\n${sha.stderr}`,
+      );
     }
     const value = { branch: branch.stdout.trim(), sha: sha.stdout.trim() };
     return ok(checkedAt, value, `git ${value.branch} @ ${value.sha}`);
@@ -230,7 +275,11 @@ async function collectGithub(
       ),
     ]);
     if (commit.exitCode !== 0 || workflow.exitCode !== 0) {
-      return unknown(checkedAt, 'GitHub CLI did not return head and CI evidence.');
+      return unknown(
+        checkedAt,
+        'GitHub CLI did not return head and CI evidence.',
+        `${commit.stderr}\n${workflow.stderr}`,
+      );
     }
     const commitJson = parseJson(commit.stdout) as { sha?: unknown };
     const runJson = parseJson(workflow.stdout) as Array<{
@@ -242,23 +291,44 @@ async function collectGithub(
       return unknown(checkedAt, 'GitHub head response did not contain a commit SHA.');
     }
     const latest = runJson[0];
+    const value = {
+      repository,
+      branch,
+      headSha: commitJson.sha,
+      ...(latest
+        ? {
+            latestRun: {
+              id: latest.databaseId,
+              conclusion: latest.conclusion,
+              headSha: latest.headSha,
+            },
+          }
+        : {}),
+    };
+    const conclusion = latest?.conclusion?.trim();
+    const terminalConclusions = new Set([
+      'success',
+      'failure',
+      'cancelled',
+      'skipped',
+      'timed_out',
+      'action_required',
+      'neutral',
+      'stale',
+      'startup_failure',
+    ]);
+    if (!conclusion || !terminalConclusions.has(conclusion)) {
+      return {
+        status: 'unknown',
+        checkedAt,
+        value,
+        evidence: `GitHub ${repository}:${branch} @ ${commitJson.sha}; CI conclusion is unknown or non-terminal.`,
+      };
+    }
     return ok(
       checkedAt,
-      {
-        repository,
-        branch,
-        headSha: commitJson.sha,
-        ...(latest
-          ? {
-              latestRun: {
-                id: latest.databaseId,
-                conclusion: latest.conclusion,
-                headSha: latest.headSha,
-              },
-            }
-          : {}),
-      },
-      `GitHub ${repository}:${branch} @ ${commitJson.sha}; latest CI ${latest?.conclusion ?? 'unknown'}.`,
+      value,
+      `GitHub ${repository}:${branch} @ ${commitJson.sha}; latest CI ${conclusion}.`,
     );
   } catch (error) {
     return unknown(checkedAt, 'GitHub CLI or authentication is unavailable.', error);
@@ -278,7 +348,9 @@ async function collectSupabase(
     );
   }
   try {
-    const tables = [...(await queryTables(databaseUrl, TABLE_QUERY, timeoutMs))].sort();
+    const tables = [...(await queryTables(databaseUrl, TABLE_QUERY, timeoutMs))].sort(
+      compareCodepoints,
+    );
     return ok(
       checkedAt,
       { tables },
@@ -289,14 +361,20 @@ async function collectSupabase(
   }
 }
 
-async function responseJson(response: Response): Promise<unknown> {
+async function responseJson(
+  response: Response,
+): Promise<{ parsed: boolean; value?: unknown }> {
   const text = await response.text();
-  if (!text) return undefined;
+  if (!text) return { parsed: false };
   try {
-    return parseJson(text);
+    return { parsed: true, value: parseJson(text) };
   } catch {
-    return undefined;
+    return { parsed: false };
   }
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 async function collectRailwayApi(
@@ -318,19 +396,50 @@ async function collectRailwayApi(
         signal,
       }),
     ]);
-    const healthBody = await responseJson(health);
-    const ingestExists = [200, 201, 202, 204, 400, 401, 403, 415, 422].includes(
-      memoryIngest.status,
-    );
+    const [healthBody, missionBody, ingestBody] = await Promise.all([
+      responseJson(health),
+      responseJson(missionControl),
+      responseJson(memoryIngest),
+    ]);
+    const healthValidation =
+      health.status === 200 && healthBody.parsed
+        ? validatedFingerprint(healthBody.value, 'atlas-api', true)
+        : {
+            error:
+              health.status !== 200
+                ? `API health returned unexpected status ${health.status}.`
+                : 'API health returned malformed JSON.',
+          };
+    const missionValid =
+      missionControl.status === 200 &&
+      missionBody.parsed &&
+      isObject(missionBody.value) &&
+      missionBody.value.ok === true &&
+      Array.isArray(missionBody.value.cards);
+    const ingestExists =
+      [400, 401, 403, 415].includes(memoryIngest.status) &&
+      ingestBody.parsed &&
+      isObject(ingestBody.value);
+    const errors = [
+      healthValidation.error,
+      ...(missionValid
+        ? []
+        : [
+            `Mission Control probe returned invalid status or body (${missionControl.status}).`,
+          ]),
+      ...(ingestExists || memoryIngest.status === 404
+        ? []
+        : [`Memory ingest probe returned unexpected status or body (${memoryIngest.status}).`]),
+    ].filter((entry): entry is string => Boolean(entry));
     const value = {
       healthStatus: health.status,
-      fingerprint: fingerprint(healthBody),
+      fingerprint: healthValidation.fingerprint,
       routes: {
         missionControl: {
           method: 'GET' as const,
           path: '/v1/status/mission_control',
           status: missionControl.status,
-          exists: missionControl.status !== 404,
+          exists: missionValid,
         },
         memoryIngest: {
           method: 'POST' as const,
@@ -340,12 +449,26 @@ async function collectRailwayApi(
         },
       },
     };
-    const status = health.ok && memoryIngest.status !== 404 ? 'ok' : 'drift';
+    const status =
+      memoryIngest.status === 404
+        ? 'drift'
+        : errors.length === 0
+          ? 'ok'
+          : 'error';
     return {
       status,
       checkedAt,
       value,
       evidence: `GET /healthz ${health.status}; GET /v1/status/mission_control ${missionControl.status}; POST /v1/memory/ingest ${memoryIngest.status}.`,
+      ...(status === 'ok'
+        ? {}
+        : {
+            error: redactSecrets(
+              memoryIngest.status === 404
+                ? 'POST /v1/memory/ingest is missing.'
+                : errors.join(' '),
+            ),
+          }),
     };
   } catch (error) {
     return unknown(checkedAt, 'Railway API probes were unavailable.', error);
@@ -366,11 +489,22 @@ async function collectRailwayOs(
       ),
       { signal: AbortSignal.timeout(timeoutMs) },
     );
+    const body = await responseJson(response);
+    const validation =
+      response.status === 200 && body.parsed
+        ? validatedFingerprint(body.value, 'atlas-os', false)
+        : {
+            error:
+              response.status !== 200
+                ? `OS build metadata returned unexpected status ${response.status}.`
+                : 'OS build metadata returned malformed JSON.',
+          };
     return {
-      status: response.ok ? 'ok' : 'drift',
+      status: validation.fingerprint ? 'ok' : 'error',
       checkedAt,
-      value: { status: response.status, fingerprint: fingerprint(await responseJson(response)) },
+      value: { status: response.status, fingerprint: validation.fingerprint },
       evidence: `GET ${environment.railway.os.health_path} returned ${response.status}.`,
+      ...(validation.error ? { error: redactSecrets(validation.error) } : {}),
     };
   } catch (error) {
     return unknown(checkedAt, 'Railway OS build metadata probe was unavailable.', error);
@@ -457,6 +591,26 @@ export async function collectObservedState(
   };
 }
 
+export async function runStatusCli(
+  options: RunStatusCliOptions,
+): Promise<0 | 1> {
+  const observed = await collectObservedState(options);
+  const findings = detectDrift(
+    {
+      ...options.desired,
+      now: options.desired.now ?? observed.collectedAt,
+    },
+    observed,
+  );
+  await writeObservedState(options.root, observed, findings);
+  const writeLine = options.writeLine ?? console.log;
+  for (const finding of findings) {
+    writeLine(`${finding.severity.toUpperCase()} ${finding.code}: ${finding.message}`);
+  }
+  writeLine('Wrote docs/control/generated/observed-state.json and drift-report.md');
+  return findings.some((finding) => finding.severity === 'blocking') ? 1 : 0;
+}
+
 function handoffUpdatedAt(handoff: string): string | undefined {
   const value = /^\*\*Updated:\*\*\s*(.+?)\s*$/im.exec(handoff)?.[1]?.trim();
   if (!value) return undefined;
@@ -470,11 +624,6 @@ async function main(): Promise<void> {
   const control = await loadControlFiles(root);
   const environment = control.environments.environments.production;
   const staticVerificationFindings = await verifyStatic(root);
-  const observed = await collectObservedState({
-    root,
-    environment,
-    databaseUrl: process.env.DATABASE_URL,
-  });
   const desired: DesiredState = {
     phase: 'P1 deployment closure',
     phaseComplete: false,
@@ -482,14 +631,13 @@ async function main(): Promise<void> {
     requiredTables: environment.supabase.required_tables,
     handoffUpdatedAt: handoffUpdatedAt(control.currentHandoff),
     staticVerificationFindings,
-    now: observed.collectedAt,
   };
-  const findings = detectDrift(desired, observed);
-  await writeObservedState(root, observed, findings);
-  for (const finding of findings) {
-    console.log(`${finding.severity.toUpperCase()} ${finding.code}: ${finding.message}`);
-  }
-  console.log('Wrote docs/control/generated/observed-state.json and drift-report.md');
+  process.exitCode = await runStatusCli({
+    root,
+    environment,
+    databaseUrl: process.env.DATABASE_URL,
+    desired,
+  });
 }
 
 const invokedPath = process.argv[1] ? resolve(process.argv[1]) : '';

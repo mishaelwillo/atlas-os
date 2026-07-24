@@ -11,15 +11,16 @@
 - Work item: `P2A-CONTROL-001`
 - Branch: `codex/atlas-continuity`
 - Specification: `CONTINUITY_DESIGN.md`
-- Task state: Task 4 implemented and locally verified; pending independent review
+- Task state: Task 4 review findings fixed and locally verified; pending independent re-review
 - Task 4 base commit: `780a752f5940e66bf78fd7649cb6fc04d66a8941`
-- Task 4 implementation boundary: the feature commit containing this handoff
+- Task 4 initial implementation: `7504d07fa48f9f08d59eeb8de2c6697ad761c487`
+- Task 4 review-fix boundary: the fix commit containing this handoff
 - Task 3 base commit: `0c65770ee50a52397cbbffe34e5c99fad9eff291`
 - Task 3 implementation head: `2c97df9950436210b372c2cee1d8964f725bcb07`
 - Task 3 cache-safe fix: `810c05fe7a4920a2c16fc9dcfcc9fcdb51ff519f`
 - Task 3 reviewed-code candidate boundary: `d997d279225c345b5f9c203f760a26ba23aa2553`
 - Boundary note: the commit after `d997d279225c345b5f9c203f760a26ba23aa2553` is metadata-only and records these immutable code boundaries; it does not change executable code, tests, or build configuration.
-- Review status: Task 3 approved; Task 4 pending independent review
+- Review status: Task 3 approved; Task 4 pending independent re-review
 
 ## Files changed
 
@@ -62,6 +63,14 @@
 - Task 4 output evidence: deterministic temporary-fixture generation writes
   two-space JSON and a sorted Markdown drift report with timestamps and
   provenance. No live refresh was performed by this task.
+- Task 4 review-fix RED: 17 new regression cases failed for secret leakage,
+  permissive HTTP evidence, unknown CI, invalid timestamps, locale-sensitive
+  sorting, missing output ignores, and absent CLI exit behavior.
+- Task 4 review-fix GREEN: all 42 control-schema tests pass, including strict
+  API/OS contracts, output-boundary redaction, exact ignore checks, and
+  blocking/non-blocking status CLI exits.
+- Task 4 review-fix GREEN: full repository tests and builds, control
+  verification, and diff checks pass.
 
 ## Verified baseline
 
@@ -93,16 +102,23 @@ None.
 - Generated observed-state files are runtime evidence and remain uncommitted;
   `docs/control/generated/.gitkeep` preserves their output directory.
 - Live status refresh is user-invoked because it reads network authorities.
+- Generated runtime evidence JSON and Markdown are ignored exactly; the
+  generated directory's `.gitkeep` remains tracked.
+- A health or route probe is successful only when its expected HTTP status and
+  body contract pass. Ambiguous `405`, `429`, `5xx`, malformed JSON, and
+  malformed fingerprints cannot become `ok` evidence.
+- GitHub head evidence may remain known while CI evidence is explicitly
+  unknown; missing or non-terminal CI conclusions do not become success.
 
 ## Blockers
 
 Production P1 deployment closure remains blocked by the Railway API serving the P0 route set.
-Task 5 is gated on independent approval of Task 4.
+Task 5 is gated on independent re-approval of the Task 4 hardening.
 
 ## Next exact action
 
-Independently review Task 4 from base
-`780a752f5940e66bf78fd7649cb6fc04d66a8941` through the feature commit
+Independently re-review Task 4 from base
+`780a752f5940e66bf78fd7649cb6fc04d66a8941` through the review-fix commit
 containing this handoff. If approved, begin Task 5 by writing failing temporary
 fixture tests for handoff creation and collision-safe archival.
 
@@ -116,7 +132,7 @@ fixture tests for handoff creation and collision-safe archival.
 - The OS Turbo override explicitly preserves dependency builds and cacheable outputs.
 - Public fingerprint values are normalized and invalid values become `unknown`.
 - The handoff retains the active work-item identity and records Task 4 as pending
-  independent review.
+  independent re-review.
 - Authority failures cannot prevent an observed-state report, cannot invent live
   truth, and cannot expose a database URL or secret-like error value.
 - A known API SHA mismatch, a `404` P1 route, missing required tables, missing
@@ -124,3 +140,8 @@ fixture tests for handoff creation and collision-safe archival.
 - Unknown authority state and stale handoff/snapshot state are warnings.
 - Generated output is deterministic apart from the explicit collection time and
   carries source provenance.
+- All external error strings and written output pass through the centralized
+  secret redactor.
+- `runStatusCli` writes evidence, prints findings, and returns `1` for blocking
+  drift and `0` otherwise; the executable entry point assigns that result to
+  `process.exitCode`.
