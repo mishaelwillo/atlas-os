@@ -7,5 +7,6 @@ dist/
 .env.production.local
 .turbo/
 .worktrees/
+.superpowers/
 _tmp_*
 *.log
