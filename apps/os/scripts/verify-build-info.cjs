@@ -35,7 +35,7 @@ const runTurbo = (arguments, environment) => {
   return result.stdout;
 };
 
-const dryHash = (gitSha) => {
+const dryTask = (gitSha) => {
   const report = JSON.parse(
     runTurbo(['run', 'build', '--filter=@atlas/os', '--dry=json'], {
       ...fixedEnvironment,
@@ -44,15 +44,24 @@ const dryHash = (gitSha) => {
   );
   const task = report.tasks.find((candidate) => candidate.taskId === '@atlas/os#build');
   if (!task) throw new Error('Turbo dry-run did not report @atlas/os#build');
-  return task.hash;
+  return task;
 };
 
 const firstSha = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 const secondSha = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
-const firstHash = dryHash(firstSha);
-const secondHash = dryHash(secondSha);
-if (firstHash === secondHash) {
+const firstTask = dryTask(firstSha);
+const secondTask = dryTask(secondSha);
+if (firstTask.hash === secondTask.hash) {
   throw new Error('OS build hash did not change when ATLAS_GIT_SHA changed');
+}
+if (JSON.stringify(firstTask.resolvedTaskDefinition.dependsOn) !== JSON.stringify(['^build'])) {
+  throw new Error('OS build does not preserve the ^build dependency');
+}
+if (
+  JSON.stringify([...firstTask.resolvedTaskDefinition.outputs].sort()) !==
+  JSON.stringify(['build/**', 'dist/**'])
+) {
+  throw new Error('OS build does not preserve cacheable dist/build outputs');
 }
 
 runTurbo(['run', 'build', '--filter=@atlas/os', '--force'], {
@@ -82,6 +91,8 @@ console.log(
     {
       ok: true,
       hashesDiffer: true,
+      dependsOn: firstTask.resolvedTaskDefinition.dependsOn,
+      outputs: firstTask.resolvedTaskDefinition.outputs,
       generated,
     },
     null,

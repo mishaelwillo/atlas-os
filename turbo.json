@@ -6,6 +6,8 @@
       "outputs": ["dist/**", "build/**"]
     },
     "@atlas/os#build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", "build/**"],
       "env": [
         "ATLAS_GIT_SHA",
         "RAILWAY_GIT_COMMIT_SHA",

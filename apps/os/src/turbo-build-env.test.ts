@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { spawnSync } from 'node:child_process';
 
-function osBuildHash(gitSha: string): string {
+interface DryRunTask {
+  hash: string;
+  resolvedTaskDefinition: {
+    dependsOn: string[];
+    outputs: string[];
+  };
+}
+
+function osBuildTask(gitSha: string): DryRunTask {
   const pnpmCli = process.env.npm_execpath;
   const pnpmArguments = ['exec', 'turbo', 'run', 'build', '--filter=@atlas/os', '--dry=json'];
   const command = pnpmCli
@@ -33,18 +41,25 @@ function osBuildHash(gitSha: string): string {
 
   expect(result.status, result.stderr).toBe(0);
   const report = JSON.parse(result.stdout) as {
-    tasks: Array<{ taskId: string; hash: string }>;
+    tasks: Array<DryRunTask & { taskId: string }>;
   };
   const task = report.tasks.find((candidate) => candidate.taskId === '@atlas/os#build');
   if (!task) throw new Error('Turbo dry-run did not report @atlas/os#build');
-  return task.hash;
+  return task;
 }
 
 describe('OS Turbo build fingerprint inputs', () => {
   it('changes the build hash when the supplied commit changes', () => {
-    const first = osBuildHash('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
-    const second = osBuildHash('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
+    const first = osBuildTask('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+    const second = osBuildTask('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
 
-    expect(first).not.toBe(second);
+    expect(first.hash).not.toBe(second.hash);
+  });
+
+  it('preserves dependency builds and cacheable output declarations', () => {
+    const task = osBuildTask('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+
+    expect(task.resolvedTaskDefinition.dependsOn).toEqual(['^build']);
+    expect([...task.resolvedTaskDefinition.outputs].sort()).toEqual(['build/**', 'dist/**']);
   });
 });
