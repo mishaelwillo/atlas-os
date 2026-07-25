@@ -1,9 +1,9 @@
 # Current Handoff
 
-**Handoff ID:** `atlas-capabilities-research-regions-task-2`
+**Handoff ID:** `atlas-capabilities-research-regions-task-2-review-fix`
 **Status:** active
 **Started:** 2026-07-24T18:24:00.000-04:00
-**Updated:** 2026-07-24T18:40:34.0136284-04:00
+**Updated:** 2026-07-25T19:47:44.6126734-04:00
 **Actor:** Codex
 **Objective:** Add validated inherited regional packs for Atlas's initial global, North American, and Caribbean coverage.
 
@@ -12,14 +12,16 @@
 - Work item: `P2A-CAPABILITIES-001`
 - Branch: `codex/atlas-continuity`
 - Base commit: `2f9e77c35fd0ee2be54ce243e8f47ed2ea744cb8`
-- Head commit: `4f441777c95b43f007df2daab4a2e8c8693382f6`
-- Review status: pending independent review
+- Head commit: `a47d70edb1b09a823becfdb98d618a3b489ca22c`
+- Review status: pending independent re-review
 
 ## Task change evidence
 
 - Capability Task 2 base: `2f9e77c35fd0ee2be54ce243e8f47ed2ea744cb8`.
 - Capability Task 2 code and configuration boundary:
   `4f441777c95b43f007df2daab4a2e8c8693382f6`.
+- Capability Task 2 review-fix boundary:
+  `a47d70edb1b09a823becfdb98d618a3b489ca22c`.
 - Eight region packs form the hierarchy global → North America or Caribbean →
   country without application-code forks.
 - Country values replace supplied parent values; omitted values inherit.
@@ -28,9 +30,14 @@
 - Regional data contains no legal conclusions or market prices. Every initial
   pack resolves to shadow autonomy, required operator approval, and required
   jurisdictional policy review.
-- Boundary note: the commit following the code boundary is metadata-only and
-  changes this handoff and work-queue next action; it does not change
-  executable code, tests, schemas, packs, build configuration, or an archive.
+- The review fix exposes a canonical package root without removing prior
+  schema, loader, handoff, observation, drift, or verifier APIs; removes
+  country-local languages from aggregate packs; and rejects duplicate values
+  in every regional array.
+- Boundary note: `2327bd78ea9bb802d3adf665e7469cb91c0e0b2f`
+  is the metadata-only commit between the original code boundary and review
+  fix. The commit following the review-fix boundary is also metadata-only and
+  changes only this handoff and work-queue next action.
 
 ## Current working tree
 
@@ -55,6 +62,22 @@
 - The 8-package build passed; all 161 workspace tests passed; static control
   verification passed; API/client generated artifacts remained byte-stable;
   and `git diff --check` passed.
+- Review-fix RED: the source package entry did not exist, five country packs
+  leaked aggregate or sibling locales, and all seven duplicate-array fixtures
+  were accepted. The focused run reported 18 failures while the 17 original
+  regional tests stayed green.
+- Review-fix focused GREEN: 2 package-entry tests and 35 regional tests passed.
+  Exact language resolution is United States `[en, en-US]`, Canada
+  `[en, en-CA, fr-CA]`, Saint Lucia `[en, en-LC]`, Jamaica `[en, en-JM]`, and
+  Trinidad and Tobago `[en, en-TT]`; global and both aggregate packs resolve to
+  `[en]`.
+- A clean control-schema build followed by a real
+  `import('@atlas/control-schema')` exposed `resolveRegionPack`,
+  `EnvironmentFileSchema`, `WorkQueueSchema`, and `loadControlFiles`.
+- Review-fix full GREEN: control-schema passed 125 of 125 tests; the 8-package
+  build and all 181 workspace tests passed; `pnpm control:verify` passed;
+  generated API/client artifacts remained byte-stable; and `git diff --check`
+  passed.
 
 ## Database actions
 
@@ -69,6 +92,9 @@
 - Created local commit `4f441777c95b43f007df2daab4a2e8c8693382f6`;
   no push, deployment, database mutation, hosting mutation, or external write
   performed.
+- Created local review-fix commit
+  `a47d70edb1b09a823becfdb98d618a3b489ca22c`; no push, deployment, database
+  mutation, hosting mutation, or external write performed.
 - The required read-only `pnpm control:status` check refreshed ignored local
   generated observations and reconfirmed the known Railway route blocker; it
   performed no external mutation.
@@ -79,15 +105,15 @@
 
 ## Next exact action
 
-Independently review Capability Task 2 from base
-`2f9e77c35fd0ee2be54ce243e8f47ed2ea744cb8` through code boundary
-`4f441777c95b43f007df2daab4a2e8c8693382f6`; after approval, execute Task 3 of
-the approved Atlas capabilities, research, and regions plan using tests first,
-with a code commit followed by a metadata-only handoff commit.
+Independently re-review Capability Task 2 from base
+`2f9e77c35fd0ee2be54ce243e8f47ed2ea744cb8` through exact review-fix boundary
+`a47d70edb1b09a823becfdb98d618a3b489ca22c`; only after approval, execute Task
+3 of the approved Atlas capabilities, research, and regions plan using tests
+first, with a code commit followed by a metadata-only handoff commit.
 
 ## Definition of done
 
-The Capability Task 2 reviewer confirms no important or critical findings
-remain; then the video research evidence ledger task passes focused tests,
-cross-reference verification, static control verification, and independent
-review.
+The Capability Task 2 re-review confirms no important or critical findings
+remain. Task 3 stays gated until that approval; afterward its video research
+evidence ledger must pass focused tests, cross-reference verification, static
+control verification, and independent review.
