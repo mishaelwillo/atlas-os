@@ -10,6 +10,17 @@ const LanguageCodeSchema = z
   .string()
   .regex(/^[a-z]{2,3}(?:-(?:[A-Z]{2}|[0-9]{3}))?$/);
 
+function uniqueArray<T extends z.ZodTypeAny>(
+  item: T,
+  field: string,
+): z.ZodEffects<z.ZodArray<T>, z.output<T>[], z.input<T>[]> {
+  return z
+    .array(item)
+    .refine((values) => new Set(values).size === values.length, {
+      message: `${field} contains duplicate entries`,
+    });
+}
+
 export const OutreachChannelSchema = z.enum([
   'whatsapp',
   'email',
@@ -57,13 +68,19 @@ export const RegionPackSchema = z
     schema_version: z.literal(1),
     id: RegionIdSchema,
     inherits: RegionIdSchema.optional(),
-    countries: z.array(CountryCodeSchema).optional(),
-    languages: z.array(LanguageCodeSchema).optional(),
-    currencies: z.array(CurrencyCodeSchema).optional(),
-    preferred_channels: z.array(OutreachChannelSchema).optional(),
-    phone_regions: z.array(CountryCodeSchema).optional(),
-    directories: z.array(DirectorySchema).optional(),
-    review_platforms: z.array(ReviewPlatformSchema).optional(),
+    countries: uniqueArray(CountryCodeSchema, 'countries').optional(),
+    languages: uniqueArray(LanguageCodeSchema, 'languages').optional(),
+    currencies: uniqueArray(CurrencyCodeSchema, 'currencies').optional(),
+    preferred_channels: uniqueArray(
+      OutreachChannelSchema,
+      'preferred_channels',
+    ).optional(),
+    phone_regions: uniqueArray(CountryCodeSchema, 'phone_regions').optional(),
+    directories: uniqueArray(DirectorySchema, 'directories').optional(),
+    review_platforms: uniqueArray(
+      ReviewPlatformSchema,
+      'review_platforms',
+    ).optional(),
     outreach_policy: OutreachPolicyOverrideSchema.optional(),
     seo: SeoOverrideSchema.optional(),
   })

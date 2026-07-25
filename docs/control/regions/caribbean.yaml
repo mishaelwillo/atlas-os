@@ -2,7 +2,6 @@ schema_version: 1
 id: caribbean
 inherits: global
 countries: [LC, JM, TT]
-languages: [en-029]
 currencies: [XCD, JMD, TTD]
 preferred_channels: [whatsapp, email, phone]
 phone_regions: [LC, JM, TT]

@@ -75,6 +75,40 @@ describe('regional pack inheritance', () => {
     expect(resolved.countries).toEqual(['US']);
   });
 
+  test.each([
+    ['united-states', ['en', 'en-US']],
+    ['canada', ['en', 'en-CA', 'fr-CA']],
+    ['saint-lucia', ['en', 'en-LC']],
+    ['jamaica', ['en', 'en-JM']],
+    ['trinidad-and-tobago', ['en', 'en-TT']],
+  ])('%s inherits only global and its own country-local languages', (id, languages) => {
+    expect(resolveRegionPack(id, loadCanonicalPacks()).languages).toEqual(
+      languages,
+    );
+  });
+
+  test.each([
+    ['united-states', ['en-CA', 'fr-CA', 'en-029']],
+    ['canada', ['en-US', 'en-029']],
+    ['saint-lucia', ['en-JM', 'en-TT', 'en-029']],
+    ['jamaica', ['en-LC', 'en-TT', 'en-029']],
+    ['trinidad-and-tobago', ['en-LC', 'en-JM', 'en-029']],
+  ])('%s does not inherit sibling or aggregate-only locales', (id, forbidden) => {
+    const languages = resolveRegionPack(id, loadCanonicalPacks()).languages;
+
+    for (const language of forbidden) {
+      expect(languages).not.toContain(language);
+    }
+  });
+
+  test('global and aggregate packs remain fully resolvable', () => {
+    const packs = loadCanonicalPacks();
+
+    expect(resolveRegionPack('global', packs).languages).toEqual(['en']);
+    expect(resolveRegionPack('north-america', packs).languages).toEqual(['en']);
+    expect(resolveRegionPack('caribbean', packs).languages).toEqual(['en']);
+  });
+
   test('resolution is deterministic regardless of input order', () => {
     const packs = loadCanonicalPacks();
 
@@ -131,6 +165,23 @@ describe('regional pack validation', () => {
     expect(() =>
       RegionPackSchema.parse({ ...globalPack, legal_conclusion: 'allowed' }),
     ).toThrow();
+  });
+
+  test.each([
+    ['countries', ['US', 'US']],
+    ['languages', ['en', 'en']],
+    ['currencies', ['USD', 'USD']],
+    ['preferred_channels', ['email', 'email']],
+    ['phone_regions', ['US', 'US']],
+    [
+      'directories',
+      ['google-business-profile', 'google-business-profile'],
+    ],
+    ['review_platforms', ['google', 'google']],
+  ])('rejects duplicate entries in %s', (field, values) => {
+    expect(() =>
+      RegionPackSchema.parse({ ...globalPack, [field]: values }),
+    ).toThrow(new RegExp(`${field}.*duplicate`, 'i'));
   });
 
   test('rejects duplicate pack IDs', () => {
