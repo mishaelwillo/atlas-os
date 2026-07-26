@@ -21,6 +21,20 @@ const APPROVED_METADATA_ONLY_PATHS = new Set([
   'docs/control/CURRENT_HANDOFF.md',
   'docs/control/CURRENT_STATE.md',
 ]);
+// `pnpm control:archive-handoff` moves the finished handoff here as part of the
+// mandated stop workflow, so archived handoff Markdown is approved metadata.
+const APPROVED_METADATA_ARCHIVE_PREFIX = 'docs/control/handoffs/archived/';
+
+function isApprovedMetadataPath(path: string): boolean {
+  if (APPROVED_METADATA_ONLY_PATHS.has(path)) {
+    return true;
+  }
+  return (
+    path.startsWith(APPROVED_METADATA_ARCHIVE_PREFIX) &&
+    path.endsWith('.md') &&
+    !path.includes('..')
+  );
+}
 const SPECIFICATION_OWNERS = new Map([
   ['P1-DEPLOY-001', 'docs/control/DEPLOYMENT_RUNBOOK.md'],
   ['P2A-CONTROL-001', 'docs/control/CONTINUITY_DESIGN.md'],
@@ -507,7 +521,7 @@ export async function verifyStatic(
       } else {
         const disallowed = git.changedPaths
           .map((path) => path.replaceAll('\\', '/'))
-          .filter((path) => !APPROVED_METADATA_ONLY_PATHS.has(path))
+          .filter((path) => !isApprovedMetadataPath(path))
           .sort(compareCodepoints);
         if (disallowed.length > 0) {
           findings.push(
