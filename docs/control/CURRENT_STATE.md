@@ -94,8 +94,10 @@ satisfied, and the live drift report has no blocking finding.
     `SECURITY.md` requires an audit insert on every privileged call, and a
     rejected call never becomes privileged — but failed authentication
     attempts therefore leave no audit trail.
-  - The `p1-acceptance-test` token should be disabled once the operator leg is
-    finished.
+  - Credential closed out: the `p1-acceptance-test` credential was disabled in
+    the database after the run and its plaintext was destroyed. It was never
+    written to the repository — only its sha256 digest appeared in the seed
+    SQL, so the plaintext is unrecoverable by design.
 - Resolved 2026-07-26: Railway `api` is connected to GitHub and self-deploys.
   Both services now advance with `main` automatically.
 
