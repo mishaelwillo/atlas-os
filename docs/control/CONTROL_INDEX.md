@@ -20,6 +20,8 @@ Other code spans are commands or identifiers and are not interpreted as paths.
 10. P2 specification index: `path:docs/specs/p2/README.md`
 11. Regional behavior: `path:docs/specs/p2/regional-packs.md`
 12. Intelligence foundation: `path:docs/specs/p2/intelligence-foundation.md`
+    (P2A↔P1 contract reconciliation:
+    `path:docs/specs/p2/intelligence-reconciliation.md`)
 13. Website Factory: `path:docs/specs/p2/website-factory.md`
 14. Revenue pilot: `path:docs/specs/p2/revenue-pilot.md`
 15. Recurring upsells: `path:docs/specs/p2/upsell-capabilities.md`
