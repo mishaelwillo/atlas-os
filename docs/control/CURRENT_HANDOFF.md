@@ -14,8 +14,8 @@ continuity foundation and evidence-backed P2 specification set.
 - Owning specification: `docs/specs/p2/intelligence-foundation.md`
 - Branch: `codex/atlas-continuity`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `264ec8b5f63d41f7f033a091ebf036eebb3066cc`
-- Review status: focused remediation approved; final whole-branch re-review pending
+- Head commit: `67a803a9212bc6cc19b3ef04ac287675594a19f9`
+- Review status: integration remediation implemented; final whole-branch re-review pending
 
 ## Completed scope
 
@@ -50,6 +50,14 @@ continuity foundation and evidence-backed P2 specification set.
   produce explicit drift findings.
 - The deployment runbook requires the immutable release SHA to be reachable
   from authoritative `main` and CI success to belong to that exact SHA.
+- Static takeover verification now consumes trusted GitHub event context:
+  pull-request checks validate the real head SHA/ref rather than a synthetic
+  merge checkout, and post-merge push checks permit only the integration branch
+  declared by Atlas environment authority while preserving ancestry and
+  metadata-only boundary enforcement.
+- Token detection/redaction is centralized across structured YAML, Markdown,
+  handoffs, and generated output, including `ghp_`, `gho_`, `ghu_`, `ghs_`,
+  `ghr_`, and `github_pat_` classes without echoing detected credentials.
 
 ## Verification evidence
 
@@ -64,6 +72,12 @@ continuity foundation and evidence-backed P2 specification set.
   `4023a14`; build and `git diff --check` passed.
 - Independent remediation re-review: specification PASS, task quality APPROVED,
   no remaining Critical, Important, or Minor finding.
+- Integration RED: 18 integration/token failures, 3 trusted-event parser
+  failures, 10 redaction/drift failures, and token-bearing key failures were
+  witnessed before implementation.
+- Integration GREEN: 32/32 static/integration tests, 10/10 redaction/drift
+  tests, 234/234 control-schema tests, 14/14 workspace test tasks, and 8/8
+  build tasks passed at commit `67a803a`.
 
 ## Database actions
 
@@ -78,7 +92,8 @@ continuity foundation and evidence-backed P2 specification set.
 
 ## External side effects
 
-- Local commits only: `61ffc93`, `535cedd`, `4023a14`, and `264ec8b`.
+- Local commits only: `61ffc93`, `535cedd`, `4023a14`, `264ec8b`, `a8f4e6d`,
+  and `67a803a`.
 - No push, pull request, deploy, database write, message send, billing action,
   or other external write.
 

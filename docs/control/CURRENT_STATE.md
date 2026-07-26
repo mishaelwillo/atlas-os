@@ -13,10 +13,11 @@ state.
 
 - Active branch: `codex/atlas-continuity`.
 - Current code boundary:
-  `264ec8b5f63d41f7f033a091ebf036eebb3066cc`.
+  `67a803a9212bc6cc19b3ef04ac287675594a19f9`.
 - Focused remediation code boundary:
   `4023a14e4873ae681c165b182e1b9ddd326ffbf4`.
 - Focused whole-branch remediation review: approved with no findings.
+- Integration-path and secret-gate remediation: implemented and locally green.
 - Final `origin/main..HEAD` whole-branch re-review: pending.
 - Active work item: `P2A-MEMORY-001`.
 - Active owning spec: `docs/specs/p2/intelligence-foundation.md`.
@@ -31,6 +32,9 @@ state.
   locally implemented as repository authority.
 - Git takeover, exact-SHA CI, Supabase migration identity, safe spec routing,
   and registry-version drift now fail closed or remain honestly unknown.
+- Trusted GitHub pull-request/post-merge contexts preserve branch transition
+  safety, and token detection/redaction is centralized across all control
+  artifact surfaces.
 
 ## Historical external baseline
 
