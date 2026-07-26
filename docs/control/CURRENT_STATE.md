@@ -78,8 +78,8 @@ satisfied, and the live drift report has no blocking finding.
   re-ingest returned `admitted 0 / skipped 2`, proving the hash-dedupe
   incremental contract; unauthenticated and unknown-token calls returned 401;
   `outreach.send` and `approvals.decide` returned 403 `operator-only
-  capability`; and each successful call wrote one `audit_log` row attributed to
-  `token:p1-acceptance-test`.
+  capability`; and each successful call wrote one `audit_log` row whose actor
+  was the `p1-acceptance-test` token label.
   - Security invariants held: `messages` is empty, `approvals` is empty, and no
     outbound message exists without `approved_by`. The outreach attempt was
     refused at the auth layer before any approval row was created, so nothing
