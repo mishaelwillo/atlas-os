@@ -46,6 +46,11 @@ jobs:
       - name: Build Workspace
         run: pnpm run build
 
+      - name: Verify capability catalog
+        run: |
+          pnpm --filter @atlas/registry catalog
+          git diff --exit-code -- docs/control/generated/capability-catalog.md
+
       - name: Verify generated files are committed
         run: git diff --exit-code -- apps/api/src/routes.gen.ts packages/client/src/client.gen.ts
 
