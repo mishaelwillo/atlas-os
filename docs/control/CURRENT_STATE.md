@@ -73,9 +73,29 @@ satisfied, and the live drift report has no blocking finding.
   expects) and recorded `0001` / `init` as applied. The collector's
   migration-identity query now returns `0001_init`, matching
   `expected_migration` in `ENVIRONMENTS.yaml`.
-- The P1 brief's manual token-seeded live acceptance (seed Space + API token,
-  ingest with the token, approval-gate round trip) has not been run. It requires
-  an authorized Supabase write and remains approval-gated.
+- P1 live acceptance ran 2026-07-26 against production, token-authenticated.
+  Passed: ingest admitted 2 cards scoped to the `atlas` space; identical
+  re-ingest returned `admitted 0 / skipped 2`, proving the hash-dedupe
+  incremental contract; unauthenticated and unknown-token calls returned 401;
+  `outreach.send` and `approvals.decide` returned 403 `operator-only
+  capability`; and each successful call wrote one `audit_log` row attributed to
+  `token:p1-acceptance-test`.
+  - Security invariants held: `messages` is empty, `approvals` is empty, and no
+    outbound message exists without `approved_by`. The outreach attempt was
+    refused at the auth layer before any approval row was created, so nothing
+    was queued or sent.
+  - **Not covered:** the operator half of the round trip (`outreach.send`
+    creating an `approvalId`, then an operator approving and the dispatcher
+    firing). A capability with empty `scopes` is operator-only
+    (`apps/api/src/auth.ts`), so it requires a Supabase Auth JWT for the pinned
+    operator email and cannot be driven by an API token. It must be exercised
+    through the Mission Control UI.
+  - Observation, not a defect: rejected 401/403 calls write no `audit_log` row.
+    `SECURITY.md` requires an audit insert on every privileged call, and a
+    rejected call never becomes privileged — but failed authentication
+    attempts therefore leave no audit trail.
+  - The `p1-acceptance-test` token should be disabled once the operator leg is
+    finished.
 - Resolved 2026-07-26: Railway `api` is connected to GitHub and self-deploys.
   Both services now advance with `main` automatically.
 
