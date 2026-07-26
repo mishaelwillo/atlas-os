@@ -120,12 +120,37 @@ unchanged until such a migration is accepted. This document is that map.
   with a recorded gap for unreadable sub-tabs). They generate no executable
   routes until promoted through the capability lifecycle.
 
-## Migration register
+## Ownership migration register
 
 No entry. Every P2A delta above is additive or internal; no change requires a
 `capabilityMetadata.specification` transfer or a breaking registry change. If a
 future increment needs one, it must be recorded here with its approval decision
 before implementation.
+
+## Staged database migration
+
+`supabase/migrations/0002_intelligence_enrichment.sql` is written and reviewable
+but **has not been applied to any database**. It is the schema half of build-now
+step 1 and is separate from the ownership register above.
+
+- `0001_init.sql` is unmodified, so the control plane's exact migration-identity
+  anchor is intact and production continues to report `0001_init`.
+- Every added column is nullable or defaulted; nothing is dropped, renamed,
+  retyped, or newly constrained `NOT NULL`, so existing rows stay valid and P1
+  routes behave identically until code opts in.
+- RLS is untouched. The space-scoped policies in `0001` already cover all five
+  affected tables, and adding columns widens no policy.
+- Prompt and tool content are stored as digests only, never raw, per the owning
+  spec's security section.
+- **Applying it requires bumping `expected_migration` in
+  `docs/control/ENVIRONMENTS.yaml` to `0002_intelligence_enrichment` in the same
+  approved change**, or the drift collector will report blocking Supabase
+  migration drift on the next `pnpm control:status`.
+
+Verification status: statically reviewed only. Every referenced table exists in
+`0001_init` and no added column name collides with an existing one. The file has
+not been executed against a live or local PostgreSQL instance, so it is not
+claimed to be execution-proven.
 
 ## Implementation order (build-now scope from the owning spec)
 
