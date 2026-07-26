@@ -11,6 +11,7 @@ import {
   assertRepositoryResearchIntegrity,
   assertResearchIntegrity,
   auditResearchArtifactStore,
+  loadResearchFiles,
 } from './research.js';
 
 const evidenceId = 'video-qy0l1t7x6le-website-wedge';
@@ -421,6 +422,20 @@ describe('research cross-reference integrity', () => {
     const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 
     await expect(assertRepositoryResearchIntegrity(repositoryRoot)).resolves.toBeUndefined();
+  });
+
+  test('retains visual support for every unified-conversations label group', async () => {
+    const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
+    const { ledger } = await loadResearchFiles(repositoryRoot);
+    const conversations = ledger.evidence.find(
+      (evidence) => evidence.id === 'video-qy0l1t7x6le-unified-conversations',
+    );
+
+    expect(conversations?.visual_evidence_refs).toEqual([
+      'watch:QY0L1T7x6lE:frame_1130@00:11:30',
+      'watch:QY0L1T7x6lE:frame_0043@00:11:54',
+      'watch:QY0L1T7x6lE:frame_0045@00:12:21',
+    ]);
   });
 
   test('accepts executable and staged capability references', () => {

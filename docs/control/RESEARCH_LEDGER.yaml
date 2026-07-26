@@ -194,6 +194,8 @@ evidence:
       - Voice AI
     visual_evidence_refs:
       - watch:QY0L1T7x6lE:frame_1130@00:11:30
+      - watch:QY0L1T7x6lE:frame_0043@00:11:54
+      - watch:QY0L1T7x6lE:frame_0045@00:12:21
     confidence: high
     verification: observed
     atlas_interpretation: >-
