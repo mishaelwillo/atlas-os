@@ -32,6 +32,7 @@ export interface StaticGitObservation {
   boundaryExists: boolean;
   boundaryIsAncestor: boolean;
   changedPaths: string[];
+  errors?: string[];
 }
 
 export interface VerifyStaticOptions {
@@ -104,6 +105,30 @@ function structuredHandoffField(handoff: string, field: string): string | undefi
   )?.[1];
 }
 
+function validBranchName(branch: string | undefined): branch is string {
+  return Boolean(
+    branch &&
+      branch !== '@' &&
+      !branch.startsWith('-') &&
+      !branch.startsWith('/') &&
+      !branch.endsWith('/') &&
+      !branch.endsWith('.') &&
+      !branch.includes('..') &&
+      !branch.includes('@{') &&
+      !branch
+        .split('/')
+        .some(
+          (segment) =>
+            segment === '' || segment.startsWith('.') || segment.endsWith('.lock'),
+        ) &&
+      !/[\s~^:?*[\]\\]/.test(branch),
+  );
+}
+
+function validCommit(commit: string | undefined): commit is string {
+  return Boolean(commit && /^[0-9a-f]{7,64}$/i.test(commit));
+}
+
 function structuredHandoffNextAction(handoff: string): string | undefined {
   const lines = handoff.split(/\r?\n/);
   const start = lines.findIndex(
@@ -140,12 +165,23 @@ async function defaultObserveGit(
         windowsHide: true,
         encoding: 'utf8',
       });
-      return { exitCode: 0, stdout: result.stdout.trim() };
+      return {
+        exitCode: 0,
+        stdout: result.stdout.trim(),
+        stderr: result.stderr.trim(),
+        spawnFailed: false,
+      };
     } catch (error) {
-      const result = error as Error & { code?: number; stdout?: string };
+      const result = error as Error & {
+        code?: number | string;
+        stdout?: string;
+        stderr?: string;
+      };
       return {
         exitCode: typeof result.code === 'number' ? result.code : 1,
         stdout: result.stdout?.trim() ?? '',
+        stderr: result.stderr?.trim() ?? result.message,
+        spawnFailed: typeof result.code !== 'number',
       };
     }
   };
@@ -156,6 +192,23 @@ async function defaultObserveGit(
     run(['merge-base', '--is-ancestor', boundaryCommit, 'HEAD']),
     run(['diff', '--name-only', `${boundaryCommit}..HEAD`]),
   ]);
+  const errors = [
+    ...(branch.exitCode !== 0 || !branch.stdout
+      ? [`git branch --show-current failed: ${branch.stderr || 'no branch returned'}`]
+      : []),
+    ...(head.exitCode !== 0 || !/^[0-9a-f]{7,64}$/i.test(head.stdout)
+      ? [`git rev-parse HEAD failed: ${head.stderr || 'invalid HEAD returned'}`]
+      : []),
+    ...(exists.spawnFailed
+      ? [`git cat-file failed: ${exists.stderr}`]
+      : []),
+    ...(ancestor.exitCode > 1 || ancestor.spawnFailed
+      ? [`git merge-base --is-ancestor failed: ${ancestor.stderr}`]
+      : []),
+    ...(changed.exitCode !== 0
+      ? [`git diff --name-only failed: ${changed.stderr}`]
+      : []),
+  ];
   return {
     branch: branch.stdout,
     headSha: head.stdout,
@@ -165,6 +218,7 @@ async function defaultObserveGit(
       changed.exitCode === 0
         ? changed.stdout.split(/\r?\n/).filter(Boolean).map((path) => path.replaceAll('\\', '/'))
         : [],
+    ...(errors.length === 0 ? {} : { errors }),
   };
 }
 
@@ -265,9 +319,20 @@ export async function verifyStatic(
   });
   const recordedBranch = structuredHandoffField(handoff, 'Branch');
   const recordedBoundary = structuredHandoffField(handoff, 'Head commit');
-  if (recordedBranch && recordedBoundary) {
+  if (!validBranchName(recordedBranch) || !validCommit(recordedBoundary)) {
+    findings.push(
+      blocking(
+        'control.handoff_authority_invalid',
+        relative(root, handoffPath),
+        'handoff must contain a parseable Branch and hexadecimal Head commit',
+      ),
+    );
+  } else {
     try {
       const git = await (options.observeGit ?? defaultObserveGit)(root, recordedBoundary);
+      if (git.errors && git.errors.length > 0) {
+        throw new Error(git.errors.join(' '));
+      }
       if (git.branch !== recordedBranch) {
         findings.push(
           blocking(
@@ -372,8 +437,10 @@ export async function verifyStatic(
         const docsRoot = join(root, 'docs');
         const specificationPath = resolve(root, item.specification);
         const repositoryPath = item.specification.replaceAll('\\', '/');
+        const pathSegments = repositoryPath.split('/');
         if (
           isAbsolute(item.specification) ||
+          pathSegments.some((segment) => segment === '.' || segment === '..') ||
           !pathIsWithin(docsRoot, specificationPath)
         ) {
           findings.push(
@@ -460,8 +527,9 @@ function formatFinding(finding: Finding): string {
 export async function runStaticVerificationCli(
   root: string,
   writeLine: (line: string) => void = console.log,
+  options: VerifyStaticOptions = {},
 ): Promise<0 | 1> {
-  const findings = await verifyStatic(root);
+  const findings = await verifyStatic(root, options);
   findings.forEach((finding) => writeLine(formatFinding(finding)));
   return findings.some((finding) => finding.severity === 'blocking') ? 1 : 0;
 }

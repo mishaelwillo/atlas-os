@@ -10,7 +10,10 @@ import {
   WorkStatusSchema,
 } from './schemas.js';
 import { loadControlFiles } from './load.js';
-import { runStaticVerificationCli, verifyStatic } from './verify-static.js';
+import {
+  runStaticVerificationCli as runStaticVerificationCliImplementation,
+  verifyStatic as verifyStaticImplementation,
+} from './verify-static.js';
 
 const temporaryRoots: string[] = [];
 
@@ -61,6 +64,7 @@ async function makeControlRoot(options?: {
   index?: string;
   environment?: unknown;
   includeSpecification?: boolean;
+  authority?: 'valid' | 'raw';
 }): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), 'atlas-control-'));
   temporaryRoots.push(root);
@@ -69,10 +73,17 @@ async function makeControlRoot(options?: {
   await mkdir(join(control, 'regions'), { recursive: true });
   await writeFile(join(control, 'ENVIRONMENTS.yaml'), JSON.stringify(options?.environment ?? validEnvironment));
   await writeFile(join(control, 'WORK_QUEUE.yaml'), JSON.stringify(options?.queue ?? validQueue));
-  await writeFile(
-    join(control, 'CURRENT_HANDOFF.md'),
-    options?.handoff ?? '# Current Handoff\n\n- Work item: `P2A-CONTROL-001`\n',
-  );
+  let handoff =
+    options?.handoff ?? '# Current Handoff\n\n- Work item: `P2A-CONTROL-001`\n';
+  if (options?.authority !== 'raw') {
+    if (!/^\s*-\s*Branch:/im.test(handoff)) {
+      handoff += '- Branch: `codex/test`\n';
+    }
+    if (!/^\s*-\s*Head commit:/im.test(handoff)) {
+      handoff += '- Head commit: `1111111111111111111111111111111111111111`\n';
+    }
+  }
+  await writeFile(join(control, 'CURRENT_HANDOFF.md'), handoff);
   await writeFile(join(control, 'CURRENT_STATE.md'), '# Current State\n');
   await writeFile(
     join(control, 'CONTROL_INDEX.md'),
@@ -109,17 +120,40 @@ type InjectedGitObservation = {
   boundaryExists: boolean;
   boundaryIsAncestor: boolean;
   changedPaths: string[];
+  errors?: string[];
 };
+
+const coherentGit: InjectedGitObservation = {
+  branch: 'codex/test',
+  headSha: '2222222222222222222222222222222222222222',
+  boundaryExists: true,
+  boundaryIsAncestor: true,
+  changedPaths: [],
+};
+
+function verifyStatic(root: string) {
+  return verifyStaticImplementation(root, {
+    observeGit: async () => coherentGit,
+  });
+}
+
+function runStaticVerificationCli(
+  root: string,
+  writeLine: (line: string) => void,
+) {
+  const runner = runStaticVerificationCliImplementation as unknown as (
+    repositoryRoot: string,
+    output: (line: string) => void,
+    options: { observeGit: () => Promise<InjectedGitObservation> },
+  ) => ReturnType<typeof runStaticVerificationCliImplementation>;
+  return runner(root, writeLine, { observeGit: async () => coherentGit });
+}
 
 async function verifyWithGit(
   root: string,
   git: InjectedGitObservation,
 ) {
-  const verifier = verifyStatic as unknown as (
-    repositoryRoot: string,
-    options: { observeGit: () => Promise<InjectedGitObservation> },
-  ) => ReturnType<typeof verifyStatic>;
-  return verifier(root, { observeGit: async () => git });
+  return verifyStaticImplementation(root, { observeGit: async () => git });
 }
 
 describe('control schemas', () => {
@@ -353,6 +387,57 @@ environments:
       expect.objectContaining({ severity: 'blocking', code }),
     );
   });
+
+  test.each([
+    [
+      'missing Branch',
+      '# Current Handoff\n\n- Work item: `P2A-CONTROL-001`\n- Head commit: `1111111111111111111111111111111111111111`\n',
+    ],
+    [
+      'missing Head commit',
+      '# Current Handoff\n\n- Work item: `P2A-CONTROL-001`\n- Branch: `codex/test`\n',
+    ],
+    [
+      'unparsable Branch',
+      '# Current Handoff\n\n- Work item: `P2A-CONTROL-001`\n- Branch: `feature branch`\n- Head commit: `1111111111111111111111111111111111111111`\n',
+    ],
+    [
+      'unparsable option-like Branch',
+      '# Current Handoff\n\n- Work item: `P2A-CONTROL-001`\n- Branch: `-invalid`\n- Head commit: `1111111111111111111111111111111111111111`\n',
+    ],
+    [
+      'unparsable Head commit',
+      '# Current Handoff\n\n- Work item: `P2A-CONTROL-001`\n- Branch: `codex/test`\n- Head commit: `not-a-commit`\n',
+    ],
+  ])('fails closed for %s takeover metadata', async (_name, handoff) => {
+    const root = await makeControlRoot({ handoff, authority: 'raw' });
+
+    await expect(verifyStatic(root)).resolves.toContainEqual(
+      expect.objectContaining({
+        severity: 'blocking',
+        code: 'control.handoff_authority_invalid',
+      }),
+    );
+  });
+
+  test.each(['branch', 'head', 'cat-file', 'merge-base', 'diff'])(
+    'fails closed when the Git %s probe fails',
+    async (probe) => {
+      const root = await makeControlRoot();
+
+      await expect(
+        verifyWithGit(root, {
+          ...coherentGit,
+          errors: [`git ${probe} probe failed`],
+        }),
+      ).resolves.toContainEqual(
+        expect.objectContaining({
+          severity: 'blocking',
+          code: 'control.handoff_git_unavailable',
+        }),
+      );
+    },
+  );
 
   test('blocks static verification when a regional pack is invalid', async () => {
     const root = await makeControlRoot();
@@ -609,6 +694,27 @@ The review passes.
       queue: {
         ...validQueue,
         items: [{ ...validQueue.items[0], specification }],
+      },
+    });
+
+    await expect(verifyStatic(root)).resolves.toContainEqual(
+      expect.objectContaining({
+        severity: 'blocking',
+        code: 'control.specification_path_unsafe',
+      }),
+    );
+  });
+
+  test('rejects internal traversal segments even when normalization stays inside docs', async () => {
+    const root = await makeControlRoot({
+      queue: {
+        ...validQueue,
+        items: [
+          {
+            ...validQueue.items[0],
+            specification: 'docs/specs/../control/CONTINUITY_DESIGN.md',
+          },
+        ],
       },
     });
 

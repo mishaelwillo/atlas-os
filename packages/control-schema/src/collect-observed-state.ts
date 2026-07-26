@@ -394,7 +394,9 @@ async function collectSupabase(
           ? {}
           : { migration: migrationResponse }),
       },
-      `Read ${tables.length} public table names and the latest migration identity from approved read-only queries.`,
+      migrationResponse === undefined
+        ? `Read ${tables.length} public table names; migration history is empty.`
+        : `Read ${tables.length} public table names and the latest migration identity from approved read-only queries.`,
     );
   } catch (error) {
     return unknown(

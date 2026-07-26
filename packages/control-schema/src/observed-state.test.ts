@@ -403,6 +403,9 @@ describe('observed-state collection and drift', () => {
     expect(detectDrift(desired(), observed)).toContainEqual(
       expect.objectContaining({ severity: 'blocking', code }),
     );
+    if (migration === undefined) {
+      expect(observed.supabase.evidence).toContain('empty');
+    }
   });
 
   it.each([
@@ -685,6 +688,61 @@ describe('observed-state collection and drift', () => {
       expect.objectContaining({
         severity: 'blocking',
         code: 'registry.version_mismatch',
+      }),
+    );
+  });
+
+  it('blocks when generated route count differs from the local registry authority', async () => {
+    const root = await fixtureRoot();
+    await writeFile(
+      join(root, 'apps', 'api', 'src', 'routes.gen.ts'),
+      `export const GENERATED_CAPABILITY_IDS = ["memory.answer"] as const;\n`,
+      'utf8',
+    );
+    const observed = await collectObservedState({
+      root,
+      collectedAt,
+      environment,
+      run: injectedRun(),
+      fetch: injectedFetch({ healthSha: githubSha, ingestStatus: 401 }),
+      queryTables: injectedSupabaseQuery(),
+      databaseUrl: 'opaque-test-database-url',
+    } as Parameters<typeof collectObservedState>[0]);
+
+    expect(detectDrift(desired(), observed)).toContainEqual(
+      expect.objectContaining({
+        severity: 'blocking',
+        code: 'registry.route_count_mismatch',
+      }),
+    );
+  });
+
+  it('warns when a deployed registry version is unknown', async () => {
+    const root = await fixtureRoot();
+    const observed = await collectObservedState({
+      root,
+      collectedAt,
+      environment,
+      run: injectedRun(),
+      fetch: injectedFetch({
+        healthSha: githubSha,
+        ingestStatus: 401,
+        osBody: {
+          service: 'atlas-os',
+          appVersion: '0.1.0',
+          gitSha: githubSha,
+          buildTime: collectedAt,
+          schemaVersion: '0001_init',
+        },
+      }),
+      queryTables: injectedSupabaseQuery(),
+      databaseUrl: 'opaque-test-database-url',
+    } as Parameters<typeof collectObservedState>[0]);
+
+    expect(detectDrift(desired(), observed)).toContainEqual(
+      expect.objectContaining({
+        severity: 'warning',
+        code: 'registry.deployed_version_unknown',
       }),
     );
   });
