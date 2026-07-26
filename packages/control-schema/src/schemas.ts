@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { containsSecret } from './secrets.js';
 
 export const WorkStatusSchema = z.enum([
   'queued',
@@ -32,12 +33,10 @@ const ALLOWED_SECRET_LIKE_KEYS = new Set([
   'project_ref',
 ]);
 const SECRET_KEY_PATTERN = /token|password|secret|private[_-]?key/i;
-export const SECRET_VALUE_PATTERN =
-  /^(gho_|github_pat_|sb_secret_|sk-|postgres(?:ql)?:\/\/[^:]+:[^@]+@|-----BEGIN)/;
 
 export function assertNoSecrets(value: unknown, path = 'root'): void {
   if (typeof value === 'string') {
-    if (SECRET_VALUE_PATTERN.test(value)) {
+    if (containsSecret(value)) {
       throw new Error(`${path}: prohibited secret value`);
     }
     return;
@@ -54,6 +53,9 @@ export function assertNoSecrets(value: unknown, path = 'root'): void {
 
   for (const [key, entry] of Object.entries(value)) {
     const entryPath = `${path}.${key}`;
+    if (containsSecret(key)) {
+      throw new Error(`${path}: prohibited secret key`);
+    }
     if (SECRET_KEY_PATTERN.test(key) && !ALLOWED_SECRET_LIKE_KEYS.has(key)) {
       throw new Error(`${entryPath}: prohibited secret key`);
     }

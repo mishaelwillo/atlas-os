@@ -238,7 +238,10 @@ export function detectDrift(
       ),
     );
   }
-  if (observed.github.status !== 'ok') {
+  if (
+    observed.github.status === 'unknown' ||
+    observed.github.status === 'error'
+  ) {
     findings.push(
       finding('warning', 'github.state_unknown', 'GitHub head or CI state is unknown.'),
     );

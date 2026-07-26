@@ -7,11 +7,16 @@ import { parse } from 'yaml';
 import { loadRegionPacks } from './regions.js';
 import { assertRepositoryResearchIntegrity } from './research.js';
 import { assertRepositorySpecificationIntegrity } from './specifications.js';
-import { EnvironmentFileSchema, WorkQueueSchema, type Finding, type WorkQueue } from './schemas.js';
+import {
+  EnvironmentFileSchema,
+  WorkQueueSchema,
+  type EnvironmentFile,
+  type Finding,
+  type WorkQueue,
+} from './schemas.js';
+import { containsSecret, redactSecrets } from './secrets.js';
 
 const SEVERITY_ORDER = { blocking: 0, warning: 1, info: 2 } as const;
-const DOCUMENT_SECRET_PATTERN =
-  /\bgho_|\bgithub_pat_|\bsb_secret_|\bsk-[A-Za-z0-9_-]+|\bpostgres(?:ql)?:\/\/[^:\s]+:[^@\s]+@|-----BEGIN/g;
 const APPROVED_METADATA_ONLY_PATHS = new Set([
   'docs/control/CURRENT_HANDOFF.md',
   'docs/control/CURRENT_STATE.md',
@@ -35,11 +40,27 @@ export interface StaticGitObservation {
   errors?: string[];
 }
 
+export type TrustedGitHubContext =
+  | {
+      eventName: 'pull_request';
+      headRef: string;
+      headSha: string;
+      baseRef: string;
+    }
+  | {
+      eventName: 'push';
+      ref: string;
+      headSha: string;
+    };
+
 export interface VerifyStaticOptions {
   observeGit?: (
     root: string,
     boundaryCommit: string,
+    targetCommit?: string,
+    allowDetached?: boolean,
   ) => Promise<StaticGitObservation>;
+  observeGitHubContext?: () => Promise<TrustedGitHubContext | undefined>;
 }
 
 function compareCodepoints(left: string, right: string): number {
@@ -67,7 +88,12 @@ async function listFiles(root: string): Promise<string[]> {
 }
 
 function blocking(code: string, path: string, message: string): Finding {
-  return { severity: 'blocking', code, path, message };
+  return {
+    severity: 'blocking',
+    code,
+    path: redactSecrets(path),
+    message: redactSecrets(message),
+  };
 }
 
 function sortFindings(findings: Finding[]): Finding[] {
@@ -129,6 +155,52 @@ function validCommit(commit: string | undefined): commit is string {
   return Boolean(commit && /^[0-9a-f]{7,64}$/i.test(commit));
 }
 
+function record(value: unknown): Record<string, unknown> | undefined {
+  return value !== null && typeof value === 'object'
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+export async function readTrustedGitHubContext(
+  environment: Record<string, string | undefined> = process.env,
+  readEventFile: (path: string) => Promise<string> = (path) =>
+    readFile(path, 'utf8'),
+): Promise<TrustedGitHubContext | undefined> {
+  if (environment.GITHUB_ACTIONS !== 'true') return undefined;
+  const eventName = environment.GITHUB_EVENT_NAME;
+  if (eventName !== 'pull_request' && eventName !== 'push') return undefined;
+  const eventPath = environment.GITHUB_EVENT_PATH;
+  if (!eventPath) throw new Error('trusted GitHub event path is unavailable');
+
+  let event: Record<string, unknown>;
+  try {
+    event = record(JSON.parse(await readEventFile(eventPath))) ?? {};
+  } catch {
+    throw new Error('trusted GitHub event context is unreadable');
+  }
+
+  if (eventName === 'pull_request') {
+    const pullRequest = record(event.pull_request);
+    const head = record(pullRequest?.head);
+    const base = record(pullRequest?.base);
+    const headRef = typeof head?.ref === 'string' ? head.ref : undefined;
+    const headSha = typeof head?.sha === 'string' ? head.sha : undefined;
+    const baseRef = typeof base?.ref === 'string' ? base.ref : undefined;
+    if (!validBranchName(headRef) || !validCommit(headSha) || !validBranchName(baseRef)) {
+      throw new Error('trusted GitHub pull-request context is invalid');
+    }
+    return { eventName, headRef, headSha, baseRef };
+  }
+
+  const ref = typeof event.ref === 'string' ? event.ref : undefined;
+  const headSha = typeof event.after === 'string' ? event.after : undefined;
+  const branch = ref?.startsWith('refs/heads/') ? ref.slice('refs/heads/'.length) : undefined;
+  if (!ref || !validBranchName(branch) || !validCommit(headSha)) {
+    throw new Error('trusted GitHub push context is invalid');
+  }
+  return { eventName, ref, headSha };
+}
+
 function structuredHandoffNextAction(handoff: string): string | undefined {
   const lines = handoff.split(/\r?\n/);
   const start = lines.findIndex(
@@ -157,6 +229,8 @@ async function parseYamlFile(path: string): Promise<unknown> {
 async function defaultObserveGit(
   root: string,
   boundaryCommit: string,
+  targetCommit = 'HEAD',
+  allowDetached = false,
 ): Promise<StaticGitObservation> {
   const run = async (args: string[]) => {
     try {
@@ -187,14 +261,14 @@ async function defaultObserveGit(
   };
   const [branch, head, exists] = await Promise.all([
     run(['branch', '--show-current']),
-    run(['rev-parse', 'HEAD']),
+    run(['rev-parse', targetCommit]),
     run(['cat-file', '-e', `${boundaryCommit}^{commit}`]),
   ]);
   const [ancestor, changed] =
     exists.exitCode === 0
       ? await Promise.all([
-          run(['merge-base', '--is-ancestor', boundaryCommit, 'HEAD']),
-          run(['diff', '--name-only', `${boundaryCommit}..HEAD`]),
+          run(['merge-base', '--is-ancestor', boundaryCommit, targetCommit]),
+          run(['diff', '--name-only', `${boundaryCommit}..${targetCommit}`]),
         ])
       : [
           {
@@ -211,7 +285,7 @@ async function defaultObserveGit(
           },
         ];
   const errors = [
-    ...(branch.exitCode !== 0 || !branch.stdout
+    ...(branch.exitCode !== 0 || (!branch.stdout && !allowDetached)
       ? [`git branch --show-current failed: ${branch.stderr || 'no branch returned'}`]
       : []),
     ...(head.exitCode !== 0 || !/^[0-9a-f]{7,64}$/i.test(head.stdout)
@@ -255,8 +329,9 @@ export async function verifyStatic(
   const findings: Finding[] = [];
 
   let queue: WorkQueue | undefined;
+  let environments: EnvironmentFile | undefined;
   try {
-    EnvironmentFileSchema.parse(await parseYamlFile(environmentPath));
+    environments = EnvironmentFileSchema.parse(await parseYamlFile(environmentPath));
   } catch (error) {
     findings.push(
       blocking(
@@ -347,16 +422,69 @@ export async function verifyStatic(
     );
   } else {
     try {
-      const git = await (options.observeGit ?? defaultObserveGit)(root, recordedBoundary);
+      const githubContext = await (
+        options.observeGitHubContext ??
+        (() => readTrustedGitHubContext())
+      )();
+      const integrationBranch =
+        environments?.environments.production?.github.branch;
+      let authorityBranch: string | undefined;
+      let targetCommit: string | undefined;
+      let integrationTransition = false;
+
+      if (githubContext?.eventName === 'pull_request') {
+        authorityBranch = githubContext.headRef;
+        targetCommit = githubContext.headSha;
+        if (!integrationBranch || githubContext.baseRef !== integrationBranch) {
+          findings.push(
+            blocking(
+              'control.handoff_integration_branch_mismatch',
+              relative(root, handoffPath),
+              `trusted pull-request base does not match the authoritative integration branch`,
+            ),
+          );
+        }
+      } else if (githubContext?.eventName === 'push') {
+        authorityBranch = githubContext.ref.slice('refs/heads/'.length);
+        targetCommit = githubContext.headSha;
+        if (!integrationBranch || authorityBranch !== integrationBranch) {
+          findings.push(
+            blocking(
+              'control.handoff_integration_branch_mismatch',
+              relative(root, handoffPath),
+              `trusted push ref does not match the authoritative integration branch`,
+            ),
+          );
+        } else {
+          integrationTransition = true;
+        }
+      }
+
+      const git = await (options.observeGit ?? defaultObserveGit)(
+        root,
+        recordedBoundary,
+        targetCommit,
+        githubContext !== undefined,
+      );
       if (git.errors && git.errors.length > 0) {
         throw new Error(git.errors.join(' '));
       }
-      if (git.branch !== recordedBranch) {
+      if (targetCommit && git.headSha !== targetCommit) {
+        findings.push(
+          blocking(
+            'control.handoff_ci_head_mismatch',
+            relative(root, handoffPath),
+            'observed Git target does not match trusted GitHub event head',
+          ),
+        );
+      }
+      const effectiveBranch = authorityBranch ?? git.branch;
+      if (!integrationTransition && effectiveBranch !== recordedBranch) {
         findings.push(
           blocking(
             'control.handoff_branch_mismatch',
             relative(root, handoffPath),
-            `handoff branch ${recordedBranch} differs from checked-out branch ${git.branch || 'unknown'}`,
+            `handoff branch ${recordedBranch} differs from authoritative branch ${effectiveBranch || 'unknown'}`,
           ),
         );
       }
@@ -521,7 +649,7 @@ export async function verifyStatic(
   if (await pathExists(controlRoot)) {
     for (const file of await listFiles(controlRoot)) {
       const content = await readFile(file, 'utf8');
-      if (DOCUMENT_SECRET_PATTERN.test(content)) {
+      if (containsSecret(content)) {
         findings.push(
           blocking(
             'control.secret_value',
@@ -530,7 +658,6 @@ export async function verifyStatic(
           ),
         );
       }
-      DOCUMENT_SECRET_PATTERN.lastIndex = 0;
     }
   }
 
@@ -539,7 +666,9 @@ export async function verifyStatic(
 
 function formatFinding(finding: Finding): string {
   const repositoryPath = finding.path.replaceAll('\\', '/');
-  return `${finding.severity.toUpperCase()} ${finding.code} ${repositoryPath}: ${finding.message}`;
+  return redactSecrets(
+    `${finding.severity.toUpperCase()} ${finding.code} ${repositoryPath}: ${finding.message}`,
+  );
 }
 
 export async function runStaticVerificationCli(

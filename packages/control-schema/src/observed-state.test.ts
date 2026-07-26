@@ -297,6 +297,9 @@ describe('observed-state collection and drift', () => {
     const values = [
       ['gh', 'p_abcdefghijklmnopqrstuvwxyz123456'].join(''),
       ['gh', 'o_abcdefghijklmnopqrstuvwxyz123456'].join(''),
+      ['gh', 'u_abcdefghijklmnopqrstuvwxyz123456'].join(''),
+      ['gh', 's_abcdefghijklmnopqrstuvwxyz123456'].join(''),
+      ['gh', 'r_abcdefghijklmnopqrstuvwxyz123456'].join(''),
       ['github_', 'pat_abcdefghijklmnopqrstuvwxyz123456'].join(''),
       ['sb_', 'secret_abcdefghijklmnopqrstuvwxyz123456'].join(''),
       ['sk', '-abcdefghijklmnopqrstuvwxyz123456'].join(''),
@@ -325,6 +328,9 @@ describe('observed-state collection and drift', () => {
       databaseUrl: 'opaque-test-database-url',
     });
     observed.localGit.error = text;
+    for (const value of values.slice(0, 6)) {
+      (observed.localGit as unknown as Record<string, unknown>)[value] = 'safe';
+    }
     await writeObservedState(root, observed, []);
     const output = await readFile(
       join(root, 'docs', 'control', 'generated', 'observed-state.json'),
@@ -632,11 +638,15 @@ describe('observed-state collection and drift', () => {
     } as Parameters<typeof collectObservedState>[0]);
 
     expect(observed.github.status).toBe('drift');
-    expect(detectDrift(desired(), observed)).toContainEqual(
+    const findings = detectDrift(desired(), observed);
+    expect(findings).toContainEqual(
       expect.objectContaining({
         severity: 'blocking',
         code: 'github.ci_unsuccessful',
       }),
+    );
+    expect(findings).not.toContainEqual(
+      expect.objectContaining({ code: 'github.state_unknown' }),
     );
   });
 
@@ -659,11 +669,15 @@ describe('observed-state collection and drift', () => {
     } as Parameters<typeof collectObservedState>[0]);
 
     expect(observed.github.status).toBe('drift');
-    expect(detectDrift(desired(), observed)).toContainEqual(
+    const findings = detectDrift(desired(), observed);
+    expect(findings).toContainEqual(
       expect.objectContaining({
         severity: 'blocking',
         code: 'github.ci_sha_mismatch',
       }),
+    );
+    expect(findings).not.toContainEqual(
+      expect.objectContaining({ code: 'github.state_unknown' }),
     );
   });
 

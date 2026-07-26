@@ -15,6 +15,7 @@ import {
   runStaticVerificationCli as runStaticVerificationCliImplementation,
   verifyStatic as verifyStaticImplementation,
 } from './verify-static.js';
+import * as verifyStaticModule from './verify-static.js';
 
 const temporaryRoots: string[] = [];
 
@@ -124,6 +125,19 @@ type InjectedGitObservation = {
   errors?: string[];
 };
 
+type InjectedGitHubContext =
+  | {
+      eventName: 'pull_request';
+      headRef: string;
+      headSha: string;
+      baseRef: string;
+    }
+  | {
+      eventName: 'push';
+      ref: string;
+      headSha: string;
+    };
+
 const coherentGit: InjectedGitObservation = {
   branch: 'codex/test',
   headSha: '2222222222222222222222222222222222222222',
@@ -155,6 +169,32 @@ async function verifyWithGit(
   git: InjectedGitObservation,
 ) {
   return verifyStaticImplementation(root, { observeGit: async () => git });
+}
+
+async function verifyWithGitHubContext(
+  root: string,
+  git: InjectedGitObservation,
+  githubContext: InjectedGitHubContext,
+  observedTargets?: string[],
+) {
+  const runner = verifyStaticImplementation as unknown as (
+    repositoryRoot: string,
+    options: {
+      observeGit: (
+        root: string,
+        boundaryCommit: string,
+        targetCommit?: string,
+      ) => Promise<InjectedGitObservation>;
+      observeGitHubContext: () => Promise<InjectedGitHubContext>;
+    },
+  ) => ReturnType<typeof verifyStaticImplementation>;
+  return runner(root, {
+    observeGit: async (_root, _boundaryCommit, targetCommit) => {
+      if (targetCommit) observedTargets?.push(targetCommit);
+      return git;
+    },
+    observeGitHubContext: async () => githubContext,
+  });
 }
 
 describe('control schemas', () => {
@@ -220,6 +260,47 @@ describe('control schemas', () => {
     ).toThrow(/secret value/i);
   });
 
+  test.each(['ghp_', 'gho_', 'ghu_', 'ghs_', 'ghr_', 'github_pat_'])(
+    'rejects structured YAML containing a %s GitHub token without exposing it',
+    (prefix) => {
+      const token = `${prefix}abcdefghijklmnopqrstuvwxyz123456`;
+      let message = '';
+      try {
+        EnvironmentFileSchema.parse({
+          ...validEnvironment,
+          environments: {
+            production: {
+              ...validEnvironment.environments.production,
+              railway: {
+                ...validEnvironment.environments.production.railway,
+                api: {
+                  ...validEnvironment.environments.production.railway.api,
+                  harmless: token,
+                },
+              },
+            },
+          },
+        });
+      } catch (error) {
+        message = error instanceof Error ? error.message : String(error);
+      }
+      expect(message).toMatch(/prohibited secret value/i);
+      expect(message).not.toContain(token);
+
+      let keyMessage = '';
+      try {
+        EnvironmentFileSchema.parse({
+          ...validEnvironment,
+          [token]: 'safe',
+        });
+      } catch (error) {
+        keyMessage = error instanceof Error ? error.message : String(error);
+      }
+      expect(keyMessage).toMatch(/prohibited secret key/i);
+      expect(keyMessage).not.toContain(token);
+    },
+  );
+
   test('allows only the literal secret-metadata key allowlist', () => {
     expect(() =>
       EnvironmentFileSchema.parse({
@@ -274,6 +355,89 @@ describe('control schemas', () => {
 });
 
 describe('control file loading and static verification', () => {
+  test.each([
+    [
+      'pull_request',
+      {
+        pull_request: {
+          head: { ref: 'codex/test', sha: '3333333333333333333333333333333333333333' },
+          base: { ref: 'main' },
+        },
+      },
+      {
+        eventName: 'pull_request',
+        headRef: 'codex/test',
+        headSha: '3333333333333333333333333333333333333333',
+        baseRef: 'main',
+      },
+    ],
+    [
+      'push',
+      {
+        ref: 'refs/heads/main',
+        after: '4444444444444444444444444444444444444444',
+      },
+      {
+        eventName: 'push',
+        ref: 'refs/heads/main',
+        headSha: '4444444444444444444444444444444444444444',
+      },
+    ],
+  ] as const)(
+    'parses exact trusted GitHub %s event context without network access',
+    async (eventName, event, expected) => {
+      const readTrustedGitHubContext = (
+        verifyStaticModule as unknown as {
+          readTrustedGitHubContext: (
+            environment: Record<string, string | undefined>,
+            readEventFile: (path: string) => Promise<string>,
+          ) => Promise<InjectedGitHubContext | undefined>;
+        }
+      ).readTrustedGitHubContext;
+
+      expect(typeof readTrustedGitHubContext).toBe('function');
+      await expect(
+        readTrustedGitHubContext(
+          {
+            GITHUB_ACTIONS: 'true',
+            GITHUB_EVENT_NAME: eventName,
+            GITHUB_EVENT_PATH: 'injected-event.json',
+          },
+          async () => JSON.stringify(event),
+        ),
+      ).resolves.toEqual(expected);
+    },
+  );
+
+  test('does not trust GitHub event-shaped input outside GitHub Actions', async () => {
+    const readTrustedGitHubContext = (
+      verifyStaticModule as unknown as {
+        readTrustedGitHubContext: (
+          environment: Record<string, string | undefined>,
+          readEventFile: (path: string) => Promise<string>,
+        ) => Promise<InjectedGitHubContext | undefined>;
+      }
+    ).readTrustedGitHubContext;
+
+    expect(typeof readTrustedGitHubContext).toBe('function');
+    await expect(
+      readTrustedGitHubContext(
+        {
+          GITHUB_ACTIONS: 'false',
+          GITHUB_EVENT_NAME: 'pull_request',
+          GITHUB_EVENT_PATH: 'injected-event.json',
+        },
+        async () =>
+          JSON.stringify({
+            pull_request: {
+              head: { ref: 'codex/test', sha: '3333333333333333333333333333333333333333' },
+              base: { ref: 'main' },
+            },
+          }),
+      ),
+    ).resolves.toBeUndefined();
+  });
+
   test('loads and parses the canonical control files', async () => {
     const root = await makeControlRoot();
 
@@ -330,6 +494,233 @@ environments:
         boundaryIsAncestor: true,
         changedPaths: ['docs/control/CURRENT_HANDOFF.md', 'docs/control/CURRENT_STATE.md'],
       }),
+    ).resolves.toEqual([]);
+  });
+
+  test('keeps local feature verification strict when the checked-out branch equals the recorded branch', async () => {
+    const root = await makeControlRoot();
+
+    await expect(verifyWithGit(root, coherentGit)).resolves.toEqual([]);
+  });
+
+  test('fails closed for an untrusted detached local checkout', async () => {
+    const root = await makeControlRoot();
+
+    await expect(
+      verifyWithGit(root, {
+        ...coherentGit,
+        branch: '',
+        errors: ['git branch --show-current failed: no branch returned'],
+      }),
+    ).resolves.toContainEqual(
+      expect.objectContaining({
+        severity: 'blocking',
+        code: 'control.handoff_git_unavailable',
+      }),
+    );
+  });
+
+  test('uses trusted pull-request head context instead of a detached synthetic merge SHA', async () => {
+    const root = await makeControlRoot();
+    const prHead = '3333333333333333333333333333333333333333';
+    const observedTargets: string[] = [];
+
+    await expect(
+      verifyWithGitHubContext(
+        root,
+        {
+          branch: '',
+          headSha: prHead,
+          boundaryExists: true,
+          boundaryIsAncestor: true,
+          changedPaths: ['docs/control/CURRENT_HANDOFF.md'],
+        },
+        {
+          eventName: 'pull_request',
+          headRef: 'codex/test',
+          headSha: prHead,
+          baseRef: 'main',
+        },
+        observedTargets,
+      ),
+    ).resolves.toEqual([]);
+    expect(observedTargets).toEqual([prHead]);
+  });
+
+  test('permits a trusted post-merge transition onto the authoritative integration branch', async () => {
+    const root = await makeControlRoot();
+    const integrationHead = '4444444444444444444444444444444444444444';
+    const observedTargets: string[] = [];
+
+    await expect(
+      verifyWithGitHubContext(
+        root,
+        {
+          branch: 'main',
+          headSha: integrationHead,
+          boundaryExists: true,
+          boundaryIsAncestor: true,
+          changedPaths: [
+            'docs/control/CURRENT_HANDOFF.md',
+            'docs/control/CURRENT_STATE.md',
+          ],
+        },
+        {
+          eventName: 'push',
+          ref: 'refs/heads/main',
+          headSha: integrationHead,
+        },
+        observedTargets,
+      ),
+    ).resolves.toEqual([]);
+    expect(observedTargets).toEqual([integrationHead]);
+  });
+
+  test.each([
+    [
+      'pull-request head ref mismatch',
+      {
+        eventName: 'pull_request',
+        headRef: 'codex/other',
+        headSha: '3333333333333333333333333333333333333333',
+        baseRef: 'main',
+      },
+      {
+        branch: '',
+        headSha: '3333333333333333333333333333333333333333',
+        boundaryExists: true,
+        boundaryIsAncestor: true,
+        changedPaths: [],
+      },
+      'control.handoff_branch_mismatch',
+    ],
+    [
+      'pull-request observed head SHA mismatch',
+      {
+        eventName: 'pull_request',
+        headRef: 'codex/test',
+        headSha: '3333333333333333333333333333333333333333',
+        baseRef: 'main',
+      },
+      {
+        branch: '',
+        headSha: '5555555555555555555555555555555555555555',
+        boundaryExists: true,
+        boundaryIsAncestor: true,
+        changedPaths: [],
+      },
+      'control.handoff_ci_head_mismatch',
+    ],
+    [
+      'wrong pull-request base branch',
+      {
+        eventName: 'pull_request',
+        headRef: 'codex/test',
+        headSha: '3333333333333333333333333333333333333333',
+        baseRef: 'develop',
+      },
+      {
+        branch: '',
+        headSha: '3333333333333333333333333333333333333333',
+        boundaryExists: true,
+        boundaryIsAncestor: true,
+        changedPaths: [],
+      },
+      'control.handoff_integration_branch_mismatch',
+    ],
+    [
+      'wrong push integration branch',
+      {
+        eventName: 'push',
+        ref: 'refs/heads/develop',
+        headSha: '4444444444444444444444444444444444444444',
+      },
+      {
+        branch: 'develop',
+        headSha: '4444444444444444444444444444444444444444',
+        boundaryExists: true,
+        boundaryIsAncestor: true,
+        changedPaths: [],
+      },
+      'control.handoff_integration_branch_mismatch',
+    ],
+    [
+      'non-ancestor PR boundary',
+      {
+        eventName: 'pull_request',
+        headRef: 'codex/test',
+        headSha: '3333333333333333333333333333333333333333',
+        baseRef: 'main',
+      },
+      {
+        branch: '',
+        headSha: '3333333333333333333333333333333333333333',
+        boundaryExists: true,
+        boundaryIsAncestor: false,
+        changedPaths: [],
+      },
+      'control.handoff_commit_not_ancestor',
+    ],
+    [
+      'post-boundary production change after integration',
+      {
+        eventName: 'push',
+        ref: 'refs/heads/main',
+        headSha: '4444444444444444444444444444444444444444',
+      },
+      {
+        branch: 'main',
+        headSha: '4444444444444444444444444444444444444444',
+        boundaryExists: true,
+        boundaryIsAncestor: true,
+        changedPaths: ['packages/control-schema/src/verify-static.ts'],
+      },
+      'control.handoff_boundary_changed',
+    ],
+  ] as const)(
+    'blocks trusted CI takeover authority for %s',
+    async (_name, context, git, code) => {
+      const root = await makeControlRoot();
+
+      await expect(
+        verifyWithGitHubContext(root, git, context),
+      ).resolves.toContainEqual(
+        expect.objectContaining({ severity: 'blocking', code }),
+      );
+    },
+  );
+
+  test('reads the integration branch from repository control authority', async () => {
+    const root = await makeControlRoot({
+      environment: {
+        ...validEnvironment,
+        environments: {
+          production: {
+            ...validEnvironment.environments.production,
+            github: { repository: 'example/atlas', branch: 'trunk' },
+          },
+        },
+      },
+    });
+    const prHead = '3333333333333333333333333333333333333333';
+
+    await expect(
+      verifyWithGitHubContext(
+        root,
+        {
+          branch: '',
+          headSha: prHead,
+          boundaryExists: true,
+          boundaryIsAncestor: true,
+          changedPaths: [],
+        },
+        {
+          eventName: 'pull_request',
+          headRef: 'codex/test',
+          headSha: prHead,
+          baseRef: 'trunk',
+        },
+      ),
     ).resolves.toEqual([]);
   });
 
@@ -462,6 +853,52 @@ environments:
       expect.objectContaining({ code: 'control.handoff_git_unavailable' }),
     );
   });
+
+  test.each(['ghp_', 'gho_', 'ghu_', 'ghs_', 'ghr_', 'github_pat_'])(
+    'detects a %s GitHub token in Markdown control docs without exposing it',
+    async (prefix) => {
+      const root = await makeControlRoot();
+      const token = `${prefix}abcdefghijklmnopqrstuvwxyz123456`;
+      await writeFile(
+        join(root, 'docs', 'control', 'CONTINUITY_DESIGN.md'),
+        `# Continuity Design\n\nAccidental value: ${token}\n`,
+      );
+
+      const findings = await verifyStatic(root);
+
+      expect(findings).toContainEqual(
+        expect.objectContaining({
+          severity: 'blocking',
+          code: 'control.secret_value',
+        }),
+      );
+      expect(JSON.stringify(findings)).not.toContain(token);
+    },
+  );
+
+  test.each(['ghp_', 'gho_', 'ghu_', 'ghs_', 'ghr_', 'github_pat_'])(
+    'detects a %s GitHub token in handoff content without exposing it',
+    async (prefix) => {
+      const token = `${prefix}abcdefghijklmnopqrstuvwxyz123456`;
+      const root = await makeControlRoot({
+        handoff:
+          `# Current Handoff\n\nAccidental value: ${token}\n` +
+          '- Work item: `P2A-CONTROL-001`\n' +
+          '- Branch: `codex/test`\n' +
+          '- Head commit: `1111111111111111111111111111111111111111`\n',
+      });
+
+      const findings = await verifyStatic(root);
+
+      expect(findings).toContainEqual(
+        expect.objectContaining({
+          severity: 'blocking',
+          code: 'control.secret_value',
+        }),
+      );
+      expect(JSON.stringify(findings)).not.toContain(token);
+    },
+  );
 
   test('blocks static verification when a regional pack is invalid', async () => {
     const root = await makeControlRoot();
