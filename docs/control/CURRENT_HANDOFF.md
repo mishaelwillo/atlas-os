@@ -3,7 +3,7 @@
 **Handoff ID:** `atlas-capabilities-research-regions-task-3-re-review`
 **Status:** active
 **Started:** 2026-07-26T03:42:29.175Z
-**Updated:** 2026-07-26T04:17:33.612Z
+**Updated:** 2026-07-26T04:28:05.446Z
 **Actor:** Codex
 **Objective:** Install a source-linked video research ledger and progressively stage non-executable capabilities without turning presenter claims into product truth.
 
@@ -15,6 +15,7 @@
 - Original code/documentation commit: `eb83f0e41af78cf4f2170696a0dfd23bf36db5b8`
 - Original metadata-only handoff: `aa2fcc96a98634ed42677ea1855aa0f08e2f26c1`
 - Review-fix code/documentation boundary: `89faf8813cbf71feaf541721074c78b6dc3cab52`
+- Exact reviewed code/documentation boundary: `af01710d5a6f63c85fb7c802502019575880302d`
 - Review status: pending independent review
 
 ## Task change evidence
@@ -22,9 +23,10 @@
 - Capability Task 3 began at
   `bbe32c9e8de15179d56a159cea207b73da6d519b`, the original implementation
   boundary was `eb83f0e41af78cf4f2170696a0dfd23bf36db5b8`, its first metadata handoff
-  was `aa2fcc96a98634ed42677ea1855aa0f08e2f26c1`, and the exact review-fix
-  code/documentation boundary is
-  `89faf8813cbf71feaf541721074c78b6dc3cab52`.
+  was `aa2fcc96a98634ed42677ea1855aa0f08e2f26c1`, the main review-fix boundary
+  was `89faf8813cbf71feaf541721074c78b6dc3cab52`, and the exact reviewed
+  code/documentation boundary after the approved conversations evidence minor
+  is `af01710d5a6f63c85fb7c802502019575880302d`.
 - The ledger contains 22 distinct evidence records tied to portable Watch
   transcript and frame references from video `QY0L1T7x6lE`.
 - The candidate catalog contains 33 stable non-executable capability records
@@ -44,6 +46,9 @@
   stable ID, video source, timestamp, Watch-store-relative path, and SHA-256.
 - Exact 00:11:20 and 00:11:30 label frames are retained in the local Watch
   store and hash-verified without committing copyrighted media to Git.
+- Unified-conversations visual evidence explicitly includes retained frames
+  1130, 0043, and 0045 so navigation and all chat-type label groups are
+  traceable.
 - Visual labels and presenter-spoken lists are now distinct schema concepts.
   The Email, SMS, Social DM, and Phone call sequence is transcript-backed
   spoken evidence, not a claimed on-screen inventory.
@@ -54,7 +59,7 @@
 
 ## Current working tree
 
-- Clean after the review-fix code and documentation commit; this handoff update
+- Clean after the approved minor code and documentation commit; this handoff update
   is the only pending tracked metadata change.
 
 ## Verification evidence
@@ -63,6 +68,8 @@
   GREEN added manifest traceability, visual-versus-spoken evidence, structured
   price ranges, exact bidirectionality, and strict duration-bounded timecodes.
 - Focused research suite passed 25 of 25 tests.
+- The approved conversations evidence minor followed a fresh RED/GREEN cycle;
+  the focused research suite then passed 26 of 26 tests.
 - Control-schema passed 151 of 151 tests; registry passed 7 of 7 tests.
 - The 8-package workspace build passed.
 - All 207 workspace tests passed.
@@ -83,9 +90,10 @@
 
 - Created local review-fix commit
   `89faf8813cbf71feaf541721074c78b6dc3cab52` and extracted two required
-  evidence frames into the existing local Watch store. No push, deployment,
-  database mutation, hosting mutation, live refresh, or external write
-  occurred.
+  evidence frames into the existing local Watch store. Created approved minor
+  commit `af01710d5a6f63c85fb7c802502019575880302d` without further external
+  side effects. No push, deployment, database mutation, hosting mutation, live
+  refresh, or external write occurred.
 
 ## Blockers
 
@@ -96,7 +104,7 @@
 
 Independently review Capability Task 3 from base
 `bbe32c9e8de15179d56a159cea207b73da6d519b` through exact code/documentation
-review-fix boundary `89faf8813cbf71feaf541721074c78b6dc3cab52`. The earlier boundaries are
+boundary `af01710d5a6f63c85fb7c802502019575880302d`. The earlier boundaries are
 preserved above for auditability. Only after that re-review confirms no
 important or critical findings, execute Task 4 of the approved Atlas
 capabilities, research, and regions plan using tests first and the same
