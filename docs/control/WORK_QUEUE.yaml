@@ -51,7 +51,7 @@ items:
     acceptance_checks:
       - Intelligence foundation specification is approved
       - Owned memory remains governed and verifiable
-    next_action: Reconcile the Intelligence Bank specification with the existing P1 memory implementation and write the smallest test-first P2A implementation plan without masking P1 production drift
+    next_action: Independently re-review Task 5 through exact ownership-fix boundary d30d6fac75d65b559764c8bb6adb05b022630a72; only after no Important or Critical finding remains reconcile the Intelligence Bank target/delta with the existing P1 memory implementation
   - id: P2B-FACTORY-001
     phase: P2B
     title: Build the Website Factory

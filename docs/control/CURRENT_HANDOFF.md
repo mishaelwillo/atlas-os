@@ -1,6 +1,6 @@
 # Current Handoff
 
-**Handoff ID:** `atlas-p2-specification-set`
+**Handoff ID:** `atlas-p2-ownership-authority-review-fix`
 **Status:** active
 **Started:** 2026-07-26
 **Updated:** 2026-07-26
@@ -12,7 +12,7 @@
 - Work item: `P2A-MEMORY-001`
 - Branch: `codex/atlas-continuity`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `a8772dfa36c68e2e2edc5130fd66ad60aa631f77`
+- Head commit: `d30d6fac75d65b559764c8bb6adb05b022630a72`
 - Review status: pending independent review
 
 ## Task change evidence
@@ -27,10 +27,16 @@
   AI-agent evidence gap.
 - Executable P2 capability metadata now points to its specific owning spec and
   the generated catalog was refreshed.
+- Important review fix: traceability now preserves the 15 executable registry
+  owners and all 33 candidate-registry owners exactly. Nine P1 capabilities keep
+  `briefs/P1-CODEX-services.md` as owner; the Intelligence Foundation is a
+  separate P2A target/delta until an approved metadata migration.
+- The validator rejects missing, extra, duplicate, kind-mismatched, and
+  owner-mismatched traceability rows and validates target/delta paths.
 
 ## Current working tree
 
-- Clean after the Task 5 code/docs boundary; this handoff update is metadata-only.
+- Clean after ownership fix boundary; this handoff update is metadata-only.
 
 ## Verification evidence
 
@@ -41,6 +47,9 @@
 - Static control verification, required-section/staging scans, 53 retained
   artifact hashes, registry catalog regeneration, API/client generation diffs,
   source diff, whitespace check, and focused secret scan passed.
+- Ownership RED: five mutation checks failed because the parity validator was
+  absent. GREEN: focused 6 of 6, full control-schema 160 of 160, and workspace
+  224 of 224 tests passed; build remained 8 of 8.
 
 ## Database actions
 
@@ -55,6 +64,7 @@
 ## External side effects
 
 - Created local code/docs commit `a8772dfa36c68e2e2edc5130fd66ad60aa631f77`;
+  local ownership fix `d30d6fac75d65b559764c8bb6adb05b022630a72`;
   no push, deploy, message send, billing action, or other external write.
 
 ## Blockers
@@ -65,12 +75,11 @@
 
 ## Next exact action
 
-Reconcile `docs/specs/p2/intelligence-foundation.md` with the existing P1 memory
-implementation and write the smallest test-first P2A implementation plan while
-keeping `P1-DEPLOY-001` ready and the production drift visible.
+Independently re-review Task 5 through exact ownership-fix boundary
+`d30d6fac75d65b559764c8bb6adb05b022630a72`; do not begin the Intelligence Bank
+implementation plan until no Important or Critical finding remains.
 
 ## Definition of done
 
-The Intelligence Bank implementation plan maps existing code/data boundaries,
-identifies only the P2A delta, includes region/evidence/governance acceptance
-tests, and does not claim the live P1 API is current.
+Task 5 re-review confirms the traceability table cannot override registry or
+candidate ownership, and no Important or Critical finding remains.
