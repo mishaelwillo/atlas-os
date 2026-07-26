@@ -1,39 +1,42 @@
 # Current Handoff
 
-**Handoff ID:** `p2a-memory-enrichment-schema`
+**Handoff ID:** `p2a-memory-code-enrichment`
 **Status:** active
-**Started:** 2026-07-26T18:33:38.459Z
-**Updated:** 2026-07-26T18:33:38.459Z
+**Started:** 2026-07-26T21:07:15.474Z
+**Updated:** 2026-07-26T21:07:15.474Z
 **Actor:** Codex
-**Objective:** Stage the additive Intelligence Bank enrichment schema for P2A-MEMORY-001 without applying it to any database
+**Objective:** Implement the code side of Intelligence Bank enrichment for P2A-MEMORY-001 behind the unchanged P1 routes
 
 ## Active work
 
 - Work item: `P2A-MEMORY-001`
-- Branch: `codex/p2a-memory-enrichment`
+- Branch: `main`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `2402b58e5c41efd7d0489cd4f7a9fd7f1714636d`
+- Head commit: `7f7af9473fe9ce2aee1f97550541a37d6a234720`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Added supabase/migrations/0002_intelligence_enrichment.sql (review only) and recorded it in the reconciliation specification
+- Merged PR #4; the staged 0002 migration is now in main but remains unapplied
 
 ## Current working tree
 
-- Clean.
+- ` M docs/control/CURRENT_HANDOFF.md`
+- `?? docs/control/handoffs/archived/2026-07-26-p2a-memory-enrichment-schema.md`
 
 ## Verification evidence
 
-- All five referenced tables exist in 0001_init and no added column name collides; pnpm control:verify, build, and tests pass
+- CI success on exact main SHA 7f7af94; api and os fingerprints both report 7f7af94; P1 routes 401 auth-gated
 
 ## Database actions
 
-- None. The migration file was written but NOT executed against any database; production still reports 0001_init
+- None. 0002_intelligence_enrichment.sql is present in main but has NOT been executed against any database
+- Observed Supabase status: unknown (live-read-only at 2026-07-26T21:06:30.301Z).
 
 ## Hosting actions
 
-- No external action reported.
+- Railway api connected to GitHub; both services auto-deployed to main 7f7af94 with no manual step
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-07-26T21:06:30.301Z).
 
 ## External side effects
 
@@ -41,11 +44,11 @@
 
 ## Blockers
 
-- The migration is statically reviewed only; no PostgreSQL instance was available to execute it
+- Supabase has no supabase_migrations schema, so exact migration identity cannot be proven until a ledger is baselined
 
 ## Next exact action
 
-Obtain review of 0002_intelligence_enrichment.sql; on approval to apply, bump expected_migration in ENVIRONMENTS.yaml in the same change, then implement the code side of card/node/run enrichment behind unchanged P1 routes
+Establish the Supabase migration ledger (baseline 0001_init as applied) so exact migration identity can be proven, then implement card/node/run enrichment against the staged 0002 columns
 
 ## Definition of done
 
