@@ -6,7 +6,7 @@ environments:
       branch: main
     supabase:
       project_ref: yyyspvralawnvhtmuyvg
-      expected_migration: 0001_init
+      expected_migration: 0002_intelligence_enrichment
       required_tables:
         - spaces
         - api_tokens

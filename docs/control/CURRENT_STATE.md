@@ -108,16 +108,25 @@ satisfied, and the live drift report has no blocking finding.
   each as additive-optional or internal-only, and leaves every
   `capabilityMetadata.specification` unchanged. The ownership migration register
   is deliberately empty.
-- `supabase/migrations/0002_intelligence_enrichment.sql` is merged into `main`
-  (PR #4) and **has not been applied to any database**. Merging moved the file
-  into the repository and nothing else: nothing in CI, the Docker image, or the
-  API boot path executes migrations, and the P1 routes were re-verified as
-  unchanged afterward. `0001_init.sql` is unmodified, so the migration-identity
-  anchor is intact and the ledger still reports `0001_init`.
-- The `0002` file is statically reviewed only. Every referenced table exists in
-  `0001_init` and no added column name collides with an existing one, but no
-  PostgreSQL instance was available to execute it, so it is not
-  execution-proven. Run it against a scratch database before applying.
+- `supabase/migrations/0002_intelligence_enrichment.sql` is **applied to
+  production** as of 2026-07-26, and `expected_migration` in
+  `ENVIRONMENTS.yaml` is `0002_intelligence_enrichment` to match.
+- No scratch database existed, so execution proof came from a transactional dry
+  run against production: the full migration ran inside `begin … rollback`,
+  the 21 new columns were verified present, and everything was discarded. Only
+  after that clean dry run was it applied for real, in a single transaction
+  together with its ledger insert.
+- Verified after apply: the ledger reports `0002_intelligence_enrichment`; all
+  21 columns exist (`memory_cards` 6, `memory_nodes` 6, `runs` 5, `run_logs` 2,
+  `bench_results` 2); the `retention_class` enum carries all four values; and
+  pre-existing rows survived with `retention` defaulted to `standard`, so the
+  additive design disturbed no data.
+- The drift gate was observed working rather than assumed: with the database at
+  `0002` and config still at `0001_init`, `control:status` correctly returned
+  blocking `supabase.migration_mismatch`, which cleared once config was bumped.
+- Both services' `ATLAS_SCHEMA_VERSION` were updated so `/healthz` and
+  `/build-info.json` report `0002_intelligence_enrichment` rather than a stale
+  value.
 
 ## Next exact action
 
