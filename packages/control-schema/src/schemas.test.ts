@@ -826,6 +826,50 @@ environments:
     );
   });
 
+  test('permits archived handoff Markdown as post-boundary metadata', async () => {
+    const root = await makeControlRoot({
+      handoff:
+        '# Current Handoff\n\n- Work item: `P2A-CONTROL-001`\n- Branch: `codex/test`\n- Head commit: `1111111111111111111111111111111111111111`\n',
+    });
+
+    await expect(
+      verifyWithGit(root, {
+        branch: 'codex/test',
+        headSha: '2222222222222222222222222222222222222222',
+        boundaryExists: true,
+        boundaryIsAncestor: true,
+        changedPaths: [
+          'docs/control/CURRENT_HANDOFF.md',
+          'docs/control/handoffs/archived/2026-07-26-example-handoff.md',
+        ],
+      }),
+    ).resolves.not.toContainEqual(
+      expect.objectContaining({ code: 'control.handoff_boundary_changed' }),
+    );
+  });
+
+  test('still blocks non-Markdown post-boundary files under the archive directory', async () => {
+    const root = await makeControlRoot({
+      handoff:
+        '# Current Handoff\n\n- Work item: `P2A-CONTROL-001`\n- Branch: `codex/test`\n- Head commit: `1111111111111111111111111111111111111111`\n',
+    });
+
+    await expect(
+      verifyWithGit(root, {
+        branch: 'codex/test',
+        headSha: '2222222222222222222222222222222222222222',
+        boundaryExists: true,
+        boundaryIsAncestor: true,
+        changedPaths: ['docs/control/handoffs/archived/evil.ts'],
+      }),
+    ).resolves.toContainEqual(
+      expect.objectContaining({
+        severity: 'blocking',
+        code: 'control.handoff_boundary_changed',
+      }),
+    );
+  });
+
   test.each([
     [
       'missing Branch',
