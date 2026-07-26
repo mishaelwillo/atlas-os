@@ -12,7 +12,7 @@
 - Work item: `P2A-MEMORY-001`
 - Branch: `codex/atlas-continuity`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `a8772dfbfc594734246bd1a2a4fa3f8a9d350bbe`
+- Head commit: `a8772dfa36c68e2e2edc5130fd66ad60aa631f77`
 - Review status: pending independent review
 
 ## Task change evidence
@@ -54,7 +54,7 @@
 
 ## External side effects
 
-- Created local code/docs commit `a8772dfbfc594734246bd1a2a4fa3f8a9d350bbe`;
+- Created local code/docs commit `a8772dfa36c68e2e2edc5130fd66ad60aa631f77`;
   no push, deploy, message send, billing action, or other external write.
 
 ## Blockers
