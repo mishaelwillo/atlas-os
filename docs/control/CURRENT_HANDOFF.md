@@ -1,85 +1,104 @@
 # Current Handoff
 
-**Handoff ID:** `atlas-p2-ownership-authority-review-fix`
+**Handoff ID:** `atlas-continuity-whole-branch-rereview`
 **Status:** active
 **Started:** 2026-07-26
 **Updated:** 2026-07-26
 **Actor:** Codex
-**Objective:** Install the evidence-backed P2 build specifications and complete the capability/research/region work item.
+**Objective:** Complete the final whole-branch quality gate for the Atlas
+continuity foundation and evidence-backed P2 specification set.
 
 ## Active work
 
 - Work item: `P2A-MEMORY-001`
+- Owning specification: `docs/specs/p2/intelligence-foundation.md`
 - Branch: `codex/atlas-continuity`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `d30d6fac75d65b559764c8bb6adb05b022630a72`
-- Review status: pending independent review
+- Head commit: `264ec8b5f63d41f7f033a091ebf036eebb3066cc`
+- Review status: focused remediation approved; final whole-branch re-review pending
 
-## Task change evidence
+## Completed scope
 
-- Six build specifications now cover regional packs, intelligence, Website
-  Factory, revenue pilot, recurring upsells, and their index.
-- The presenter workflow is preserved as a supervised start-to-finish playbook.
-- The menu crosswalk preserves only validated observed labels and explicitly
-  keeps unreadable AI-agent sub-tabs pending research.
-- Static verification now checks spec paths, required boundaries/staging,
-  candidate and executable evidence resolution, observed-label coverage, and the
-  AI-agent evidence gap.
-- Executable P2 capability metadata now points to its specific owning spec and
-  the generated catalog was refreshed.
-- Important review fix: traceability now preserves the 15 executable registry
-  owners and all 33 candidate-registry owners exactly. Nine P1 capabilities keep
-  `briefs/P1-CODEX-services.md` as owner; the Intelligence Foundation is a
-  separate P2A target/delta until an approved metadata migration.
-- The validator rejects missing, extra, duplicate, kind-mismatched, and
-  owner-mismatched traceability rows and validates target/delta paths.
+- Installed repository-native continuity controls, schemas, collectors, drift
+  reporting, generated catalogs, and takeover documentation.
+- Verified the original Antigravity/Claude P1 implementation and preserved the
+  unresolved Railway P0-versus-P1 deployment gap as an explicit blocker.
+- Installed capability lifecycle and monetization metadata, retained video
+  evidence, staged future candidates, inherited global/North America/Caribbean
+  region packs, and deterministic executable catalog generation.
+- Installed the presenter workflow playbook, menu crosswalk, Website Factory,
+  Intelligence Bank, revenue pilot, recurring upsell, and regional-pack
+  specifications under `docs/specs/p2/`.
+- Preserved executable and candidate ownership authority exactly; P1 ownership
+  remains with `briefs/P1-CODEX-services.md` until an approved migration.
 
-## Current working tree
+## Whole-branch review remediation
 
-- Clean after ownership fix boundary; this handoff update is metadata-only.
+- Git takeover verification now fails closed for missing or unparsable handoff
+  metadata, wrong branches, missing/non-ancestor code boundaries, Git probe
+  failures, and post-boundary production changes.
+- A metadata-only commit after the recorded code boundary is permitted only for
+  the approved current handoff/state files.
+- GitHub CI is healthy only for `ci.yml` success on the exact observed head SHA;
+  terminal failures and older-SHA success are release-blocking.
+- Supabase observation reads fixed, read-only table and migration-history
+  queries; missing or mismatched `0001_init` identity is blocking, while
+  credential/query failures remain secret-safe and unknown.
+- Work-queue specification paths are safe repository-relative paths under
+  `docs/`, reject traversal, and route each work item to its owning spec.
+- Registry route-count/version mismatches and unknown deployed version now
+  produce explicit drift findings.
+- The deployment runbook requires the immutable release SHA to be reachable
+  from authoritative `main` and CI success to belong to that exact SHA.
 
 ## Verification evidence
 
-- RED: focused suite failed because the specification validator did not exist.
-- GREEN: focused control-schema suite passed 155 of 155 tests after all required
-  specs and the evidence-backed crosswalk were installed.
-- Full workspace tests passed 219 of 219; build passed 8 of 8 packages.
-- Static control verification, required-section/staging scans, 53 retained
-  artifact hashes, registry catalog regeneration, API/client generation diffs,
-  source diff, whitespace check, and focused secret scan passed.
-- Ownership RED: five mutation checks failed because the parity validator was
-  absent. GREEN: focused 6 of 6, full control-schema 160 of 160, and workspace
-  224 of 224 tests passed; build remained 8 of 8.
+- Remediation RED: 16 expected observed-state/drift failures plus static
+  Git/spec-routing failures were witnessed before implementation.
+- Remediation GREEN: 188/188 control-schema tests, 252/252 workspace tests, and
+  8/8 package builds passed at commit `61ffc93`.
+- First review fixes: 14/14 focused and 201/201 control-schema tests passed at
+  commit `535cedd`.
+- Final diagnostic fix: real missing-boundary RED, two mutation-backed registry
+  RED checks, 9/9 focused, and 202/202 control-schema tests passed at commit
+  `4023a14`; build and `git diff --check` passed.
+- Independent remediation re-review: specification PASS, task quality APPROVED,
+  no remaining Critical, Important, or Minor finding.
 
 ## Database actions
 
-- No database mutation or additional live refresh performed.
-- Last generated Supabase status remains unknown; this work does not reinterpret it.
+- No database mutation was performed.
+- Supabase live status remains unknown until an authorized read-only refresh
+  can prove table and exact migration identity.
 
 ## Hosting actions
 
-- No hosting mutation, deployment, or additional live refresh performed.
-- Railway API continues to have recorded blocking P0-versus-P1 route drift.
+- No hosting mutation or deployment was performed.
+- Railway API still has recorded blocking P0-versus-P1 route drift.
 
 ## External side effects
 
-- Created local code/docs commit `a8772dfa36c68e2e2edc5130fd66ad60aa631f77`;
-  local ownership fix `d30d6fac75d65b559764c8bb6adb05b022630a72`;
-  no push, deploy, message send, billing action, or other external write.
+- Local commits only: `61ffc93`, `535cedd`, `4023a14`, and `264ec8b`.
+- No push, pull request, deploy, database write, message send, billing action,
+  or other external write.
 
 ## Blockers
 
-- P1 production deployment closure remains ready/critical and blocking the P1
-  production-complete claim.
-- It does not invalidate local P2A specification work, but must remain visible.
+- P1 production deployment closure remains ready/critical.
+- The continuity branch must be integrated into authoritative `main`, then CI
+  must succeed on the exact resulting main SHA before release selection.
+- Railway production must prove the selected fingerprint and required P1 route
+  set before P1 can be called production-complete.
 
 ## Next exact action
 
-Independently re-review Task 5 through exact ownership-fix boundary
-`d30d6fac75d65b559764c8bb6adb05b022630a72`; do not begin the Intelligence Bank
-implementation plan until no Important or Critical finding remains.
+Create an exact `origin/main..HEAD` review package including this metadata-only
+handoff, run an independent whole-branch re-review, resolve every Critical or
+Important finding, then rerun the uncached serial build, direct package tests,
+static control verification, catalog checks, and retained-research audit.
 
 ## Definition of done
 
-Task 5 re-review confirms the traceability table cannot override registry or
-candidate ownership, and no Important or Critical finding remains.
+The final whole-branch review reports no Critical or Important finding, all
+local verification gates pass against the exact branch head, and the user is
+given explicit safe integration choices before any push, merge, or deployment.
