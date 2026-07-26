@@ -1,7 +1,7 @@
 # Current Handoff
 
 **Handoff ID:** `atlas-continuity-whole-branch-rereview`
-**Status:** active
+**Status:** awaiting user decision
 **Started:** 2026-07-26
 **Updated:** 2026-07-26
 **Actor:** Codex
@@ -14,8 +14,8 @@ continuity foundation and evidence-backed P2 specification set.
 - Owning specification: `docs/specs/p2/intelligence-foundation.md`
 - Branch: `codex/atlas-continuity`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `d2e69a025694c9ef7fcdf5325ba68660c4035754`
-- Review status: CI checkout remediation implemented; final whole-branch re-review pending
+- Head commit: `8d3995a1ca37a96cdbe5a63bc28b03b7d6dd8087`
+- Review status: final whole-branch review READY TO MERGE; no Critical or Important finding
 
 ## Completed scope
 
@@ -82,6 +82,16 @@ continuity foundation and evidence-backed P2 specification set.
   full history. GREEN: 7/7 workflow-contract and 235/235 control-schema tests
   passed at commit `d2e69a0`; checkout now selects the trusted event target with
   full Git history.
+- Final parent verification at the reviewed boundary: 235/235 control-schema
+  tests plus 64/64 direct registry/API/OS/router/scheduler tests passed (299
+  total); uncached serial build passed 8/8 with zero cached tasks.
+- Static control verification, generated catalog/API/client diffs,
+  `git diff --check`, and clean-worktree checks passed.
+- The executable catalog regenerated deterministically with 15 capabilities,
+  and all 53 retained Watch-video artifacts passed hash audit.
+- Final independent whole-branch verdict: READY TO MERGE, with no Critical or
+  Important finding. The only Minor is that no workspace lint tasks are
+  configured, so lint is not claimed as a substantive quality gate.
 
 ## Database actions
 
@@ -97,7 +107,7 @@ continuity foundation and evidence-backed P2 specification set.
 ## External side effects
 
 - Local commits only: `61ffc93`, `535cedd`, `4023a14`, `264ec8b`, `a8f4e6d`,
-  `67a803a`, `941178b`, and `d2e69a0`.
+  `67a803a`, `941178b`, `d2e69a0`, `e656059`, and `8d3995a`.
 - No push, pull request, deploy, database write, message send, billing action,
   or other external write.
 
@@ -111,13 +121,12 @@ continuity foundation and evidence-backed P2 specification set.
 
 ## Next exact action
 
-Create an exact `origin/main..HEAD` review package including this metadata-only
-handoff, run an independent whole-branch re-review, resolve every Critical or
-Important finding, then rerun the uncached serial build, direct package tests,
-static control verification, catalog checks, and retained-research audit.
+Obtain the user's explicit branch-integration choice. If integrated, require
+successful CI on the exact resulting authoritative `main` SHA before selecting
+any immutable production release candidate. Do not deploy from this feature
+branch.
 
 ## Definition of done
 
-The final whole-branch review reports no Critical or Important finding, all
-local verification gates pass against the exact branch head, and the user is
-given explicit safe integration choices before any push, merge, or deployment.
+The user selects how to integrate or retain the reviewed branch. Production
+release work remains a separate approval-gated sequence after exact-main-SHA CI.

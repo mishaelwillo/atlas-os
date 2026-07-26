@@ -13,13 +13,14 @@ state.
 
 - Active branch: `codex/atlas-continuity`.
 - Current code boundary:
-  `d2e69a025694c9ef7fcdf5325ba68660c4035754`.
+  `8d3995a1ca37a96cdbe5a63bc28b03b7d6dd8087`.
 - Focused remediation code boundary:
   `4023a14e4873ae681c165b182e1b9ddd326ffbf4`.
 - Focused whole-branch remediation review: approved with no findings.
 - Integration-path and secret-gate remediation: implemented and locally green.
 - Full-history trusted-target CI checkout: implemented and locally green.
-- Final `origin/main..HEAD` whole-branch re-review: pending.
+- Final `origin/main..HEAD` whole-branch re-review: READY TO MERGE with no
+  Critical or Important finding.
 - Active work item: `P2A-MEMORY-001`.
 - Active owning spec: `docs/specs/p2/intelligence-foundation.md`.
 - Exactly one queue item is `in_progress`.
@@ -59,7 +60,7 @@ routes. No production-complete claim is authorized.
 
 ## Next exact action
 
-Run the final independent whole-branch review against the exact branch head,
-then run the uncached local verification matrix. If both gates pass, present
-the user with explicit branch-integration choices before any push, merge,
-release selection, database action, or hosting action.
+Obtain the user's explicit branch-integration choice. After integration, require
+successful CI on the exact resulting authoritative `main` SHA before release
+selection. No push, merge, release, database action, or hosting action has yet
+been authorized or performed.
