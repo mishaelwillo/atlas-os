@@ -34,15 +34,28 @@ satisfied, and the live drift report has no blocking finding.
 
 - Railway `os` deploys from GitHub automatically; `/build-info.json` reports the
   merged `main` SHA, schema `0001_init`, registry version 2.
-- Railway `api` has **no GitHub source** — its prior deployment was a local
-  upload with no commit metadata, which is why merges do not auto-deploy it. It
-  is deployed from a pristine `git archive` checkout of exactly
-  `main @ 0fdb2f8`, with `ATLAS_GIT_SHA`, `ATLAS_BUILD_TIME`, and
-  `ATLAS_SCHEMA_VERSION` service variables carrying the fingerprint.
-- Verified live: `/healthz` reports `gitSha 0fdb2f8`, `registryVersion 2`,
-  schema `0001_init`. `POST /v1/memory/ingest` and
-  `GET /v1/status/mission_control` return 401 auth-gated — previously 404, which
-  was the recorded P0-versus-P1 route drift.
+- Railway `api` is now connected to `mishaelwillo/atlas-os` on `main` and
+  deploys from GitHub like `os`. Before 2026-07-26 it had no source at all
+  (`source.repo = null`) and its deployments were local CLI uploads with no
+  commit metadata, which is why merges never auto-deployed it and the P0 route
+  set persisted. Manual `railway up` from a pristine `git archive` checkout is
+  no longer required.
+- The API fingerprint is derived from `RAILWAY_GIT_COMMIT_SHA`. The temporary
+  `ATLAS_GIT_SHA` and `ATLAS_BUILD_TIME` variables used for the manual
+  deployments were deleted once GitHub deploys were live: `env.ts` resolves
+  `gitSha(ATLAS_GIT_SHA, RAILWAY_GIT_COMMIT_SHA)` first-match-wins, so leaving
+  them set would have pinned `/healthz` to a stale SHA forever regardless of
+  what actually shipped. Only `ATLAS_SCHEMA_VERSION` remains, which is not
+  git-derived.
+- `buildTime` now reports `unknown` because nothing passes the
+  `ATLAS_BUILD_TIME` Docker build arg. The fingerprint validator explicitly
+  accepts `unknown`, and drift detection keys on `gitSha`, so this is an honest
+  gap rather than a failure. Optional polish: pass the build arg at build time
+  or add a Railway-provided timestamp fallback in `env.ts`.
+- Verified live after the change: `/healthz` reports `gitSha 0fdb2f8` sourced
+  from Railway Git, `registryVersion 2`, schema `0001_init`.
+  `POST /v1/memory/ingest` and `GET /v1/status/mission_control` return 401
+  auth-gated — previously 404, which was the recorded P0-versus-P1 route drift.
 - Live drift report: Blocking — none. Sole warning is
   `supabase.live_state_unknown`.
 
@@ -64,10 +77,8 @@ satisfied, and the live drift report has no blocking finding.
 - The P1 brief's manual token-seeded live acceptance (seed Space + API token,
   ingest with the token, approval-gate round trip) has not been run. It requires
   an authorized Supabase write and remains approval-gated.
-- Railway `api` should be connected to the GitHub repository (root directory =
-  repo root, dockerfile `apps/api/Dockerfile`) so future merges auto-deploy as
-  `os` does. This is a dashboard action. Until then, every `main` advance leaves
-  the API fingerprint stale and the collector will report SHA drift.
+- Resolved 2026-07-26: Railway `api` is connected to GitHub and self-deploys.
+  Both services now advance with `main` automatically.
 
 ## P2A progress
 
