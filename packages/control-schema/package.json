@@ -1,0 +1,35 @@
+{
+  "name": "@atlas/control-schema",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run --pool=forks",
+    "verify": "tsx src/verify-static.ts",
+    "audit:research": "tsx src/audit-research-artifacts.ts",
+    "status": "tsx src/collect-observed-state.ts",
+    "handoff": "tsx src/create-handoff.ts",
+    "archive-handoff": "tsx src/archive-handoff.ts"
+  },
+  "dependencies": {
+    "pg": "^8.12.0",
+    "yaml": "^2.8.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "@types/pg": "^8.11.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
+  }
+}

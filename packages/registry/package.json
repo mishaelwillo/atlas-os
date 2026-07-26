@@ -7,10 +7,14 @@
   "types": "./dist/registry.d.ts",
   "scripts": {
     "build": "tsc",
-    "gen": "tsx codegen.ts"
+    "catalog": "tsx catalog.ts",
+    "gen": "tsx codegen.ts",
+    "test": "vitest run --pool=forks"
   },
   "devDependencies": {
+    "@types/node": "^20.12.12",
     "tsx": "^4.11.0",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
   }
 }

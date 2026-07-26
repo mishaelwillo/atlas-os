@@ -1,4 +1,14 @@
-# Atlas OS — web app (P0)
+# Atlas OS — web app (P1 code complete; deployment closure pending)
+
+The repository contains the P1 core-services implementation. Production cannot
+be called P1-complete until the Railway API fingerprint matches the selected P1
+commit and the required P1 routes pass live acceptance. See
+`docs/control/CURRENT_HANDOFF.md` for the current execution boundary.
+
+## Start here
+
+Humans and models begin with `AGENTS.md` and `docs/control/CONTROL_INDEX.md`.
+Run `pnpm control:status` before making status claims.
 
 The studio's generic AI backend / Agent OS. Spec: `../ATLAS-OS-SPEC.md` (v1.2). Vetted build plan: Fable = judgment/security/review, Codex 5.6 = bulk implementation, Antigravity = scaffold/tests ($0). Delegation happens at task boundaries via `briefs/`.
 

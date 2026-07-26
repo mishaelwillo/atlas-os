@@ -1,0 +1,331 @@
+schema_version: 1
+candidates:
+  - id: platform.dashboard
+    stage: observed
+    phase: P2A
+    implementation: build
+    menu_group: Mission Control
+    atlas_description: Tenant-scoped operational and commercial overview.
+    evidence_ids: [video-qy0l1t7x6le-dashboard-navigation]
+    specification: docs/specs/p2/intelligence-foundation.md
+
+  - id: conversations.inbox
+    stage: candidate
+    phase: P2B
+    implementation: build
+    menu_group: Customer Engagement
+    atlas_description: Normalize governed inbound conversations across enabled channels.
+    evidence_ids:
+      - video-qy0l1t7x6le-dashboard-navigation
+      - video-qy0l1t7x6le-unified-conversations
+    specification: docs/specs/p2/website-factory.md
+
+  - id: calendar.manage
+    stage: deferred
+    phase: P3
+    implementation: integrate
+    menu_group: Customer Engagement
+    atlas_description: Coordinate bookable availability through replaceable calendar adapters.
+    evidence_ids: [video-qy0l1t7x6le-dashboard-navigation]
+    specification: docs/specs/p2/upsell-capabilities.md
+
+  - id: contacts.manage
+    stage: deferred
+    phase: P3
+    implementation: build
+    menu_group: Customer Engagement
+    atlas_description: Maintain tenant-owned contacts with consent and provenance.
+    evidence_ids: [video-qy0l1t7x6le-dashboard-navigation]
+    specification: docs/specs/p2/upsell-capabilities.md
+
+  - id: opportunities.manage
+    stage: deferred
+    phase: P3
+    implementation: build
+    menu_group: Revenue Operations
+    atlas_description: Track qualified commercial opportunities and lifecycle state.
+    evidence_ids: [video-qy0l1t7x6le-dashboard-navigation]
+    specification: docs/specs/p2/upsell-capabilities.md
+
+  - id: billing.manage
+    stage: deferred
+    phase: P3
+    implementation: integrate
+    menu_group: Revenue Operations
+    atlas_description: Manage governed billing activation and payment-provider references.
+    evidence_ids:
+      - video-qy0l1t7x6le-dashboard-navigation
+      - video-qy0l1t7x6le-free-hosting-offer
+    specification: docs/specs/p2/revenue-pilot.md
+
+  - id: agents.studio
+    stage: deferred
+    phase: P3
+    implementation: build
+    menu_group: Agents
+    atlas_description: Compose governed agent workflows from replaceable models and tools.
+    evidence_ids:
+      - video-qy0l1t7x6le-dashboard-navigation
+      - video-qy0l1t7x6le-ai-agent-tabs
+    specification: docs/specs/p2/upsell-capabilities.md
+
+  - id: voice.agent
+    stage: deferred
+    phase: P3
+    implementation: integrate
+    menu_group: Agents
+    atlas_description: Add policy-controlled voice conversations through a replaceable adapter.
+    evidence_ids:
+      - video-qy0l1t7x6le-ai-agent-tabs
+      - video-qy0l1t7x6le-unified-conversations
+    specification: docs/specs/p2/upsell-capabilities.md
+
+  - id: conversations.agent
+    stage: deferred
+    phase: P3
+    implementation: build
+    menu_group: Agents
+    atlas_description: Assist inbound conversations using approved knowledge and escalation rules.
+    evidence_ids: [video-qy0l1t7x6le-ai-agent-tabs]
+    specification: docs/specs/p2/upsell-capabilities.md
+
+  - id: knowledge.base
+    stage: deferred
+    phase: P3
+    implementation: build
+    menu_group: Agents
+    atlas_description: Publish approved tenant knowledge for assisted customer interactions.
+    evidence_ids: [video-qy0l1t7x6le-ai-agent-tabs]
+    specification: docs/specs/p2/upsell-capabilities.md
+
+  - id: agents.templates
+    stage: deferred
+    phase: P3
+    implementation: research
+    menu_group: Agents
+    atlas_description: Stage reusable governed agent configurations by task family.
+    evidence_ids: [video-qy0l1t7x6le-ai-agent-tabs]
+    specification: docs/specs/p2/upsell-capabilities.md
+
+  - id: content.generate
+    stage: deferred
+    phase: P3
+    implementation: build
+    menu_group: Marketing
+    atlas_description: Draft attributable content for human review and regional adaptation.
+    evidence_ids: [video-qy0l1t7x6le-ai-agent-tabs]
+    specification: docs/specs/p2/upsell-capabilities.md
+
+  - id: agents.logs
+    stage: candidate
+    phase: P2A
+    implementation: build
+    menu_group: Governance
+    atlas_description: Audit agent inputs, tool calls, outputs, approvals, and outcomes.
+    evidence_ids: [video-qy0l1t7x6le-ai-agent-tabs]
+    specification: docs/specs/p2/intelligence-foundation.md
+
+  - id: automation.sequence
+    stage: candidate
+    phase: P2C
+    implementation: build
+    menu_group: Automation
+    atlas_description: Run approval-aware, consent-aware, capped follow-up sequences.
+    evidence_ids:
+      - video-qy0l1t7x6le-dashboard-navigation
+      - video-qy0l1t7x6le-follow-up-automation
+    specification: docs/specs/p2/revenue-pilot.md
+
+  - id: factory.template_library
+    stage: candidate
+    phase: P2B
+    implementation: build
+    menu_group: Website Factory
+    atlas_description: Catalog declarative website templates and regional variants.
+    evidence_ids: [video-qy0l1t7x6le-template-library]
+    specification: docs/specs/p2/website-factory.md
+
+  - id: factory.assisted_editor
+    stage: candidate
+    phase: P2B
+    implementation: build
+    menu_group: Website Factory
+    atlas_description: Turn a sourced brief into an editable, verifiable site descriptor.
+    evidence_ids:
+      - video-qy0l1t7x6le-ai-assisted-editor
+      - video-qy0l1t7x6le-gbp-site-prompt
+      - video-qy0l1t7x6le-generation-stages
+    specification: docs/specs/p2/website-factory.md
+
+  - id: marketing.email
+    stage: observed
+    phase: P3
+    implementation: integrate
+    menu_group: Growth
+    atlas_description: Plan and send consent-based email campaigns with approval and measurement.
+    evidence_ids:
+      - video-qy0l1t7x6le-marketing-navigation
+      - video-qy0l1t7x6le-upsell-email
+      - video-qy0l1t7x6le-presenter-pricing
+    specification: docs/specs/p2/upsell-capabilities.md
+
+  - id: marketing.social
+    stage: observed
+    phase: P3
+    implementation: integrate
+    menu_group: Growth
+    atlas_description: Plan, approve, and publish regionalized social content.
+    evidence_ids:
+      - video-qy0l1t7x6le-marketing-navigation
+      - video-qy0l1t7x6le-upsell-social
+      - video-qy0l1t7x6le-presenter-pricing
+    specification: docs/specs/p2/upsell-capabilities.md
+
+  - id: marketing.snippets
+    stage: deferred
+    phase: P3
+    implementation: build
+    menu_group: Growth
+    atlas_description: Maintain approved reusable content fragments with provenance.
+    evidence_ids: [video-qy0l1t7x6le-marketing-navigation]
+    specification: docs/specs/p2/upsell-capabilities.md
+
+  - id: marketing.countdown
+    stage: deferred
+    phase: P3
+    implementation: research
+    menu_group: Growth
+    atlas_description: Stage truthful, policy-reviewed offer countdown components.
+    evidence_ids: [video-qy0l1t7x6le-marketing-navigation]
+    specification: docs/specs/p2/upsell-capabilities.md
+
+  - id: marketing.trigger_links
+    stage: deferred
+    phase: P3
+    implementation: build
+    menu_group: Growth
+    atlas_description: Attribute approved link interactions to auditable workflow events.
+    evidence_ids: [video-qy0l1t7x6le-marketing-navigation]
+    specification: docs/specs/p2/upsell-capabilities.md
+
+  - id: reputation.manage
+    stage: observed
+    phase: P3
+    implementation: integrate
+    menu_group: Growth
+    atlas_description: Monitor reviews and prepare policy-safe response workflows.
+    evidence_ids:
+      - video-qy0l1t7x6le-dashboard-navigation
+      - video-qy0l1t7x6le-upsell-reputation
+      - video-qy0l1t7x6le-presenter-pricing
+    specification: docs/specs/p2/upsell-capabilities.md
+
+  - id: seo.audit
+    stage: observed
+    phase: P3
+    implementation: build
+    menu_group: Growth
+    atlas_description: Produce evidence-based technical and local-search audits.
+    evidence_ids:
+      - video-qy0l1t7x6le-upsell-seo
+      - video-qy0l1t7x6le-presenter-pricing
+    specification: docs/specs/p2/upsell-capabilities.md
+
+  - id: aeo.audit
+    stage: observed
+    phase: P3
+    implementation: build
+    menu_group: Growth
+    atlas_description: Audit observable answer-engine visibility and entity consistency.
+    evidence_ids:
+      - video-qy0l1t7x6le-upsell-aeo
+      - video-qy0l1t7x6le-presenter-pricing
+    specification: docs/specs/p2/upsell-capabilities.md
+
+  - id: ads.manage
+    stage: deferred
+    phase: P3
+    implementation: integrate
+    menu_group: Growth
+    atlas_description: Operate approved advertising through spend-capped provider adapters.
+    evidence_ids:
+      - video-qy0l1t7x6le-marketing-navigation
+      - video-qy0l1t7x6le-upsell-ads
+    specification: docs/specs/p2/upsell-capabilities.md
+
+  - id: brand.manage
+    stage: deferred
+    phase: P3
+    implementation: build
+    menu_group: Growth
+    atlas_description: Maintain approved brand tokens, assets, and usage rules.
+    evidence_ids: [video-qy0l1t7x6le-marketing-navigation]
+    specification: docs/specs/p2/upsell-capabilities.md
+
+  - id: prospecting.workspace
+    stage: candidate
+    phase: P2C
+    implementation: build
+    menu_group: Prospecting
+    atlas_description: Review sourced prospects, eligibility, demo status, and outreach readiness.
+    evidence_ids:
+      - video-qy0l1t7x6le-marketing-navigation
+      - video-qy0l1t7x6le-google-maps-prospecting
+      - video-qy0l1t7x6le-prebuild-demos
+    specification: docs/specs/p2/revenue-pilot.md
+
+  - id: affiliates.manage
+    stage: deferred
+    phase: P3
+    implementation: research
+    menu_group: Growth
+    atlas_description: Track disclosed partner referrals only after policy and attribution research.
+    evidence_ids:
+      - video-qy0l1t7x6le-marketing-navigation
+      - video-qy0l1t7x6le-affiliate-conflict
+    specification: docs/specs/p2/upsell-capabilities.md
+
+  - id: memberships.manage
+    stage: deferred
+    phase: P3
+    implementation: research
+    menu_group: Customer Products
+    atlas_description: Research tenant membership and protected-content requirements.
+    evidence_ids: [video-qy0l1t7x6le-dashboard-navigation]
+    specification: docs/specs/p2/upsell-capabilities.md
+
+  - id: media.storage
+    stage: deferred
+    phase: P3
+    implementation: integrate
+    menu_group: Platform
+    atlas_description: Store approved tenant media through a replaceable object-storage adapter.
+    evidence_ids: [video-qy0l1t7x6le-dashboard-navigation]
+    specification: docs/specs/p2/upsell-capabilities.md
+
+  - id: reporting.analytics
+    stage: deferred
+    phase: P3
+    implementation: build
+    menu_group: Platform
+    atlas_description: Report attributable outcomes across enabled capabilities.
+    evidence_ids: [video-qy0l1t7x6le-dashboard-navigation]
+    specification: docs/specs/p2/upsell-capabilities.md
+
+  - id: marketplace.apps
+    stage: deferred
+    phase: P3
+    implementation: research
+    menu_group: Platform
+    atlas_description: Research governed third-party capability installation and entitlement controls.
+    evidence_ids: [video-qy0l1t7x6le-dashboard-navigation]
+    specification: docs/specs/p2/upsell-capabilities.md
+
+  - id: mobile.app
+    stage: deferred
+    phase: P3
+    implementation: research
+    menu_group: Platform
+    atlas_description: Research mobile operator and client workflows after the web product stabilizes.
+    evidence_ids: [video-qy0l1t7x6le-dashboard-navigation]
+    specification: docs/specs/p2/upsell-capabilities.md

@@ -6,5 +6,10 @@ dist/
 .env.test.local
 .env.production.local
 .turbo/
+.worktrees/
+.superpowers/
 _tmp_*
 *.log
+apps/os/public/build-info.json
+docs/control/generated/observed-state.json
+docs/control/generated/drift-report.md

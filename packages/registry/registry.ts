@@ -30,7 +30,7 @@ export interface Capability {
   method: 'GET' | 'POST';
 }
 
-export const registry: Capability[] = [
+export const registry = [
   // ---- memory (§6) ----
   {
     id: 'memory.answer',
@@ -158,7 +158,10 @@ export const registry: Capability[] = [
     output: { type: 'object', properties: { results: { type: 'array' } } },
     taskClass: 'do', requiresApproval: false, scopes: [], method: 'POST',
   },
-];
+] satisfies Capability[];
+
+export type CapabilityId = (typeof registry)[number]['id'];
+export const REGISTRY_VERSION = 2;
 
 /** Codegen contract (implemented in Codex lane, P1):
  *  - route path = '/v1/' + id.replace('.', '/')   e.g. POST /v1/memory/answer

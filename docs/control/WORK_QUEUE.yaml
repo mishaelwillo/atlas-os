@@ -1,0 +1,77 @@
+schema_version: 1
+items:
+  - id: P1-DEPLOY-001
+    phase: P1 deployment closure
+    title: Close the P1 production API deployment gap
+    status: ready
+    priority: critical
+    dependencies:
+      - P2A-CONTROL-001
+    specification: docs/control/DEPLOYMENT_RUNBOOK.md
+    acceptance_checks:
+      - Railway API fingerprint matches the selected P1 commit
+      - Required P1 routes exist
+      - P1 live acceptance passes
+    next_action: Select the deployment SHA after continuity verification is operational
+  - id: P2A-CONTROL-001
+    phase: P2A
+    title: Establish the Atlas continuity control plane
+    status: done
+    priority: critical
+    dependencies: []
+    specification: docs/control/CONTINUITY_DESIGN.md
+    acceptance_checks:
+      - Canonical control files validate
+      - Observed-state collection reports authority-specific facts
+      - Blocking P0-versus-P1 Railway API drift is detected
+    next_action: Preserve the static CI gate and use the control entry point for every subsequent work item
+  - id: P2A-CAPABILITIES-001
+    phase: P2A
+    title: Add capability lifecycle, research evidence, and inherited regional packs
+    status: done
+    priority: high
+    dependencies:
+      - P2A-CONTROL-001
+    specification: docs/specs/p2/README.md
+    acceptance_checks:
+      - Every executable capability has typed lifecycle and monetization metadata
+      - Video observations resolve through a validated research evidence ledger
+      - Global, North American, and Caribbean region packs validate through inheritance
+      - Deferred discoveries remain catalogued without generating executable routes
+    next_action: Preserve the validated registries, research ledger, region packs, generated catalog, and integrated P2 specification set
+  - id: P2A-MEMORY-001
+    phase: P2A
+    title: Establish the Intelligence Bank foundation
+    status: in_progress
+    priority: high
+    dependencies:
+      - P2A-CONTROL-001
+      - P2A-CAPABILITIES-001
+    specification: docs/specs/p2/intelligence-foundation.md
+    acceptance_checks:
+      - Intelligence foundation specification is approved
+      - Owned memory remains governed and verifiable
+    next_action: Request the user branch integration decision; after integration require successful CI on the exact authoritative main SHA before release selection
+  - id: P2B-FACTORY-001
+    phase: P2B
+    title: Build the Website Factory
+    status: queued
+    priority: high
+    dependencies:
+      - P2A-CONTROL-001
+      - P2A-MEMORY-001
+    specification: docs/specs/p2/website-factory.md
+    acceptance_checks:
+      - GBP or profile URL becomes an approved live demo in under 30 minutes
+    next_action: Approve the Website Factory specification after P2A
+  - id: P2C-REVENUE-001
+    phase: P2C
+    title: Run the minimum complete revenue pilot
+    status: queued
+    priority: high
+    dependencies:
+      - P2B-FACTORY-001
+    specification: docs/specs/p2/revenue-pilot.md
+    acceptance_checks:
+      - One real hosting-paying customer completes an approval-gated sequence
+    next_action: Define the supervised pilot after Website Factory acceptance

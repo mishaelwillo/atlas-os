@@ -32,7 +32,7 @@ export function ApiStatusCard() {
         const data = await res.json();
         if (active) {
           setStatus('ok');
-          setVersion(data.version || '0.1.0');
+          setVersion(data.appVersion || 'unknown');
         }
       } catch (err) {
         if (active) {
