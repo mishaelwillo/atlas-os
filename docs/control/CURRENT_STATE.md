@@ -11,60 +11,51 @@ state.
 
 ## Repository state
 
-- Active branch: `codex/atlas-continuity`.
-- Current code boundary:
-  `0fec937`.
-- Focused remediation code boundary:
-  `4023a14e4873ae681c165b182e1b9ddd326ffbf4`.
-- Focused whole-branch remediation review: approved with no findings.
-- Integration-path and secret-gate remediation: implemented and locally green.
-- Full-history trusted-target CI checkout: implemented and locally green.
-- Final `origin/main..HEAD` whole-branch re-review: READY TO MERGE with no
-  Critical or Important finding.
-- Draft pull request: `https://github.com/mishaelwillo/atlas-os/pull/1`.
-- Pull-request state: open/draft. The initial run exposed ambient GitHub Actions
-  contamination in temporary fixtures; fix commit `0fec937` is locally green,
-  and published checkpoint `d649e17` passed `Build & Test` in 42 seconds.
+- Active branch: `main`.
+- Authoritative `main`:
+  `23a0b6426d7831f3eeeeb029c8feba08d048c4dc` (merge of PR #1).
+- Pull request #1 (`codex/atlas-continuity`, head
+  `79f50c549b6771ecf3c079cd9f669f4f1c3c4be2`): merged on 2026-07-26 after
+  explicit approval; final independent whole-branch verdict was READY TO MERGE
+  with no Critical or Important finding.
+- GitHub CI `Build & Test` succeeded on the exact merged `main` SHA
+  `23a0b64` (run 30213365765, 40 seconds).
 - Active work item: `P2A-MEMORY-001`.
 - Active owning spec: `docs/specs/p2/intelligence-foundation.md`.
 - Exactly one queue item is `in_progress`.
 
-## Implemented foundation
+## Production deployment state
 
-- P1 application code and its continuity control plane are locally implemented.
-- Capability, research-evidence, candidate-staging, regional inheritance, and
-  executable-catalog foundations are locally implemented.
-- The integrated P2 presenter-workflow playbook and build specifications are
-  locally implemented as repository authority.
-- Git takeover, exact-SHA CI, Supabase migration identity, safe spec routing,
-  and registry-version drift now fail closed or remain honestly unknown.
-- Trusted GitHub pull-request/post-merge contexts preserve branch transition
-  safety, and token detection/redaction is centralized across all control
-  artifact surfaces.
+- Railway `os` service auto-deployed from GitHub on the merge;
+  `/build-info.json` reports `gitSha 23a0b64`, schema `0001_init`,
+  registry version 2.
+- Railway `api` service had no GitHub source (its prior deployment was a local
+  upload with no commit metadata), which is why the merge did not auto-deploy
+  it. It was redeployed on 2026-07-26 from a pristine `git archive` checkout of
+  exactly `main @ 23a0b64`; `ATLAS_GIT_SHA`, `ATLAS_BUILD_TIME`, and
+  `ATLAS_SCHEMA_VERSION` service variables carry the fingerprint.
+- Post-deploy verification: `/healthz` reports `gitSha 23a0b64`,
+  `registryVersion 2`, schema `0001_init`; `POST /v1/memory/ingest` and
+  `GET /v1/status/mission_control` return 401 auth-gated (previously 404).
+- Live drift report: Blocking — none. The only warning is
+  `supabase.live_state_unknown`.
+- The roadmap's P1 deployment-closure exit (Railway API fingerprint matches the
+  selected P1 commit and P1 routes exist) is satisfied.
 
-## Historical external baseline
+## Remaining caveats
 
-The following is historical context last verified on 2026-07-24, not current
-live proof:
-
-- GitHub repository: `mishaelwillo/atlas-os`.
-- Historical GitHub `main`: `6b70726b1e`.
-- Supabase historically exposed all 18 expected tables from migration
-  `0001_init`, but the new exact migration-history check has not yet produced a
-  current successful observation.
-- Railway OS was online.
-- Railway API was still serving the P0 route set.
-
-## Current blocking finding
-
-P1 production API deployment closure is incomplete. The continuity branch is
-not yet integrated into authoritative `main`, and Railway has not proved the
-selected immutable main SHA, exact-SHA CI success, fingerprint, and required P1
-routes. No production-complete claim is authorized.
+- Supabase live table/migration-history observation remains unknown: the
+  read-only query fails from the local network even with injected credentials.
+  Historical verification (2026-07-24) showed all 18 tables from `0001_init`.
+- The P1 brief's manual token-seeded live acceptance (seed Space + API token,
+  ingest with token, approval-gate round trip) has not been run; it requires an
+  authorized Supabase write and remains approval-gated.
+- The Railway `api` service should be connected to the GitHub repo
+  (root directory = repo root, dockerfile `apps/api/Dockerfile`) so future
+  merges auto-deploy like `os`; this requires a dashboard action.
 
 ## Next exact action
 
-Verify draft PR #1 is green for its current exact head and merge only after
-explicit approval. After integration, require successful CI on the exact
-resulting authoritative `main` SHA before release selection. No merge, release,
-database action, or hosting action has yet been performed.
+Implement `P2A-MEMORY-001` per `docs/specs/p2/intelligence-foundation.md` on a
+new feature branch cut from `main @ 23a0b64`. Production release evidence for
+this closure is recorded in the current handoff.
