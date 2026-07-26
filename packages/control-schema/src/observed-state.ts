@@ -44,7 +44,7 @@ export interface ObservedState {
     headSha: string;
     latestRun?: { id?: number; conclusion?: string; headSha?: string };
   }>;
-  supabase: Observation<{ tables: string[] }>;
+  supabase: Observation<{ tables: string[]; migration?: string }>;
   railwayApi: Observation<{
     healthStatus?: number;
     fingerprint?: BuildFingerprint;
@@ -58,8 +58,11 @@ export interface ObservedState {
     fingerprint?: BuildFingerprint;
   }>;
   registry: Observation<{
+    version: number;
+    capabilityCount: number;
     generatedRouteCount: number;
     source: string;
+    generatedSource: string;
   }>;
 }
 

@@ -1,6 +1,8 @@
+import { execFile } from 'node:child_process';
 import { access, readFile, readdir } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 import { parse } from 'yaml';
 import { loadRegionPacks } from './regions.js';
 import { assertRepositoryResearchIntegrity } from './research.js';
@@ -10,6 +12,34 @@ import { EnvironmentFileSchema, WorkQueueSchema, type Finding, type WorkQueue } 
 const SEVERITY_ORDER = { blocking: 0, warning: 1, info: 2 } as const;
 const DOCUMENT_SECRET_PATTERN =
   /\bgho_|\bgithub_pat_|\bsb_secret_|\bsk-[A-Za-z0-9_-]+|\bpostgres(?:ql)?:\/\/[^:\s]+:[^@\s]+@|-----BEGIN/g;
+const APPROVED_METADATA_ONLY_PATHS = new Set([
+  'docs/control/CURRENT_HANDOFF.md',
+  'docs/control/CURRENT_STATE.md',
+]);
+const SPECIFICATION_OWNERS = new Map([
+  ['P1-DEPLOY-001', 'docs/control/DEPLOYMENT_RUNBOOK.md'],
+  ['P2A-CONTROL-001', 'docs/control/CONTINUITY_DESIGN.md'],
+  ['P2A-CAPABILITIES-001', 'docs/specs/p2/README.md'],
+  ['P2A-MEMORY-001', 'docs/specs/p2/intelligence-foundation.md'],
+  ['P2B-FACTORY-001', 'docs/specs/p2/website-factory.md'],
+  ['P2C-REVENUE-001', 'docs/specs/p2/revenue-pilot.md'],
+]);
+const execFileAsync = promisify(execFile);
+
+export interface StaticGitObservation {
+  branch: string;
+  headSha: string;
+  boundaryExists: boolean;
+  boundaryIsAncestor: boolean;
+  changedPaths: string[];
+}
+
+export interface VerifyStaticOptions {
+  observeGit?: (
+    root: string,
+    boundaryCommit: string,
+  ) => Promise<StaticGitObservation>;
+}
 
 function compareCodepoints(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
@@ -67,6 +97,13 @@ function structuredHandoffWorkItem(handoff: string): string | undefined {
   return /^\s*-\s*Work item:\s*`([^`]+)`\s*$/im.exec(handoff)?.[1];
 }
 
+function structuredHandoffField(handoff: string, field: string): string | undefined {
+  const escaped = field.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^\\s*-\\s*${escaped}:\\s*\`([^\`]+)\`\\s*$`, 'im').exec(
+    handoff,
+  )?.[1];
+}
+
 function structuredHandoffNextAction(handoff: string): string | undefined {
   const lines = handoff.split(/\r?\n/);
   const start = lines.findIndex(
@@ -92,7 +129,49 @@ async function parseYamlFile(path: string): Promise<unknown> {
   return parse(await readFile(path, 'utf8'));
 }
 
-export async function verifyStatic(root: string): Promise<Finding[]> {
+async function defaultObserveGit(
+  root: string,
+  boundaryCommit: string,
+): Promise<StaticGitObservation> {
+  const run = async (args: string[]) => {
+    try {
+      const result = await execFileAsync('git', args, {
+        cwd: root,
+        windowsHide: true,
+        encoding: 'utf8',
+      });
+      return { exitCode: 0, stdout: result.stdout.trim() };
+    } catch (error) {
+      const result = error as Error & { code?: number; stdout?: string };
+      return {
+        exitCode: typeof result.code === 'number' ? result.code : 1,
+        stdout: result.stdout?.trim() ?? '',
+      };
+    }
+  };
+  const [branch, head, exists, ancestor, changed] = await Promise.all([
+    run(['branch', '--show-current']),
+    run(['rev-parse', 'HEAD']),
+    run(['cat-file', '-e', `${boundaryCommit}^{commit}`]),
+    run(['merge-base', '--is-ancestor', boundaryCommit, 'HEAD']),
+    run(['diff', '--name-only', `${boundaryCommit}..HEAD`]),
+  ]);
+  return {
+    branch: branch.stdout,
+    headSha: head.stdout,
+    boundaryExists: exists.exitCode === 0,
+    boundaryIsAncestor: ancestor.exitCode === 0,
+    changedPaths:
+      changed.exitCode === 0
+        ? changed.stdout.split(/\r?\n/).filter(Boolean).map((path) => path.replaceAll('\\', '/'))
+        : [],
+  };
+}
+
+export async function verifyStatic(
+  root: string,
+  options: VerifyStaticOptions = {},
+): Promise<Finding[]> {
   const controlRoot = join(root, 'docs', 'control');
   const environmentPath = join(controlRoot, 'ENVIRONMENTS.yaml');
   const queuePath = join(controlRoot, 'WORK_QUEUE.yaml');
@@ -184,6 +263,61 @@ export async function verifyStatic(root: string): Promise<Finding[]> {
     );
     return '';
   });
+  const recordedBranch = structuredHandoffField(handoff, 'Branch');
+  const recordedBoundary = structuredHandoffField(handoff, 'Head commit');
+  if (recordedBranch && recordedBoundary) {
+    try {
+      const git = await (options.observeGit ?? defaultObserveGit)(root, recordedBoundary);
+      if (git.branch !== recordedBranch) {
+        findings.push(
+          blocking(
+            'control.handoff_branch_mismatch',
+            relative(root, handoffPath),
+            `handoff branch ${recordedBranch} differs from checked-out branch ${git.branch || 'unknown'}`,
+          ),
+        );
+      }
+      if (!git.boundaryExists) {
+        findings.push(
+          blocking(
+            'control.handoff_commit_missing',
+            relative(root, handoffPath),
+            `recorded code-boundary commit ${recordedBoundary} does not exist`,
+          ),
+        );
+      } else if (!git.boundaryIsAncestor) {
+        findings.push(
+          blocking(
+            'control.handoff_commit_not_ancestor',
+            relative(root, handoffPath),
+            `recorded code-boundary commit ${recordedBoundary} is not an ancestor of HEAD`,
+          ),
+        );
+      } else {
+        const disallowed = git.changedPaths
+          .map((path) => path.replaceAll('\\', '/'))
+          .filter((path) => !APPROVED_METADATA_ONLY_PATHS.has(path))
+          .sort(compareCodepoints);
+        if (disallowed.length > 0) {
+          findings.push(
+            blocking(
+              'control.handoff_boundary_changed',
+              relative(root, handoffPath),
+              `post-boundary changes are not metadata-only: ${disallowed.join(', ')}`,
+            ),
+          );
+        }
+      }
+    } catch (error) {
+      findings.push(
+        blocking(
+          'control.handoff_git_unavailable',
+          relative(root, handoffPath),
+          error instanceof Error ? error.message : 'Git takeover authority is unavailable',
+        ),
+      );
+    }
+  }
   const index = await readFile(indexPath, 'utf8').catch((error: unknown) => {
     findings.push(
       blocking(
@@ -235,16 +369,31 @@ export async function verifyStatic(root: string): Promise<Finding[]> {
 
     await Promise.all(
       queue.items.map(async (item) => {
-        const specificationPath = resolve(controlRoot, item.specification);
-        if (isAbsolute(item.specification) || !pathIsWithin(controlRoot, specificationPath)) {
+        const docsRoot = join(root, 'docs');
+        const specificationPath = resolve(root, item.specification);
+        const repositoryPath = item.specification.replaceAll('\\', '/');
+        if (
+          isAbsolute(item.specification) ||
+          !pathIsWithin(docsRoot, specificationPath)
+        ) {
           findings.push(
             blocking(
               'control.specification_path_unsafe',
-              `docs/control/${item.specification.replaceAll('\\', '/')}`,
-              `specification for ${item.id} must be relative to docs/control`,
+              repositoryPath,
+              `specification for ${item.id} must be a repository-relative path inside docs`,
             ),
           );
           return;
+        }
+        const owner = SPECIFICATION_OWNERS.get(item.id);
+        if (owner && repositoryPath !== owner) {
+          findings.push(
+            blocking(
+              'control.specification_owner_mismatch',
+              relative(root, queuePath),
+              `work item ${item.id} must resolve to owning specification ${owner}`,
+            ),
+          );
         }
         if (!(await pathExists(specificationPath))) {
           findings.push(

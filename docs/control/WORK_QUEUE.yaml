@@ -7,7 +7,7 @@ items:
     priority: critical
     dependencies:
       - P2A-CONTROL-001
-    specification: DEPLOYMENT_RUNBOOK.md
+    specification: docs/control/DEPLOYMENT_RUNBOOK.md
     acceptance_checks:
       - Railway API fingerprint matches the selected P1 commit
       - Required P1 routes exist
@@ -19,7 +19,7 @@ items:
     status: done
     priority: critical
     dependencies: []
-    specification: CONTINUITY_DESIGN.md
+    specification: docs/control/CONTINUITY_DESIGN.md
     acceptance_checks:
       - Canonical control files validate
       - Observed-state collection reports authority-specific facts
@@ -32,7 +32,7 @@ items:
     priority: high
     dependencies:
       - P2A-CONTROL-001
-    specification: CONTINUITY_DESIGN.md
+    specification: docs/specs/p2/README.md
     acceptance_checks:
       - Every executable capability has typed lifecycle and monetization metadata
       - Video observations resolve through a validated research evidence ledger
@@ -47,7 +47,7 @@ items:
     dependencies:
       - P2A-CONTROL-001
       - P2A-CAPABILITIES-001
-    specification: CONTINUITY_DESIGN.md
+    specification: docs/specs/p2/intelligence-foundation.md
     acceptance_checks:
       - Intelligence foundation specification is approved
       - Owned memory remains governed and verifiable
@@ -60,7 +60,7 @@ items:
     dependencies:
       - P2A-CONTROL-001
       - P2A-MEMORY-001
-    specification: CONTINUITY_DESIGN.md
+    specification: docs/specs/p2/website-factory.md
     acceptance_checks:
       - GBP or profile URL becomes an approved live demo in under 30 minutes
     next_action: Approve the Website Factory specification after P2A
@@ -71,7 +71,7 @@ items:
     priority: high
     dependencies:
       - P2B-FACTORY-001
-    specification: CONTINUITY_DESIGN.md
+    specification: docs/specs/p2/revenue-pilot.md
     acceptance_checks:
       - One real hosting-paying customer completes an approval-gated sequence
     next_action: Define the supervised pilot after Website Factory acceptance

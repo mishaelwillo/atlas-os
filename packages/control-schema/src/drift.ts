@@ -14,6 +14,7 @@ export interface DesiredState {
   phaseComplete: boolean;
   acceptanceEvidence: string[];
   requiredTables: string[];
+  expectedMigration: string;
   handoffUpdatedAt?: string;
   staticVerificationFindings: Finding[];
   now?: string;
@@ -67,6 +68,30 @@ export function detectDrift(
   const githubSha = observed.github.value?.headSha;
   const apiSha = observed.railwayApi.value?.fingerprint?.gitSha;
   const ingestStatus = observed.railwayApi.value?.routes.memoryIngest.status;
+  const latestCi = observed.github.value?.latestRun;
+
+  if (observed.github.status === 'drift') {
+    if (
+      latestCi?.conclusion === 'success' &&
+      latestCi.headSha !== observed.github.value?.headSha
+    ) {
+      findings.push(
+        finding(
+          'blocking',
+          'github.ci_sha_mismatch',
+          `Latest successful CI SHA ${latestCi.headSha ?? 'unknown'} differs from GitHub head ${observed.github.value?.headSha ?? 'unknown'}.`,
+        ),
+      );
+    } else {
+      findings.push(
+        finding(
+          'blocking',
+          'github.ci_unsuccessful',
+          `Latest CI run concluded ${latestCi?.conclusion ?? 'unknown'}.`,
+        ),
+      );
+    }
+  }
 
   if (knownSha(githubSha) && knownSha(apiSha) && githubSha !== apiSha) {
     findings.push(
@@ -110,6 +135,62 @@ export function detectDrift(
           'blocking',
           'supabase.required_tables_missing',
           `Required public tables are missing: ${missing.join(', ')}.`,
+        ),
+      );
+    }
+    const migration = observed.supabase.value.migration;
+    if (migration === undefined) {
+      findings.push(
+        finding(
+          'blocking',
+          'supabase.migration_missing',
+          `Expected Supabase migration ${desired.expectedMigration}, but migration history is empty.`,
+        ),
+      );
+    } else if (migration !== desired.expectedMigration) {
+      findings.push(
+        finding(
+          'blocking',
+          'supabase.migration_mismatch',
+          `Observed Supabase migration ${migration} differs from expected ${desired.expectedMigration}.`,
+        ),
+      );
+    }
+  }
+
+  const localRegistry = observed.registry.value;
+  if (observed.registry.status === 'ok' && localRegistry) {
+    if (localRegistry.capabilityCount !== localRegistry.generatedRouteCount) {
+      findings.push(
+        finding(
+          'blocking',
+          'registry.route_count_mismatch',
+          `Registry has ${localRegistry.capabilityCount} capabilities but generated routes contain ${localRegistry.generatedRouteCount}.`,
+        ),
+      );
+    }
+    const deployedVersions = [
+      observed.railwayApi.value?.fingerprint?.registryVersion,
+      observed.railwayOs.value?.fingerprint?.registryVersion,
+    ];
+    const mismatched = deployedVersions.filter(
+      (version): version is number =>
+        version !== undefined && version !== localRegistry.version,
+    );
+    if (mismatched.length > 0) {
+      findings.push(
+        finding(
+          'blocking',
+          'registry.version_mismatch',
+          `Deployed registry version ${[...new Set(mismatched)].join(', ')} differs from local authority ${localRegistry.version}.`,
+        ),
+      );
+    } else if (deployedVersions.some((version) => version === undefined)) {
+      findings.push(
+        finding(
+          'warning',
+          'registry.deployed_version_unknown',
+          'One or more deployed registry versions are unknown.',
         ),
       );
     }
@@ -167,7 +248,16 @@ export function detectDrift(
       finding(
         'warning',
         'supabase.live_state_unknown',
-        'Live Supabase table state is unknown.',
+        'Live Supabase table or migration state is unknown.',
+      ),
+    );
+  }
+  if (observed.registry.status !== 'ok') {
+    findings.push(
+      finding(
+        'warning',
+        'registry.state_unknown',
+        'Local registry version or generated-route state is unknown.',
       ),
     );
   }

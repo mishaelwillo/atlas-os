@@ -25,15 +25,17 @@ const collectedAt = '2026-07-24T12:00:00.000Z';
 const githubSha = '6b70726b1e000000000000000000000000000000';
 
 function desired(overrides: Partial<DesiredState> = {}): DesiredState {
-  return {
+  const value = {
     phase: 'P1 deployment closure',
     phaseComplete: false,
     acceptanceEvidence: [],
     requiredTables: ['memory_cards', 'memory_nodes'],
+    expectedMigration: '0001_init',
     handoffUpdatedAt: '2026-07-24T11:30:00.000Z',
     staticVerificationFindings: [],
     ...overrides,
   };
+  return value;
 }
 
 function jsonResponse(status: number, body: unknown): Response {
@@ -76,6 +78,7 @@ function injectedRun(
 function injectedFetch(options: {
   healthSha?: string;
   ingestStatus: number;
+  registryVersion?: number;
   missionControlStatus?: number;
   healthStatus?: number;
   healthBody?: unknown;
@@ -95,7 +98,7 @@ function injectedFetch(options: {
           gitSha: options.healthSha ?? 'unknown',
           buildTime: collectedAt,
           schemaVersion: '0001_init',
-          registryVersion: 1,
+          registryVersion: options.registryVersion ?? 1,
         },
       );
     }
@@ -119,7 +122,7 @@ function injectedFetch(options: {
           gitSha: options.healthSha ?? 'unknown',
           buildTime: collectedAt,
           schemaVersion: '0001_init',
-          registryVersion: 1,
+          registryVersion: options.registryVersion ?? 1,
         },
       );
     }
@@ -130,13 +133,29 @@ function injectedFetch(options: {
 async function fixtureRoot(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), 'atlas-control-observed-'));
   await mkdir(join(root, 'apps', 'api', 'src'), { recursive: true });
+  await mkdir(join(root, 'packages', 'registry'), { recursive: true });
   await mkdir(join(root, 'docs', 'control', 'generated'), { recursive: true });
   await writeFile(
     join(root, 'apps', 'api', 'src', 'routes.gen.ts'),
     `export const GENERATED_CAPABILITY_IDS = ["memory.answer", "memory.ingest"] as const;\n`,
     'utf8',
   );
+  await writeFile(
+    join(root, 'packages', 'registry', 'registry.ts'),
+    `export const registry = [{ id: 'memory.answer' }, { id: 'memory.ingest' }] as const;
+export const REGISTRY_VERSION = 1;
+`,
+    'utf8',
+  );
   return root;
+}
+
+function injectedSupabaseQuery(
+  tables: string[] = ['memory_cards', 'memory_nodes'],
+  migration: unknown = '0001_init',
+) {
+  return async (_databaseUrl: string, sql: string): Promise<unknown> =>
+    sql.includes('supabase_migrations.schema_migrations') ? migration : tables;
 }
 
 const environment = {
@@ -168,7 +187,7 @@ describe('observed-state collection and drift', () => {
       environment,
       run: injectedRun(),
       fetch: injectedFetch({ ingestStatus: 404, missionControlStatus: 200 }),
-      queryTables: async () => ['memory_cards', 'memory_nodes'],
+      queryTables: injectedSupabaseQuery(),
       databaseUrl: 'opaque-test-database-url',
     });
 
@@ -193,7 +212,7 @@ describe('observed-state collection and drift', () => {
       environment,
       run: injectedRun(),
       fetch: injectedFetch({ healthSha: githubSha, ingestStatus: 401 }),
-      queryTables: async () => ['memory_cards', 'memory_nodes'],
+      queryTables: injectedSupabaseQuery(),
       databaseUrl: 'opaque-test-database-url',
     });
 
@@ -216,7 +235,7 @@ describe('observed-state collection and drift', () => {
           missionControlStatus,
           missionControlBody: { error: 'authentication required' },
         }),
-        queryTables: async () => ['memory_cards', 'memory_nodes'],
+        queryTables: injectedSupabaseQuery(),
         databaseUrl: 'opaque-test-database-url',
       });
 
@@ -302,7 +321,7 @@ describe('observed-state collection and drift', () => {
       environment,
       run: injectedRun(),
       fetch: injectedFetch({ healthSha: githubSha, ingestStatus: 401 }),
-      queryTables: async () => ['memory_cards', 'memory_nodes'],
+      queryTables: injectedSupabaseQuery(),
       databaseUrl: 'opaque-test-database-url',
     });
     observed.localGit.error = text;
@@ -337,6 +356,82 @@ describe('observed-state collection and drift', () => {
     });
   });
 
+  it('observes the exact Supabase migration identity and accepts an exact match', async () => {
+    const root = await fixtureRoot();
+    const observed = await collectObservedState({
+      root,
+      collectedAt,
+      environment,
+      run: injectedRun(),
+      fetch: injectedFetch({ healthSha: githubSha, ingestStatus: 401 }),
+      queryTables: injectedSupabaseQuery(),
+      databaseUrl: 'opaque-test-database-url',
+    } as Parameters<typeof collectObservedState>[0]);
+
+    expect(observed.supabase).toMatchObject({
+      status: 'ok',
+      value: { migration: '0001_init' },
+    });
+    expect(
+      detectDrift(desired(), observed).filter((finding) =>
+        finding.code.startsWith('supabase.migration_'),
+      ),
+    ).toEqual([]);
+  });
+
+  it.each([
+    ['mismatch', '0002_next', 'supabase.migration_mismatch'],
+    ['missing', undefined, 'supabase.migration_missing'],
+  ])('blocks release selection when the Supabase migration is %s', async (_name, migration, code) => {
+    const root = await fixtureRoot();
+    const observed = await collectObservedState({
+      root,
+      collectedAt,
+      environment,
+      run: injectedRun(),
+      fetch: injectedFetch({ healthSha: githubSha, ingestStatus: 401 }),
+      queryTables:
+        migration === undefined
+          ? async (_databaseUrl: string, sql: string) =>
+              sql.includes('supabase_migrations.schema_migrations')
+                ? undefined
+                : ['memory_cards', 'memory_nodes']
+          : injectedSupabaseQuery(undefined, migration),
+      databaseUrl: 'opaque-test-database-url',
+    } as Parameters<typeof collectObservedState>[0]);
+
+    expect(detectDrift(desired(), observed)).toContainEqual(
+      expect.objectContaining({ severity: 'blocking', code }),
+    );
+  });
+
+  it.each([
+    ['permission/query error', new Error('permission denied token=super-secret-value')],
+    ['malformed response', { migration: '0001_init' }],
+  ])('records Supabase migration history as unknown for %s', async (_name, outcome) => {
+    const root = await fixtureRoot();
+    const queryTables = async (_databaseUrl: string, sql: string): Promise<unknown> => {
+      if (!sql.includes('supabase_migrations.schema_migrations')) {
+        return ['memory_cards', 'memory_nodes'];
+      }
+      if (outcome instanceof Error) throw outcome;
+      return outcome;
+    };
+    const observed = await collectObservedState({
+      root,
+      collectedAt,
+      environment,
+      run: injectedRun(),
+      fetch: injectedFetch({ healthSha: githubSha, ingestStatus: 401 }),
+      queryTables,
+      databaseUrl: 'postgresql://user:password@example.test/database',
+    } as Parameters<typeof collectObservedState>[0]);
+
+    expect(observed.supabase.status).toBe('unknown');
+    expect(JSON.stringify(observed)).not.toContain('super-secret-value');
+    expect(JSON.stringify(observed)).not.toContain('user:password');
+  });
+
   it('emits required blocking and freshness findings in deterministic order', async () => {
     const root = await fixtureRoot();
     const observed = await collectObservedState({
@@ -348,7 +443,7 @@ describe('observed-state collection and drift', () => {
         healthSha: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         ingestStatus: 401,
       }),
-      queryTables: async () => ['memory_cards'],
+      queryTables: injectedSupabaseQuery(['memory_cards']),
       databaseUrl: 'opaque-test-database-url',
     });
 
@@ -401,7 +496,7 @@ describe('observed-state collection and drift', () => {
       environment,
       run: injectedRun(),
       fetch: injectedFetch({ healthSha: githubSha, ...fetchOptions }),
-      queryTables: async () => ['memory_cards', 'memory_nodes'],
+      queryTables: injectedSupabaseQuery(),
       databaseUrl: 'opaque-test-database-url',
     });
 
@@ -429,7 +524,7 @@ describe('observed-state collection and drift', () => {
               headers: { 'content-type': 'application/json' },
             })
           : baseline(input, init),
-      queryTables: async () => ['memory_cards', 'memory_nodes'],
+      queryTables: injectedSupabaseQuery(),
       databaseUrl: 'opaque-test-database-url',
     });
 
@@ -453,7 +548,7 @@ describe('observed-state collection and drift', () => {
       environment,
       run: injectedRun(githubSha, runs),
       fetch: injectedFetch({ healthSha: githubSha, ingestStatus: 401 }),
-      queryTables: async () => ['memory_cards', 'memory_nodes'],
+      queryTables: injectedSupabaseQuery(),
       databaseUrl: 'opaque-test-database-url',
     });
 
@@ -468,6 +563,158 @@ describe('observed-state collection and drift', () => {
     );
   });
 
+  it('reports GitHub CI healthy only for success on the exact repository head SHA', async () => {
+    const root = await fixtureRoot();
+    const observed = await collectObservedState({
+      root,
+      collectedAt,
+      environment,
+      run: injectedRun(githubSha, [
+        { databaseId: 105, conclusion: 'success', headSha: githubSha },
+      ]),
+      fetch: injectedFetch({ healthSha: githubSha, ingestStatus: 401 }),
+      queryTables: injectedSupabaseQuery(),
+      databaseUrl: 'opaque-test-database-url',
+    } as Parameters<typeof collectObservedState>[0]);
+
+    expect(observed.github.status).toBe('ok');
+    expect(
+      detectDrift(desired(), observed).filter((finding) =>
+        finding.code.startsWith('github.ci_'),
+      ),
+    ).toEqual([]);
+  });
+
+  it('selects the repository CI workflow when requesting the latest relevant run', async () => {
+    const root = await fixtureRoot();
+    const commands: string[][] = [];
+    const baseline = injectedRun();
+    await collectObservedState({
+      root,
+      collectedAt,
+      environment,
+      run: async (command, args, options) => {
+        commands.push([command, ...args]);
+        return baseline(command, args, options);
+      },
+      fetch: injectedFetch({ healthSha: githubSha, ingestStatus: 401 }),
+      queryTables: injectedSupabaseQuery(),
+      databaseUrl: 'opaque-test-database-url',
+    } as Parameters<typeof collectObservedState>[0]);
+
+    expect(commands).toContainEqual(
+      expect.arrayContaining(['gh', 'run', 'list', '--workflow', 'ci.yml']),
+    );
+  });
+
+  it.each([
+    'failure',
+    'cancelled',
+    'skipped',
+    'timed_out',
+    'action_required',
+    'startup_failure',
+    'stale',
+    'neutral',
+  ])('blocks release selection for terminal GitHub CI conclusion %s', async (conclusion) => {
+    const root = await fixtureRoot();
+    const observed = await collectObservedState({
+      root,
+      collectedAt,
+      environment,
+      run: injectedRun(githubSha, [{ databaseId: 106, conclusion, headSha: githubSha }]),
+      fetch: injectedFetch({ healthSha: githubSha, ingestStatus: 401 }),
+      queryTables: injectedSupabaseQuery(),
+      databaseUrl: 'opaque-test-database-url',
+    } as Parameters<typeof collectObservedState>[0]);
+
+    expect(observed.github.status).toBe('drift');
+    expect(detectDrift(desired(), observed)).toContainEqual(
+      expect.objectContaining({
+        severity: 'blocking',
+        code: 'github.ci_unsuccessful',
+      }),
+    );
+  });
+
+  it('blocks a successful GitHub CI run attached to a different SHA', async () => {
+    const root = await fixtureRoot();
+    const observed = await collectObservedState({
+      root,
+      collectedAt,
+      environment,
+      run: injectedRun(githubSha, [
+        {
+          databaseId: 107,
+          conclusion: 'success',
+          headSha: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        },
+      ]),
+      fetch: injectedFetch({ healthSha: githubSha, ingestStatus: 401 }),
+      queryTables: injectedSupabaseQuery(),
+      databaseUrl: 'opaque-test-database-url',
+    } as Parameters<typeof collectObservedState>[0]);
+
+    expect(observed.github.status).toBe('drift');
+    expect(detectDrift(desired(), observed)).toContainEqual(
+      expect.objectContaining({
+        severity: 'blocking',
+        code: 'github.ci_sha_mismatch',
+      }),
+    );
+  });
+
+  it('detects deployed registry-version mismatch against the local registry authority', async () => {
+    const root = await fixtureRoot();
+    const observed = await collectObservedState({
+      root,
+      collectedAt,
+      environment,
+      run: injectedRun(),
+      fetch: injectedFetch({
+        healthSha: githubSha,
+        ingestStatus: 401,
+        registryVersion: 2,
+      }),
+      queryTables: injectedSupabaseQuery(),
+      databaseUrl: 'opaque-test-database-url',
+    } as Parameters<typeof collectObservedState>[0]);
+
+    expect(observed.registry.value).toMatchObject({ version: 1 });
+    expect(detectDrift(desired(), observed)).toContainEqual(
+      expect.objectContaining({
+        severity: 'blocking',
+        code: 'registry.version_mismatch',
+      }),
+    );
+  });
+
+  it('reports local registry version as unknown when the authority cannot be read', async () => {
+    const root = await fixtureRoot();
+    await writeFile(
+      join(root, 'packages', 'registry', 'registry.ts'),
+      `export const registry = [{ id: 'memory.answer' }] as const;\n`,
+      'utf8',
+    );
+    const observed = await collectObservedState({
+      root,
+      collectedAt,
+      environment,
+      run: injectedRun(),
+      fetch: injectedFetch({ healthSha: githubSha, ingestStatus: 401 }),
+      queryTables: injectedSupabaseQuery(),
+      databaseUrl: 'opaque-test-database-url',
+    } as Parameters<typeof collectObservedState>[0]);
+
+    expect(observed.registry.status).toBe('unknown');
+    expect(detectDrift(desired(), observed)).toContainEqual(
+      expect.objectContaining({
+        severity: 'warning',
+        code: 'registry.state_unknown',
+      }),
+    );
+  });
+
   it('warns explicitly when collectedAt is invalid', async () => {
     const root = await fixtureRoot();
     const observed = await collectObservedState({
@@ -476,7 +723,7 @@ describe('observed-state collection and drift', () => {
       environment,
       run: injectedRun(),
       fetch: injectedFetch({ healthSha: githubSha, ingestStatus: 401 }),
-      queryTables: async () => ['memory_cards', 'memory_nodes'],
+      queryTables: injectedSupabaseQuery(),
       databaseUrl: 'opaque-test-database-url',
     });
 
@@ -499,7 +746,7 @@ describe('observed-state collection and drift', () => {
       environment,
       run: injectedRun(),
       fetch: injectedFetch({ healthSha: githubSha, ingestStatus: 401 }),
-      queryTables: async () => ['memory_cards', 'memory_nodes'],
+      queryTables: injectedSupabaseQuery(),
       databaseUrl: 'opaque-test-database-url',
     });
 
@@ -562,7 +809,7 @@ describe('observed-state collection and drift', () => {
       desired: desired({ now: collectedAt }),
       run: injectedRun(),
       fetch: injectedFetch({ healthSha: githubSha, ingestStatus }),
-      queryTables: async () => ['memory_cards', 'memory_nodes'],
+      queryTables: injectedSupabaseQuery(),
       databaseUrl: 'opaque-test-database-url',
       writeLine: (line) => lines.push(line),
     });
@@ -597,7 +844,7 @@ describe('observed-state collection and drift', () => {
         missionControlBody: { error: 'authentication required' },
         ingestStatus: 401,
       }),
-      queryTables: async () => ['memory_cards', 'memory_nodes'],
+      queryTables: injectedSupabaseQuery(),
       databaseUrl: 'opaque-test-database-url',
       writeLine: (line) => lines.push(line),
     });
@@ -614,7 +861,7 @@ describe('observed-state collection and drift', () => {
       environment,
       run: injectedRun(),
       fetch: injectedFetch({ ingestStatus: 404 }),
-      queryTables: async () => ['memory_cards', 'memory_nodes'],
+      queryTables: injectedSupabaseQuery(),
       databaseUrl: 'opaque-test-database-url',
     });
     const findings = detectDrift(desired({ now: collectedAt }), observed);

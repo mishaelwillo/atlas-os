@@ -48,7 +48,7 @@ const validQueue = {
       status: 'in_progress',
       priority: 'critical',
       dependencies: [],
-      specification: 'CONTINUITY_DESIGN.md',
+      specification: 'docs/control/CONTINUITY_DESIGN.md',
       acceptance_checks: ['Static verification passes'],
       next_action: 'Run the verifier',
     },
@@ -73,6 +73,7 @@ async function makeControlRoot(options?: {
     join(control, 'CURRENT_HANDOFF.md'),
     options?.handoff ?? '# Current Handoff\n\n- Work item: `P2A-CONTROL-001`\n',
   );
+  await writeFile(join(control, 'CURRENT_STATE.md'), '# Current State\n');
   await writeFile(
     join(control, 'CONTROL_INDEX.md'),
     options?.index ?? '# Control Index\n\n- Active work: `path:docs/control/CURRENT_HANDOFF.md`\n',
@@ -100,6 +101,25 @@ seo:
 `,
   );
   return root;
+}
+
+type InjectedGitObservation = {
+  branch: string;
+  headSha: string;
+  boundaryExists: boolean;
+  boundaryIsAncestor: boolean;
+  changedPaths: string[];
+};
+
+async function verifyWithGit(
+  root: string,
+  git: InjectedGitObservation,
+) {
+  const verifier = verifyStatic as unknown as (
+    repositoryRoot: string,
+    options: { observeGit: () => Promise<InjectedGitObservation> },
+  ) => ReturnType<typeof verifyStatic>;
+  return verifier(root, { observeGit: async () => git });
 }
 
 describe('control schemas', () => {
@@ -262,9 +282,76 @@ environments:
   });
 
   test('returns no findings for a coherent control set', async () => {
-    const root = await makeControlRoot();
+    const root = await makeControlRoot({
+      handoff:
+        '# Current Handoff\n\n- Work item: `P2A-CONTROL-001`\n- Branch: `codex/test`\n- Head commit: `1111111111111111111111111111111111111111`\n',
+    });
 
-    await expect(verifyStatic(root)).resolves.toEqual([]);
+    await expect(
+      verifyWithGit(root, {
+        branch: 'codex/test',
+        headSha: '2222222222222222222222222222222222222222',
+        boundaryExists: true,
+        boundaryIsAncestor: true,
+        changedPaths: ['docs/control/CURRENT_HANDOFF.md', 'docs/control/CURRENT_STATE.md'],
+      }),
+    ).resolves.toEqual([]);
+  });
+
+  test.each([
+    [
+      'branch mismatch',
+      {
+        branch: 'codex/other',
+        headSha: '2222222222222222222222222222222222222222',
+        boundaryExists: true,
+        boundaryIsAncestor: true,
+        changedPaths: [],
+      },
+      'control.handoff_branch_mismatch',
+    ],
+    [
+      'missing boundary commit',
+      {
+        branch: 'codex/test',
+        headSha: '2222222222222222222222222222222222222222',
+        boundaryExists: false,
+        boundaryIsAncestor: false,
+        changedPaths: [],
+      },
+      'control.handoff_commit_missing',
+    ],
+    [
+      'non-ancestor boundary commit',
+      {
+        branch: 'codex/test',
+        headSha: '2222222222222222222222222222222222222222',
+        boundaryExists: true,
+        boundaryIsAncestor: false,
+        changedPaths: [],
+      },
+      'control.handoff_commit_not_ancestor',
+    ],
+    [
+      'post-boundary production change',
+      {
+        branch: 'codex/test',
+        headSha: '2222222222222222222222222222222222222222',
+        boundaryExists: true,
+        boundaryIsAncestor: true,
+        changedPaths: ['packages/control-schema/src/verify-static.ts'],
+      },
+      'control.handoff_boundary_changed',
+    ],
+  ])('rejects Git takeover authority for %s', async (_name, git, code) => {
+    const root = await makeControlRoot({
+      handoff:
+        '# Current Handoff\n\n- Work item: `P2A-CONTROL-001`\n- Branch: `codex/test`\n- Head commit: `1111111111111111111111111111111111111111`\n',
+    });
+
+    await expect(verifyWithGit(root, git)).resolves.toContainEqual(
+      expect.objectContaining({ severity: 'blocking', code }),
+    );
   });
 
   test('blocks static verification when a regional pack is invalid', async () => {
@@ -474,11 +561,88 @@ The review passes.
       await expect(verifyStatic(root)).resolves.toContainEqual(
         expect.objectContaining({
           code: 'control.specification_path_unsafe',
-          path: `docs/control/${specification}`,
+          path: specification,
         }),
       );
     },
   );
+
+  test('allows nested repository-relative specifications inside docs', async () => {
+    const root = await makeControlRoot({
+      queue: {
+        ...validQueue,
+        items: [
+          {
+            ...validQueue.items[0],
+            id: 'P2A-MEMORY-001',
+            specification: 'docs/specs/p2/intelligence-foundation.md',
+          },
+        ],
+      },
+      handoff:
+        '# Current Handoff\n\n- Work item: `P2A-MEMORY-001`\n- Branch: `codex/test`\n- Head commit: `1111111111111111111111111111111111111111`\n',
+    });
+    await mkdir(join(root, 'docs', 'specs', 'p2'), { recursive: true });
+    await writeFile(
+      join(root, 'docs', 'specs', 'p2', 'intelligence-foundation.md'),
+      '# Intelligence Foundation\n',
+    );
+
+    await expect(
+      verifyWithGit(root, {
+        branch: 'codex/test',
+        headSha: '1111111111111111111111111111111111111111',
+        boundaryExists: true,
+        boundaryIsAncestor: true,
+        changedPaths: [],
+      }),
+    ).resolves.toEqual([]);
+  });
+
+  test.each([
+    '/tmp/specification.md',
+    'C:\\outside\\specification.md',
+    '../outside.md',
+    'README.md',
+  ])('rejects unsafe repository specification path %s', async (specification) => {
+    const root = await makeControlRoot({
+      queue: {
+        ...validQueue,
+        items: [{ ...validQueue.items[0], specification }],
+      },
+    });
+
+    await expect(verifyStatic(root)).resolves.toContainEqual(
+      expect.objectContaining({
+        severity: 'blocking',
+        code: 'control.specification_path_unsafe',
+      }),
+    );
+  });
+
+  test('rejects an active work item routed to another specification owner', async () => {
+    const root = await makeControlRoot({
+      queue: {
+        ...validQueue,
+        items: [
+          {
+            ...validQueue.items[0],
+            id: 'P2A-MEMORY-001',
+            specification: 'docs/control/CONTINUITY_DESIGN.md',
+          },
+        ],
+      },
+      handoff:
+        '# Current Handoff\n\n- Work item: `P2A-MEMORY-001`\n- Branch: `codex/test`\n- Head commit: `1111111111111111111111111111111111111111`\n',
+    });
+
+    await expect(verifyStatic(root)).resolves.toContainEqual(
+      expect.objectContaining({
+        severity: 'blocking',
+        code: 'control.specification_owner_mismatch',
+      }),
+    );
+  });
 
   test('CLI runner prints blocking findings and returns exit status 1', async () => {
     const root = await makeControlRoot({
@@ -502,7 +666,7 @@ The review passes.
         {
           ...validQueue.items[0],
           id: 'P2A-CONTROL-002',
-          specification: 'MISSING_SPEC.md',
+          specification: 'docs/control/MISSING_SPEC.md',
         },
       ],
     };

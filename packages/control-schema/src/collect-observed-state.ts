@@ -19,6 +19,10 @@ const TABLE_QUERY = `select table_name
 from information_schema.tables
 where table_schema = 'public'
 order by table_name`;
+const MIGRATION_QUERY = `select version || '_' || name as migration_identity
+from supabase_migrations.schema_migrations
+order by version desc
+limit 1`;
 const DEFAULT_TIMEOUT_MS = 15_000;
 
 export interface RunResult {
@@ -42,7 +46,7 @@ export type QueryTables = (
   databaseUrl: string,
   sql: string,
   timeoutMs: number,
-) => Promise<string[]>;
+) => Promise<unknown>;
 
 export interface CollectorEnvironment {
   github: { repository: string; branch: string };
@@ -142,9 +146,9 @@ async function defaultQueryTables(
   databaseUrl: string,
   sql: string,
   timeoutMs: number,
-): Promise<string[]> {
-  if (sql !== TABLE_QUERY) {
-    throw new Error('Only the approved read-only table inventory query is allowed.');
+): Promise<unknown> {
+  if (sql !== TABLE_QUERY && sql !== MIGRATION_QUERY) {
+    throw new Error('Only approved read-only Supabase observation queries are allowed.');
   }
   const { Client } = await import('pg');
   const client = new Client({
@@ -155,8 +159,12 @@ async function defaultQueryTables(
   });
   try {
     await client.connect();
-    const result = await client.query<{ table_name: string }>(TABLE_QUERY);
-    return result.rows.map((row) => row.table_name);
+    if (sql === TABLE_QUERY) {
+      const result = await client.query<{ table_name: string }>(TABLE_QUERY);
+      return result.rows.map((row) => row.table_name);
+    }
+    const result = await client.query<{ migration_identity: string }>(MIGRATION_QUERY);
+    return result.rows[0]?.migration_identity;
   } finally {
     await client.end().catch(() => undefined);
   }
@@ -266,6 +274,8 @@ async function collectGithub(
           repository,
           '--branch',
           branch,
+          '--workflow',
+          'ci.yml',
           '--limit',
           '1',
           '--json',
@@ -325,11 +335,22 @@ async function collectGithub(
         evidence: `GitHub ${repository}:${branch} @ ${commitJson.sha}; CI conclusion is unknown or non-terminal.`,
       };
     }
-    return ok(
+    const exactSha = latest?.headSha === commitJson.sha;
+    const status = conclusion === 'success' && exactSha ? 'ok' : 'drift';
+    return {
+      status,
       checkedAt,
       value,
-      `GitHub ${repository}:${branch} @ ${commitJson.sha}; latest CI ${conclusion}.`,
-    );
+      evidence: `GitHub ${repository}:${branch} @ ${commitJson.sha}; latest CI ${conclusion} @ ${latest?.headSha ?? 'unknown'}.`,
+      ...(status === 'ok'
+        ? {}
+        : {
+            error:
+              conclusion === 'success'
+                ? 'Latest successful CI run does not match the observed repository head SHA.'
+                : `Latest CI run concluded ${conclusion}.`,
+          }),
+    };
   } catch (error) {
     return unknown(checkedAt, 'GitHub CLI or authentication is unavailable.', error);
   }
@@ -348,16 +369,39 @@ async function collectSupabase(
     );
   }
   try {
-    const tables = [...(await queryTables(databaseUrl, TABLE_QUERY, timeoutMs))].sort(
-      compareCodepoints,
-    );
+    const [tableResponse, migrationResponse] = await Promise.all([
+      queryTables(databaseUrl, TABLE_QUERY, timeoutMs),
+      queryTables(databaseUrl, MIGRATION_QUERY, timeoutMs),
+    ]);
+    if (
+      !Array.isArray(tableResponse) ||
+      !tableResponse.every((table): table is string => typeof table === 'string')
+    ) {
+      throw new Error('Live table inventory response was malformed.');
+    }
+    if (
+      migrationResponse !== undefined &&
+      (typeof migrationResponse !== 'string' || migrationResponse.length === 0)
+    ) {
+      throw new Error('Supabase migration history response was malformed.');
+    }
+    const tables = [...tableResponse].sort(compareCodepoints);
     return ok(
       checkedAt,
-      { tables },
-      `Read ${tables.length} public table names from information_schema.tables.`,
+      {
+        tables,
+        ...(migrationResponse === undefined
+          ? {}
+          : { migration: migrationResponse }),
+      },
+      `Read ${tables.length} public table names and the latest migration identity from approved read-only queries.`,
     );
   } catch (error) {
-    return unknown(checkedAt, 'Live table inventory query was unavailable.', error);
+    return unknown(
+      checkedAt,
+      'Live table or migration-history observation was unavailable.',
+      error,
+    );
   }
 }
 
@@ -517,30 +561,38 @@ async function collectRegistry(
   root: string,
   checkedAt: string,
 ): Promise<ObservedState['registry']> {
-  const source = 'apps/api/src/routes.gen.ts';
+  const source = 'packages/registry/registry.ts';
+  const generatedSource = 'apps/api/src/routes.gen.ts';
   try {
-    const content = await readFile(join(root, ...source.split('/')), 'utf8');
-    const match = /GENERATED_CAPABILITY_IDS\s*=\s*\[([\s\S]*?)\]\s*as const/.exec(content);
-    if (!match) {
-      return {
-        status: 'error',
+    const [registryContent, generatedContent] = await Promise.all([
+      readFile(join(root, ...source.split('/')), 'utf8'),
+      readFile(join(root, ...generatedSource.split('/')), 'utf8'),
+    ]);
+    const versionMatch = /export const REGISTRY_VERSION\s*=\s*(\d+)\s*;/.exec(
+      registryContent,
+    );
+    const generatedMatch =
+      /GENERATED_CAPABILITY_IDS\s*=\s*\[([\s\S]*?)\]\s*as const/.exec(
+        generatedContent,
+      );
+    if (!versionMatch || !generatedMatch) {
+      return unknown(
         checkedAt,
-        evidence: 'Generated capability identifier array was not found.',
-      };
+        'Local registry version or generated capability identifiers are unavailable.',
+      );
     }
-    const generatedRouteCount = [...match[1].matchAll(/["'][^"']+["']/g)].length;
+    const version = Number(versionMatch[1]);
+    const capabilityCount = [...registryContent.matchAll(/\bid:\s*'[^']+'/g)].length;
+    const generatedRouteCount = [
+      ...generatedMatch[1].matchAll(/["'][^"']+["']/g),
+    ].length;
     return ok(
       checkedAt,
-      { generatedRouteCount, source },
-      `Counted ${generatedRouteCount} generated routes in ${source}.`,
+      { version, capabilityCount, generatedRouteCount, source, generatedSource },
+      `Read registry version ${version} and reconciled ${capabilityCount} capabilities with ${generatedRouteCount} generated routes.`,
     );
   } catch (error) {
-    return {
-      status: 'error',
-      checkedAt,
-      evidence: `Could not read ${source}.`,
-      error: safeError(error),
-    };
+    return unknown(checkedAt, `Could not read ${source} or ${generatedSource}.`, error);
   }
 }
 
@@ -578,10 +630,10 @@ export async function collectObservedState(
       sources: [
         'local git',
         'GitHub CLI',
-        'Supabase information_schema.tables',
+        'Supabase information_schema.tables and supabase_migrations.schema_migrations',
         'Railway API public probes',
         'Railway OS build-info.json',
-        'apps/api/src/routes.gen.ts',
+        'packages/registry/registry.ts and apps/api/src/routes.gen.ts',
       ],
     },
     localGit,
@@ -631,6 +683,7 @@ async function main(): Promise<void> {
     phaseComplete: false,
     acceptanceEvidence: [],
     requiredTables: environment.supabase.required_tables,
+    expectedMigration: environment.supabase.expected_migration,
     handoffUpdatedAt: handoffUpdatedAt(control.currentHandoff),
     staticVerificationFindings,
   };

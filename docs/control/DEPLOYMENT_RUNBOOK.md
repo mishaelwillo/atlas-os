@@ -2,8 +2,8 @@
 
 ## Safe production sequence
 
-1. Select the exact Git SHA.
-2. Verify CI for that SHA.
+1. Select the exact Git SHA and verify that it is reachable from `main`.
+2. Verify that the latest relevant CI run concluded successfully for that exact SHA.
 3. Deploy the API and OS separately.
 4. Read each service's runtime fingerprint.
 5. Run route probes.
