@@ -155,7 +155,9 @@ export class AtlasGeneratedClient {
     this.baseUrl = opts.baseUrl.endsWith('/') ? opts.baseUrl.slice(0, -1) : opts.baseUrl;
     this.token = opts.token;
     this.spaceId = opts.spaceId;
-    this.fetchImpl = opts.fetchImpl ?? fetch;
+    // Bind to globalThis: browsers reject window.fetch invoked with any other
+    // receiver, and this is stored then called as this.fetchImpl(...).
+    this.fetchImpl = opts.fetchImpl ?? fetch.bind(globalThis);
   }
 
   private async request<T>(method: 'GET' | 'POST', path: string, input: Record<string, unknown>): Promise<T | ApprovalPending> {
