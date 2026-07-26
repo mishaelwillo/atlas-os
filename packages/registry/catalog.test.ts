@@ -1,6 +1,13 @@
-import { mkdtempSync, readFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  statSync,
+} from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import type { Capability } from './registry.js';
 import type { CapabilityMetadata } from './metadata.js';
@@ -154,8 +161,76 @@ describe('capability catalog', () => {
 
   it('resolves the repository output independently of the process cwd', () => {
     const moduleUrl = new URL('./catalog.ts', import.meta.url);
-    expect(resolveCatalogOutputPath(moduleUrl)).toMatch(
-      /docs[\\/]control[\\/]generated[\\/]capability-catalog\.md$/,
+    expect(resolveCatalogOutputPath(moduleUrl)).toBe(
+      resolve(
+        import.meta.dirname,
+        '..',
+        '..',
+        'docs',
+        'control',
+        'generated',
+        'capability-catalog.md',
+      ),
     );
+  });
+
+  it('resolves and writes the tracked catalog from the compiled module', async () => {
+    const packageRoot = import.meta.dirname;
+    const repoRoot = resolve(packageRoot, '..', '..');
+    const expected = resolve(
+      repoRoot,
+      'docs',
+      'control',
+      'generated',
+      'capability-catalog.md',
+    );
+    const wrongPackagePath = resolve(
+      repoRoot,
+      'packages',
+      'docs',
+      'control',
+      'generated',
+      'capability-catalog.md',
+    );
+    const compiledPath = resolve(packageRoot, 'dist', 'catalog.js');
+    const sourcePath = resolve(packageRoot, 'catalog.ts');
+    if (
+      !existsSync(compiledPath) ||
+      statSync(compiledPath).mtimeMs < statSync(sourcePath).mtimeMs
+    ) {
+      execFileSync(
+        process.execPath,
+        [
+          resolve(repoRoot, 'node_modules', 'typescript', 'bin', 'tsc'),
+          '--project',
+          resolve(packageRoot, 'tsconfig.json'),
+        ],
+        { cwd: packageRoot, stdio: 'pipe' },
+      );
+    }
+    const compiled = (await import(
+      `${pathToFileURL(compiledPath).href}?compiled-path-test`
+    )) as typeof import('./catalog.js');
+
+    expect(compiled.resolveCatalogOutputPath()).toBe(expected);
+
+    execFileSync(process.execPath, [compiledPath], {
+      cwd: packageRoot,
+      stdio: 'pipe',
+    });
+    expect(readFileSync(expected, 'utf8')).toBe(
+      renderCapabilityCatalog(
+        (await import('./registry.js')).registry,
+        (await import('./metadata.js')).capabilityMetadata,
+      ),
+    );
+    expect(existsSync(wrongPackagePath)).toBe(false);
+  });
+
+  it('fails loudly when no workspace root markers exist', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'atlas-no-workspace-'));
+    expect(() =>
+      resolveCatalogOutputPath(pathToFileURL(join(directory, 'catalog.js'))),
+    ).toThrow(/workspace root/i);
   });
 });

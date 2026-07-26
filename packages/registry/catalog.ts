@@ -1,11 +1,12 @@
 import {
+  existsSync,
   mkdirSync,
   renameSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
 import { randomUUID } from 'node:crypto';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, parse, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { capabilityMetadata, type CapabilityMetadata } from './metadata.js';
 import { registry, type Capability } from './registry.js';
@@ -129,7 +130,23 @@ export function resolveCatalogOutputPath(
   moduleUrl: URL | string = import.meta.url,
 ): string {
   const moduleDirectory = dirname(fileURLToPath(moduleUrl));
-  const repoRoot = resolve(moduleDirectory, '..', '..');
+  let repoRoot = resolve(moduleDirectory);
+  const filesystemRoot = parse(repoRoot).root;
+
+  while (
+    !(
+      existsSync(join(repoRoot, 'pnpm-workspace.yaml')) &&
+      existsSync(join(repoRoot, 'package.json'))
+    )
+  ) {
+    if (repoRoot === filesystemRoot) {
+      throw new Error(
+        `Unable to find Atlas workspace root from ${moduleDirectory}`,
+      );
+    }
+    repoRoot = dirname(repoRoot);
+  }
+
   return join(
     repoRoot,
     'docs',

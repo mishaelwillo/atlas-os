@@ -49,6 +49,7 @@ jobs:
       - name: Verify capability catalog
         run: |
           pnpm --filter @atlas/registry catalog
+          git ls-files --error-unmatch docs/control/generated/capability-catalog.md
           git diff --exit-code -- docs/control/generated/capability-catalog.md
 
       - name: Verify generated files are committed
