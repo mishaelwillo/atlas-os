@@ -32,6 +32,16 @@ function loadBuildSteps(): WorkflowStep[] {
 }
 
 describe('Atlas CI continuity contract', () => {
+  it('checks out the exact trusted event head with complete Git history', () => {
+    const steps = loadBuildSteps();
+    const checkout = steps.find((step) => step.uses === 'actions/checkout@v4');
+
+    expect(checkout?.with?.['fetch-depth']).toBe(0);
+    expect(checkout?.with?.ref).toBe(
+      "${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}",
+    );
+  });
+
   it('uses the repository pnpm version and a frozen lockfile', () => {
     const steps = loadBuildSteps();
     const pnpm = steps.find((step) => step.uses?.startsWith('pnpm/action-setup@'));
