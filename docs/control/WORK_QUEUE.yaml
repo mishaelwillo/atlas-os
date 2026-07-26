@@ -51,7 +51,7 @@ items:
     acceptance_checks:
       - Intelligence foundation specification is approved
       - Owned memory remains governed and verifiable
-    next_action: Complete the final whole-branch review and uncached local verification gates before requesting a branch integration decision
+    next_action: Request the user branch integration decision; after integration require successful CI on the exact authoritative main SHA before release selection
   - id: P2B-FACTORY-001
     phase: P2B
     title: Build the Website Factory
