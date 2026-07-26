@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -438,6 +439,29 @@ environments:
       );
     },
   );
+
+  test('reports a real absent boundary as missing instead of Git unavailable', async () => {
+    const root = await makeControlRoot();
+    execFileSync('git', ['init', '-b', 'codex/test'], { cwd: root });
+    execFileSync('git', ['config', 'user.name', 'Atlas Test'], { cwd: root });
+    execFileSync('git', ['config', 'user.email', 'atlas@example.test'], {
+      cwd: root,
+    });
+    execFileSync('git', ['add', '.'], { cwd: root });
+    execFileSync('git', ['commit', '-m', 'fixture'], { cwd: root });
+
+    const findings = await verifyStaticImplementation(root);
+
+    expect(findings).toContainEqual(
+      expect.objectContaining({
+        severity: 'blocking',
+        code: 'control.handoff_commit_missing',
+      }),
+    );
+    expect(findings).not.toContainEqual(
+      expect.objectContaining({ code: 'control.handoff_git_unavailable' }),
+    );
+  });
 
   test('blocks static verification when a regional pack is invalid', async () => {
     const root = await makeControlRoot();

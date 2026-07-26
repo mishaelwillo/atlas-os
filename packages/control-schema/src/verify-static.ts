@@ -185,13 +185,31 @@ async function defaultObserveGit(
       };
     }
   };
-  const [branch, head, exists, ancestor, changed] = await Promise.all([
+  const [branch, head, exists] = await Promise.all([
     run(['branch', '--show-current']),
     run(['rev-parse', 'HEAD']),
     run(['cat-file', '-e', `${boundaryCommit}^{commit}`]),
-    run(['merge-base', '--is-ancestor', boundaryCommit, 'HEAD']),
-    run(['diff', '--name-only', `${boundaryCommit}..HEAD`]),
   ]);
+  const [ancestor, changed] =
+    exists.exitCode === 0
+      ? await Promise.all([
+          run(['merge-base', '--is-ancestor', boundaryCommit, 'HEAD']),
+          run(['diff', '--name-only', `${boundaryCommit}..HEAD`]),
+        ])
+      : [
+          {
+            exitCode: 1,
+            stdout: '',
+            stderr: '',
+            spawnFailed: false,
+          },
+          {
+            exitCode: 0,
+            stdout: '',
+            stderr: '',
+            spawnFailed: false,
+          },
+        ];
   const errors = [
     ...(branch.exitCode !== 0 || !branch.stdout
       ? [`git branch --show-current failed: ${branch.stderr || 'no branch returned'}`]
