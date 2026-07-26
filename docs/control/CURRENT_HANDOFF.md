@@ -1,7 +1,7 @@
 # Current Handoff
 
 **Handoff ID:** `atlas-continuity-whole-branch-rereview`
-**Status:** awaiting user decision
+**Status:** draft PR open; awaiting CI and review
 **Started:** 2026-07-26
 **Updated:** 2026-07-26
 **Actor:** Codex
@@ -15,7 +15,7 @@ continuity foundation and evidence-backed P2 specification set.
 - Branch: `codex/atlas-continuity`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
 - Head commit: `8d3995a1ca37a96cdbe5a63bc28b03b7d6dd8087`
-- Review status: final whole-branch review READY TO MERGE; no Critical or Important finding
+- Review status: local whole-branch review READY TO MERGE; draft PR #1 CI pending
 
 ## Completed scope
 
@@ -106,10 +106,13 @@ continuity foundation and evidence-backed P2 specification set.
 
 ## External side effects
 
-- Local commits only: `61ffc93`, `535cedd`, `4023a14`, `264ec8b`, `a8f4e6d`,
-  `67a803a`, `941178b`, `d2e69a0`, `e656059`, and `8d3995a`.
-- No push, pull request, deploy, database write, message send, billing action,
-  or other external write.
+- Pushed branch `codex/atlas-continuity` to
+  `origin` (`https://github.com/mishaelwillo/atlas-os.git`).
+- Opened draft pull request
+  `https://github.com/mishaelwillo/atlas-os/pull/1` targeting `main`.
+- Initial GitHub `Build & Test` check is pending.
+- No merge, deploy, database write, outreach send, billing action, or other
+  production mutation.
 
 ## Blockers
 
@@ -121,12 +124,14 @@ continuity foundation and evidence-backed P2 specification set.
 
 ## Next exact action
 
-Obtain the user's explicit branch-integration choice. If integrated, require
-successful CI on the exact resulting authoritative `main` SHA before selecting
-any immutable production release candidate. Do not deploy from this feature
-branch.
+Wait for draft PR #1 CI on the exact branch head, review any failure without
+weakening the control gate, and obtain explicit approval before merging. After
+merge, require successful CI on the exact resulting authoritative `main` SHA
+before selecting any immutable production release candidate. Do not deploy from
+this feature branch.
 
 ## Definition of done
 
-The user selects how to integrate or retain the reviewed branch. Production
-release work remains a separate approval-gated sequence after exact-main-SHA CI.
+Draft PR #1 passes its exact-head checks and receives explicit merge approval.
+Production release work remains a separate approval-gated sequence after
+exact-main-SHA CI.

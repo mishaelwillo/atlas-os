@@ -21,6 +21,8 @@ state.
 - Full-history trusted-target CI checkout: implemented and locally green.
 - Final `origin/main..HEAD` whole-branch re-review: READY TO MERGE with no
   Critical or Important finding.
+- Draft pull request: `https://github.com/mishaelwillo/atlas-os/pull/1`.
+- Pull-request state: open/draft; initial `Build & Test` check pending.
 - Active work item: `P2A-MEMORY-001`.
 - Active owning spec: `docs/specs/p2/intelligence-foundation.md`.
 - Exactly one queue item is `in_progress`.
@@ -60,7 +62,7 @@ routes. No production-complete claim is authorized.
 
 ## Next exact action
 
-Obtain the user's explicit branch-integration choice. After integration, require
-successful CI on the exact resulting authoritative `main` SHA before release
-selection. No push, merge, release, database action, or hosting action has yet
-been authorized or performed.
+Wait for draft PR #1 exact-head CI and review the result. Merge only after
+explicit approval. After integration, require successful CI on the exact
+resulting authoritative `main` SHA before release selection. No merge, release,
+database action, or hosting action has yet been performed.
