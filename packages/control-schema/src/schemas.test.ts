@@ -146,9 +146,12 @@ const coherentGit: InjectedGitObservation = {
   changedPaths: [],
 };
 
+const isolatedGitHubContext = async () => undefined;
+
 function verifyStatic(root: string) {
   return verifyStaticImplementation(root, {
     observeGit: async () => coherentGit,
+    observeGitHubContext: isolatedGitHubContext,
   });
 }
 
@@ -159,16 +162,25 @@ function runStaticVerificationCli(
   const runner = runStaticVerificationCliImplementation as unknown as (
     repositoryRoot: string,
     output: (line: string) => void,
-    options: { observeGit: () => Promise<InjectedGitObservation> },
+    options: {
+      observeGit: () => Promise<InjectedGitObservation>;
+      observeGitHubContext: () => Promise<undefined>;
+    },
   ) => ReturnType<typeof runStaticVerificationCliImplementation>;
-  return runner(root, writeLine, { observeGit: async () => coherentGit });
+  return runner(root, writeLine, {
+    observeGit: async () => coherentGit,
+    observeGitHubContext: isolatedGitHubContext,
+  });
 }
 
 async function verifyWithGit(
   root: string,
   git: InjectedGitObservation,
 ) {
-  return verifyStaticImplementation(root, { observeGit: async () => git });
+  return verifyStaticImplementation(root, {
+    observeGit: async () => git,
+    observeGitHubContext: isolatedGitHubContext,
+  });
 }
 
 async function verifyWithGitHubContext(
@@ -495,6 +507,40 @@ environments:
         changedPaths: ['docs/control/CURRENT_HANDOFF.md', 'docs/control/CURRENT_STATE.md'],
       }),
     ).resolves.toEqual([]);
+  });
+
+  test('isolates temporary control fixtures from ambient GitHub Actions context', async () => {
+    const root = await makeControlRoot();
+    const eventPath = join(root, 'github-event.json');
+    await writeFile(
+      eventPath,
+      JSON.stringify({
+        pull_request: {
+          head: {
+            ref: 'codex/atlas-continuity',
+            sha: '3333333333333333333333333333333333333333',
+          },
+          base: { ref: 'main' },
+        },
+      }),
+    );
+    const previousEnvironment = {
+      GITHUB_ACTIONS: process.env.GITHUB_ACTIONS,
+      GITHUB_EVENT_NAME: process.env.GITHUB_EVENT_NAME,
+      GITHUB_EVENT_PATH: process.env.GITHUB_EVENT_PATH,
+    };
+    process.env.GITHUB_ACTIONS = 'true';
+    process.env.GITHUB_EVENT_NAME = 'pull_request';
+    process.env.GITHUB_EVENT_PATH = eventPath;
+
+    try {
+      await expect(verifyStatic(root)).resolves.toEqual([]);
+    } finally {
+      for (const [name, value] of Object.entries(previousEnvironment)) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
+    }
   });
 
   test('keeps local feature verification strict when the checked-out branch equals the recorded branch', async () => {
