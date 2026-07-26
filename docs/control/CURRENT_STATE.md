@@ -13,7 +13,7 @@ state.
 
 - Active branch: `codex/atlas-continuity`.
 - Current code boundary:
-  `8d3995a1ca37a96cdbe5a63bc28b03b7d6dd8087`.
+  `0fec937`.
 - Focused remediation code boundary:
   `4023a14e4873ae681c165b182e1b9ddd326ffbf4`.
 - Focused whole-branch remediation review: approved with no findings.
@@ -22,7 +22,9 @@ state.
 - Final `origin/main..HEAD` whole-branch re-review: READY TO MERGE with no
   Critical or Important finding.
 - Draft pull request: `https://github.com/mishaelwillo/atlas-os/pull/1`.
-- Pull-request state: open/draft; initial `Build & Test` check pending.
+- Pull-request state: open/draft; initial `Build & Test` failed because test
+  fixtures inherited GitHub Actions context. Fix commit `0fec937` is locally
+  green and awaiting push/rerun.
 - Active work item: `P2A-MEMORY-001`.
 - Active owning spec: `docs/specs/p2/intelligence-foundation.md`.
 - Exactly one queue item is `in_progress`.
@@ -62,7 +64,8 @@ routes. No production-complete claim is authorized.
 
 ## Next exact action
 
-Wait for draft PR #1 exact-head CI and review the result. Merge only after
-explicit approval. After integration, require successful CI on the exact
-resulting authoritative `main` SHA before release selection. No merge, release,
-database action, or hosting action has yet been performed.
+Push the verified fixture-isolation fix, wait for draft PR #1 exact-head CI, and
+review the result. Merge only after explicit approval. After integration,
+require successful CI on the exact resulting authoritative `main` SHA before
+release selection. No merge, release, database action, or hosting action has
+yet been performed.

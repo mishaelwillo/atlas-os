@@ -14,8 +14,8 @@ continuity foundation and evidence-backed P2 specification set.
 - Owning specification: `docs/specs/p2/intelligence-foundation.md`
 - Branch: `codex/atlas-continuity`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `8d3995a1ca37a96cdbe5a63bc28b03b7d6dd8087`
-- Review status: local whole-branch review READY TO MERGE; draft PR #1 CI pending
+- Head commit: `0fec937`
+- Review status: CI fixture-isolation fix locally green; draft PR #1 rerun pending
 
 ## Completed scope
 
@@ -92,6 +92,11 @@ continuity foundation and evidence-backed P2 specification set.
 - Final independent whole-branch verdict: READY TO MERGE, with no Critical or
   Important finding. The only Minor is that no workspace lint tasks are
   configured, so lint is not claimed as a substantive quality gate.
+- Draft PR #1 initially failed because temporary control-schema fixtures
+  inherited trusted GitHub Actions event context. RED reproduced the branch and
+  head mismatch locally. GREEN isolates test helpers while leaving production
+  PR/main verification unchanged: 1/1 focused, 236/236 control-schema, and
+  14/14 GitHub-style workspace test tasks passed at commit `0fec937`.
 
 ## Database actions
 
@@ -110,7 +115,9 @@ continuity foundation and evidence-backed P2 specification set.
   `origin` (`https://github.com/mishaelwillo/atlas-os.git`).
 - Opened draft pull request
   `https://github.com/mishaelwillo/atlas-os/pull/1` targeting `main`.
-- Initial GitHub `Build & Test` check is pending.
+- Initial GitHub `Build & Test` failed in the test step; all build, control,
+  catalog, and generated-file steps passed. The focused fix is ready to push
+  for a new exact-head CI run.
 - No merge, deploy, database write, outreach send, billing action, or other
   production mutation.
 
@@ -124,11 +131,11 @@ continuity foundation and evidence-backed P2 specification set.
 
 ## Next exact action
 
-Wait for draft PR #1 CI on the exact branch head, review any failure without
-weakening the control gate, and obtain explicit approval before merging. After
-merge, require successful CI on the exact resulting authoritative `main` SHA
-before selecting any immutable production release candidate. Do not deploy from
-this feature branch.
+Push the verified fixture-isolation fix and wait for draft PR #1 CI on the exact
+new branch head. Review any further failure without weakening the control gate,
+and obtain explicit approval before merging. After merge, require successful CI
+on the exact resulting authoritative `main` SHA before selecting any immutable
+production release candidate. Do not deploy from this feature branch.
 
 ## Definition of done
 
