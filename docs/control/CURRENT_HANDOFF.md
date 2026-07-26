@@ -1,38 +1,35 @@
 # Current Handoff
 
-**Handoff ID:** `p2a-memory-reconciliation`
+**Handoff ID:** `p2a-memory-enrichment-schema`
 **Status:** active
-**Started:** 2026-07-26T18:27:07.299Z
-**Updated:** 2026-07-26T18:27:07.299Z
+**Started:** 2026-07-26T18:33:38.459Z
+**Updated:** 2026-07-26T18:33:38.459Z
 **Actor:** Codex
-**Objective:** Satisfy the intelligence-foundation reconciliation acceptance test by mapping every proposed P2A memory change to the current P1 owner contract (P2A-MEMORY-001)
+**Objective:** Stage the additive Intelligence Bank enrichment schema for P2A-MEMORY-001 without applying it to any database
 
 ## Active work
 
 - Work item: `P2A-MEMORY-001`
-- Branch: `codex/p2a-intelligence-reconciliation`
+- Branch: `codex/p2a-memory-enrichment`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `52e7dc59792da5cf88755e2c0dbf04eccb8c4a95`
+- Head commit: `2402b58e5c41efd7d0489cd4f7a9fd7f1714636d`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Added docs/specs/p2/intelligence-reconciliation.md and indexed it in the P2 spec index and control index
+- Added supabase/migrations/0002_intelligence_enrichment.sql (review only) and recorded it in the reconciliation specification
 
 ## Current working tree
 
-- ` M docs/control/CONTROL_INDEX.md`
-- ` M docs/control/CURRENT_HANDOFF.md`
-- ` M docs/specs/p2/README.md`
-- `?? docs/specs/p2/intelligence-reconciliation.md`
+- Clean.
 
 ## Verification evidence
 
-- pnpm control:verify, pnpm build, and pnpm test run on this branch
+- All five referenced tables exist in 0001_init and no added column name collides; pnpm control:verify, build, and tests pass
 
 ## Database actions
 
-- No external action reported.
+- None. The migration file was written but NOT executed against any database; production still reports 0001_init
 
 ## Hosting actions
 
@@ -44,11 +41,11 @@
 
 ## Blockers
 
-- Not supplied.
+- The migration is statically reviewed only; no PostgreSQL instance was available to execute it
 
 ## Next exact action
 
-Obtain review of the reconciliation delta, then implement build-now step 1 (internal card/node/run record enrichment) behind the unchanged P1 routes
+Obtain review of 0002_intelligence_enrichment.sql; on approval to apply, bump expected_migration in ENVIRONMENTS.yaml in the same change, then implement the code side of card/node/run enrichment behind unchanged P1 routes
 
 ## Definition of done
 

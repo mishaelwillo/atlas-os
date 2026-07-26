@@ -11,51 +11,91 @@ state.
 
 ## Repository state
 
-- Active branch: `main`.
-- Authoritative `main`:
-  `23a0b6426d7831f3eeeeb029c8feba08d048c4dc` (merge of PR #1).
-- Pull request #1 (`codex/atlas-continuity`, head
-  `79f50c549b6771ecf3c079cd9f669f4f1c3c4be2`): merged on 2026-07-26 after
-  explicit approval; final independent whole-branch verdict was READY TO MERGE
-  with no Critical or Important finding.
-- GitHub CI `Build & Test` succeeded on the exact merged `main` SHA
-  `23a0b64` (run 30213365765, 40 seconds).
+- Authoritative `main`: `0fdb2f835482e58690c73701cb8a86ebc7b80d18`.
+- Active branch: `codex/p2a-memory-enrichment` (open in PR #4).
+- Merged on 2026-07-26, each after explicit approval and with `Build & Test`
+  green on the exact resulting `main` SHA:
+  - PR #1 `codex/atlas-continuity` → `23a0b64`. Continuity control plane and P2
+    monetization playbook. Independent whole-branch verdict was READY TO MERGE
+    with no Critical or Important finding.
+  - PR #2 `codex/allow-archived-handoff-metadata` → `9be3a76`. Boundary-gate
+    fix: `control:archive-handoff` output is now approved metadata.
+  - PR #3 `codex/p2a-intelligence-reconciliation` → `0fdb2f8`. P2A↔P1 memory
+    contract reconciliation.
 - Active work item: `P2A-MEMORY-001`.
 - Active owning spec: `docs/specs/p2/intelligence-foundation.md`.
 - Exactly one queue item is `in_progress`.
 
 ## Production deployment state
 
-- Railway `os` service auto-deployed from GitHub on the merge;
-  `/build-info.json` reports `gitSha 23a0b64`, schema `0001_init`,
-  registry version 2.
-- Railway `api` service had no GitHub source (its prior deployment was a local
-  upload with no commit metadata), which is why the merge did not auto-deploy
-  it. It was redeployed on 2026-07-26 from a pristine `git archive` checkout of
-  exactly `main @ 23a0b64`; `ATLAS_GIT_SHA`, `ATLAS_BUILD_TIME`, and
-  `ATLAS_SCHEMA_VERSION` service variables carry the fingerprint.
-- Post-deploy verification: `/healthz` reports `gitSha 23a0b64`,
-  `registryVersion 2`, schema `0001_init`; `POST /v1/memory/ingest` and
-  `GET /v1/status/mission_control` return 401 auth-gated (previously 404).
-- Live drift report: Blocking — none. The only warning is
+P1 production deployment closure is **complete**. The roadmap exit condition
+(Railway API fingerprint matches the selected P1 commit and P1 routes exist) is
+satisfied, and the live drift report has no blocking finding.
+
+- Railway `os` deploys from GitHub automatically; `/build-info.json` reports the
+  merged `main` SHA, schema `0001_init`, registry version 2.
+- Railway `api` is now connected to `mishaelwillo/atlas-os` on `main` and
+  deploys from GitHub like `os`. Before 2026-07-26 it had no source at all
+  (`source.repo = null`) and its deployments were local CLI uploads with no
+  commit metadata, which is why merges never auto-deployed it and the P0 route
+  set persisted. Manual `railway up` from a pristine `git archive` checkout is
+  no longer required.
+- The API fingerprint is derived from `RAILWAY_GIT_COMMIT_SHA`. The temporary
+  `ATLAS_GIT_SHA` and `ATLAS_BUILD_TIME` variables used for the manual
+  deployments were deleted once GitHub deploys were live: `env.ts` resolves
+  `gitSha(ATLAS_GIT_SHA, RAILWAY_GIT_COMMIT_SHA)` first-match-wins, so leaving
+  them set would have pinned `/healthz` to a stale SHA forever regardless of
+  what actually shipped. Only `ATLAS_SCHEMA_VERSION` remains, which is not
+  git-derived.
+- `buildTime` now reports `unknown` because nothing passes the
+  `ATLAS_BUILD_TIME` Docker build arg. The fingerprint validator explicitly
+  accepts `unknown`, and drift detection keys on `gitSha`, so this is an honest
+  gap rather than a failure. Optional polish: pass the build arg at build time
+  or add a Railway-provided timestamp fallback in `env.ts`.
+- Verified live after the change: `/healthz` reports `gitSha 0fdb2f8` sourced
+  from Railway Git, `registryVersion 2`, schema `0001_init`.
+  `POST /v1/memory/ingest` and `GET /v1/status/mission_control` return 401
+  auth-gated — previously 404, which was the recorded P0-versus-P1 route drift.
+- Live drift report: Blocking — none. Sole warning is
   `supabase.live_state_unknown`.
-- The roadmap's P1 deployment-closure exit (Railway API fingerprint matches the
-  selected P1 commit and P1 routes exist) is satisfied.
 
 ## Remaining caveats
 
-- Supabase live table/migration-history observation remains unknown: the
-  read-only query fails from the local network even with injected credentials.
-  Historical verification (2026-07-24) showed all 18 tables from `0001_init`.
+- **Supabase migration history does not exist.** Diagnosed 2026-07-26: the
+  database is reachable and the table check passes — all 18 required tables are
+  present and match `ENVIRONMENTS.yaml` exactly. The migration-history query
+  fails with `42P01 relation "supabase_migrations.schema_migrations" does not
+  exist`, and no `supabase_migrations` schema exists at all, so `0001_init.sql`
+  was applied directly (SQL editor or `psql`) rather than through the Supabase
+  CLI. The collector therefore cannot prove exact migration identity and
+  correctly reports `supabase.live_state_unknown` — this is a missing ledger,
+  not a connectivity or credentials problem.
+  - Consequence: `expected_migration: 0001_init` can never be satisfied until a
+    migration ledger is established (baseline `0001_init` as applied), and
+    applying `0002` through the Supabase CLI would need that baseline first.
+  - Establishing the ledger is a database write and remains approval-gated.
 - The P1 brief's manual token-seeded live acceptance (seed Space + API token,
-  ingest with token, approval-gate round trip) has not been run; it requires an
-  authorized Supabase write and remains approval-gated.
-- The Railway `api` service should be connected to the GitHub repo
-  (root directory = repo root, dockerfile `apps/api/Dockerfile`) so future
-  merges auto-deploy like `os`; this requires a dashboard action.
+  ingest with the token, approval-gate round trip) has not been run. It requires
+  an authorized Supabase write and remains approval-gated.
+- Resolved 2026-07-26: Railway `api` is connected to GitHub and self-deploys.
+  Both services now advance with `main` automatically.
+
+## P2A progress
+
+- Reconciliation (`docs/specs/p2/intelligence-reconciliation.md`) is merged. It
+  maps every proposed P2A memory change to the P1 owner contract, classifies
+  each as additive-optional or internal-only, and leaves every
+  `capabilityMetadata.specification` unchanged. The ownership migration register
+  is deliberately empty.
+- `supabase/migrations/0002_intelligence_enrichment.sql` is staged in PR #4 and
+  **has not been applied to any database**. `0001_init.sql` is unmodified, so
+  the exact migration-identity anchor is intact. The file is statically reviewed
+  only — no PostgreSQL instance was available to execute it.
 
 ## Next exact action
 
-Implement `P2A-MEMORY-001` per `docs/specs/p2/intelligence-foundation.md` on a
-new feature branch cut from `main @ 23a0b64`. Production release evidence for
-this closure is recorded in the current handoff.
+Review PR #4. If the staged schema is approved for application, bump
+`expected_migration` in `docs/control/ENVIRONMENTS.yaml` to
+`0002_intelligence_enrichment` in the same change, execute the migration against
+a scratch database first, then implement the code side of card/node/run
+enrichment behind the unchanged P1 routes.
