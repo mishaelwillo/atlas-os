@@ -286,6 +286,31 @@ inherits: missing-parent
     );
   });
 
+  test('blocks static verification when research control files are invalid', async () => {
+    const root = await makeControlRoot();
+    await writeFile(
+      join(root, 'docs', 'control', 'RESEARCH_LEDGER.yaml'),
+      `schema_version: 1
+sources: []
+evidence: []
+`,
+    );
+    await writeFile(
+      join(root, 'docs', 'control', 'CAPABILITY_CANDIDATES.yaml'),
+      `schema_version: 1
+candidates: []
+`,
+    );
+
+    await expect(verifyStatic(root)).resolves.toContainEqual(
+      expect.objectContaining({
+        code: 'control.research_invalid',
+        path: join('docs', 'control', 'RESEARCH_LEDGER.yaml'),
+        severity: 'blocking',
+      }),
+    );
+  });
+
   test('does not mistake a natural handoff task ID for an API key prefix', async () => {
     const root = await makeControlRoot({
       handoff:

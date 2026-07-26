@@ -3,6 +3,7 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'yaml';
 import { loadRegionPacks } from './regions.js';
+import { assertRepositoryResearchIntegrity } from './research.js';
 import { EnvironmentFileSchema, WorkQueueSchema, type Finding, type WorkQueue } from './schemas.js';
 
 const SEVERITY_ORDER = { blocking: 0, warning: 1, info: 2 } as const;
@@ -97,6 +98,8 @@ export async function verifyStatic(root: string): Promise<Finding[]> {
   const handoffPath = join(controlRoot, 'CURRENT_HANDOFF.md');
   const indexPath = join(controlRoot, 'CONTROL_INDEX.md');
   const regionsRoot = join(controlRoot, 'regions');
+  const researchLedgerPath = join(controlRoot, 'RESEARCH_LEDGER.yaml');
+  const candidatesPath = join(controlRoot, 'CAPABILITY_CANDIDATES.yaml');
   const findings: Finding[] = [];
 
   let queue: WorkQueue | undefined;
@@ -110,6 +113,20 @@ export async function verifyStatic(root: string): Promise<Finding[]> {
         error instanceof Error ? error.message : 'invalid environment registry',
       ),
     );
+  }
+
+  if ((await pathExists(researchLedgerPath)) || (await pathExists(candidatesPath))) {
+    try {
+      await assertRepositoryResearchIntegrity(root);
+    } catch (error) {
+      findings.push(
+        blocking(
+          'control.research_invalid',
+          relative(root, researchLedgerPath),
+          error instanceof Error ? error.message : 'invalid research control files',
+        ),
+      );
+    }
   }
 
   try {

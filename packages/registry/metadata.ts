@@ -121,7 +121,14 @@ export const capabilityMetadata: Record<CapabilityId, CapabilityMetadata> = {
     monetization: 'acquisition',
     implementation: 'build',
     autonomy: 'manual',
-    evidenceIds: [],
+    evidenceIds: [
+      'video-qy0l1t7x6le-website-wedge',
+      'video-qy0l1t7x6le-template-library',
+      'video-qy0l1t7x6le-ai-assisted-editor',
+      'video-qy0l1t7x6le-gbp-site-prompt',
+      'video-qy0l1t7x6le-generation-stages',
+      'video-qy0l1t7x6le-prebuild-demos',
+    ],
     specification: P2_SPECIFICATION,
   },
   'factory.deploy_site': {
@@ -133,7 +140,11 @@ export const capabilityMetadata: Record<CapabilityId, CapabilityMetadata> = {
     monetization: 'hosting',
     implementation: 'build',
     autonomy: 'shadow',
-    evidenceIds: [],
+    evidenceIds: [
+      'video-qy0l1t7x6le-generation-stages',
+      'video-qy0l1t7x6le-free-hosting-offer',
+      'video-qy0l1t7x6le-presenter-pricing',
+    ],
     specification: P2_SPECIFICATION,
   },
   'leads.find': {
@@ -145,7 +156,7 @@ export const capabilityMetadata: Record<CapabilityId, CapabilityMetadata> = {
     monetization: 'acquisition',
     implementation: 'integrate',
     autonomy: 'manual',
-    evidenceIds: [],
+    evidenceIds: ['video-qy0l1t7x6le-google-maps-prospecting'],
     specification: P2_SPECIFICATION,
   },
   'outreach.send': {
@@ -157,7 +168,7 @@ export const capabilityMetadata: Record<CapabilityId, CapabilityMetadata> = {
     monetization: 'acquisition',
     implementation: 'integrate',
     autonomy: 'shadow',
-    evidenceIds: [],
+    evidenceIds: ['video-qy0l1t7x6le-multichannel-outreach'],
     specification: P2_SPECIFICATION,
   },
   'events.site': {
@@ -169,7 +180,11 @@ export const capabilityMetadata: Record<CapabilityId, CapabilityMetadata> = {
     monetization: 'hosting',
     implementation: 'build',
     autonomy: 'threshold',
-    evidenceIds: [],
+    evidenceIds: [
+      'video-qy0l1t7x6le-website-wedge',
+      'video-qy0l1t7x6le-unified-conversations',
+      'video-qy0l1t7x6le-follow-up-automation',
+    ],
     specification: P2_SPECIFICATION,
   },
   'approvals.list': {

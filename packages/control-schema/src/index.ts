@@ -1,6 +1,7 @@
 export * from './schemas.js';
 export * from './load.js';
 export * from './regions.js';
+export * from './research.js';
 export * from './observed-state.js';
 export * from './handoff.js';
 export {

@@ -1,0 +1,677 @@
+schema_version: 1
+sources:
+  - id: video-qy0l1t7x6le
+    source_url: https://www.youtube.com/watch?v=QY0L1T7x6lE
+    source_type: video
+    title: AI Websites Are The Current Online Gold Rush (Not AI Agents)
+    creator: Nick Ponte
+    duration: "00:42:37"
+    captured_with: watch
+    artifact_note: >-
+      Watch extracted 1,227 caption segments and 100 selected frames from the
+      42:37 source. Portable source IDs are committed; raw media, captions, and
+      copyrighted frames remain outside the repository.
+
+evidence:
+  - id: video-qy0l1t7x6le-website-wedge
+    source_id: video-qy0l1t7x6le
+    observed_at: "00:00:04-00:07:41"
+    kind: method
+    observation: >-
+      The presenter positions a familiar website as the entry product and puts
+      conversational agents, qualification, booking, and follow-up underneath it.
+    confidence: high
+    verification: observed
+    conflict_note: >-
+      The presenter promotes an affiliate-linked platform and related training.
+    atlas_interpretation: >-
+      Use a website as the acquisition wedge while keeping the underlying
+      automation modular, governed, and vendor-neutral.
+    capability_ids: [factory.build_site, events.site]
+    specification: docs/specs/p2/website-factory.md
+    artifacts:
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:00:04-00:07:41
+      - type: frame
+        ref: watch:QY0L1T7x6lE:frame_0019@00:07:10
+
+  - id: video-qy0l1t7x6le-dashboard-navigation
+    source_id: video-qy0l1t7x6le
+    observed_at: "00:07:09-00:07:29"
+    kind: feature
+    observation: >-
+      A customer workspace dashboard exposes a broad sales, marketing,
+      automation, site, reputation, reporting, and administration navigation.
+    observed_labels:
+      - Ask AI
+      - Launchpad
+      - Dashboard
+      - Conversations
+      - Calendars
+      - Contacts
+      - Opportunities
+      - Payments
+      - AI Studio
+      - AI Agents
+      - Marketing
+      - Automation
+      - Sites
+      - Memberships
+      - Media Storage
+      - Reputation
+      - Reporting
+      - App Marketplace
+      - Mobile App
+      - Settings
+    confidence: high
+    verification: observed
+    atlas_interpretation: >-
+      Preserve the label inventory as a source crosswalk. Atlas navigation is
+      organized around its own governed capability groups and enabled entitlements.
+    capability_ids:
+      - platform.dashboard
+      - conversations.inbox
+      - calendar.manage
+      - contacts.manage
+      - opportunities.manage
+      - billing.manage
+      - agents.studio
+      - automation.sequence
+      - memberships.manage
+      - media.storage
+      - reputation.manage
+      - reporting.analytics
+      - marketplace.apps
+      - mobile.app
+    specification: docs/specs/p2/README.md
+    artifacts:
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:07:09-00:07:29
+      - type: frame
+        ref: watch:QY0L1T7x6lE:frame_0019@00:07:10
+
+  - id: video-qy0l1t7x6le-ai-agent-tabs
+    source_id: video-qy0l1t7x6le
+    observed_at: "00:07:09-00:07:29"
+    kind: feature
+    observation: >-
+      The video visibly exposes an AI Agents navigation item and describes
+      voice, text, and knowledge-base functions. The selected and targeted
+      source frames do not show a readable AI-agent sub-tab view.
+    observed_labels:
+      - AI Agents
+    confidence: low
+    verification: needs_research
+    conflict_note: >-
+      Neither the balanced Watch selection nor one-second targeted extraction
+      from 00:07:08 through 00:07:32 shows a readable sub-tab view. A previous
+      inventory must not be treated as source-verified until a visible source is found.
+    atlas_interpretation: >-
+      Stage vendor-neutral agent building, voice, conversation, knowledge,
+      templates, content, and audit-log capabilities without copying the vendor UI.
+    capability_ids:
+      - agents.studio
+      - voice.agent
+      - conversations.agent
+      - knowledge.base
+      - agents.templates
+      - content.generate
+      - agents.logs
+    specification: docs/specs/p2/upsell-capabilities.md
+    artifacts:
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:07:19-00:07:29
+      - type: frame
+        ref: watch:QY0L1T7x6lE:frame_0019@00:07:10
+
+  - id: video-qy0l1t7x6le-marketing-navigation
+    source_id: video-qy0l1t7x6le
+    observed_at: "00:10:10-00:11:37"
+    kind: feature
+    observation: >-
+      The platform marketing area was inventoried with planning, email,
+      reusable-content, timing, attribution, affiliate, brand, advertising,
+      and prospecting surfaces.
+    observed_labels:
+      - Social Planner
+      - Emails
+      - Snippets
+      - Countdown Timers
+      - Trigger Links
+      - Affiliate Manager
+      - Brand Boards
+      - Ad Manager
+      - Prospecting
+    confidence: high
+    verification: observed
+    atlas_interpretation: >-
+      Retain a vendor-neutral backlog for content, campaigns, attribution,
+      affiliates, brand assets, ads, and prospecting.
+    capability_ids:
+      - marketing.social
+      - marketing.email
+      - marketing.snippets
+      - marketing.countdown
+      - marketing.trigger_links
+      - affiliates.manage
+      - brand.manage
+      - ads.manage
+      - prospecting.workspace
+    specification: docs/specs/p2/upsell-capabilities.md
+    artifacts:
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:10:10-00:11:37
+      - type: frame
+        ref: watch:QY0L1T7x6lE:frame_1120@00:11:20
+
+  - id: video-qy0l1t7x6le-unified-conversations
+    source_id: video-qy0l1t7x6le
+    observed_at: "00:11:20-00:12:21"
+    kind: feature
+    observation: >-
+      Email, phone calls, text messages, Google Business messages, Instagram
+      messages, and chat channels are presented as one managed conversation surface.
+    observed_labels:
+      - Conversations
+      - Manual Actions
+      - Snippets
+      - Trigger Links
+      - Analytics
+      - Settings
+      - All-in-one chat
+      - SMS / Email chat
+      - Live chat
+      - Facebook chat
+      - Instagram chat
+      - WhatsApp chat
+      - Voice AI
+    confidence: high
+    verification: observed
+    atlas_interpretation: >-
+      Normalize inbound channels into a governed tenant conversation inbox;
+      channel availability comes from regional packs and integrations.
+    capability_ids: [conversations.inbox, events.site, voice.agent]
+    specification: docs/specs/p2/website-factory.md
+    artifacts:
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:11:20-00:11:37
+      - type: frame
+        ref: watch:QY0L1T7x6lE:frame_1130@00:11:30
+      - type: frame
+        ref: watch:QY0L1T7x6lE:frame_0043@00:11:54
+      - type: frame
+        ref: watch:QY0L1T7x6lE:frame_0045@00:12:21
+
+  - id: video-qy0l1t7x6le-follow-up-automation
+    source_id: video-qy0l1t7x6le
+    observed_at: "00:08:56-00:16:19"
+    kind: workflow
+    observation: >-
+      Form submission triggers a workflow that can verify a lead and schedule
+      email, text, and phone follow-up; a later example describes timed drip steps.
+    confidence: high
+    verification: observed
+    atlas_interpretation: >-
+      Model follow-up as approval-aware sequences with regional channel policy,
+      consent evidence, caps, stop conditions, and complete audit logs.
+    capability_ids: [automation.sequence, events.site]
+    specification: docs/specs/p2/revenue-pilot.md
+    artifacts:
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:08:56-00:10:17
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:15:33-00:16:19
+      - type: frame
+        ref: watch:QY0L1T7x6lE:frame_0037@00:08:58
+
+  - id: video-qy0l1t7x6le-template-library
+    source_id: video-qy0l1t7x6le
+    observed_at: "00:18:29-00:20:49"
+    kind: feature
+    observation: >-
+      The presenter browses an industry template library and demonstrates
+      selecting a template as a no-code starting point.
+    confidence: high
+    verification: observed
+    atlas_interpretation: >-
+      Build an Atlas template catalog composed of reusable declarative sections,
+      vertical packs, accessibility rules, and regional copy variants.
+    capability_ids: [factory.template_library, factory.build_site]
+    specification: docs/specs/p2/website-factory.md
+    artifacts:
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:18:29-00:20:49
+      - type: frame
+        ref: watch:QY0L1T7x6lE:frame_0061@00:18:40
+      - type: frame
+        ref: watch:QY0L1T7x6lE:frame_0070@00:19:21
+      - type: frame
+        ref: watch:QY0L1T7x6lE:frame_0079@00:20:48
+
+  - id: video-qy0l1t7x6le-ai-assisted-editor
+    source_id: video-qy0l1t7x6le
+    observed_at: "00:23:34-00:23:57"
+    kind: feature
+    observation: >-
+      An AI-assisted studio accepts a one-shot request and is presented as an
+      alternative to selecting an existing template.
+    confidence: high
+    verification: observed
+    atlas_interpretation: >-
+      Accept a structured brief, generate an editable site descriptor, and keep
+      every generated fact attributable and reviewable before preview.
+    capability_ids: [factory.assisted_editor, factory.build_site]
+    specification: docs/specs/p2/website-factory.md
+    artifacts:
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:23:34-00:23:57
+      - type: frame
+        ref: watch:QY0L1T7x6lE:frame_0098@00:23:39
+      - type: frame
+        ref: watch:QY0L1T7x6lE:frame_0100@00:23:57
+
+  - id: video-qy0l1t7x6le-gbp-site-prompt
+    source_id: video-qy0l1t7x6le
+    observed_at: "00:23:44-00:26:03"
+    kind: method
+    observation: >-
+      The demonstrated prompt asks for a premium site using facts available
+      from a Google Business Profile or Maps listing, reviews, photos, social
+      profiles, and other public information.
+    confidence: high
+    verification: observed
+    conflict_note: >-
+      The workflow does not demonstrate rights, factual-consistency, or owner
+      approval checks for copied public content.
+    atlas_interpretation: >-
+      Research public business facts through replaceable adapters, retain source
+      provenance, prohibit invented facts, and require operator verification.
+    capability_ids: [factory.build_site]
+    specification: docs/specs/p2/website-factory.md
+    artifacts:
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:23:44-00:26:03
+      - type: frame
+        ref: watch:QY0L1T7x6lE:frame_0103@00:25:11
+      - type: frame
+        ref: watch:QY0L1T7x6lE:frame_0108@00:25:40
+
+  - id: video-qy0l1t7x6le-generation-stages
+    source_id: video-qy0l1t7x6le
+    observed_at: "00:26:00-00:27:05"
+    kind: workflow
+    observation: >-
+      The generation interface exposes a prompt, site-completion state, Details
+      and Preview controls, an optional CRM connection, style exploration,
+      live-preview startup, final preparation, and Publish.
+    observed_labels:
+      - Details
+      - Preview
+      - Connect to CRM
+      - Dismiss
+      - Connect
+      - Exploring styles
+      - Starting live preview
+      - Getting ready
+      - Publish
+    confidence: high
+    verification: observed
+    atlas_interpretation: >-
+      Implement explicit research, descriptor, template, generation,
+      verification, preview, integration, approval, and publish states.
+    capability_ids: [factory.build_site, factory.deploy_site]
+    specification: docs/specs/p2/website-factory.md
+    artifacts:
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:26:00-00:27:05
+      - type: frame
+        ref: watch:QY0L1T7x6lE:frame_0109@00:26:00
+      - type: frame
+        ref: watch:QY0L1T7x6lE:frame_0111@00:26:14
+      - type: frame
+        ref: watch:QY0L1T7x6lE:frame_0114@00:27:01
+
+  - id: video-qy0l1t7x6le-google-maps-prospecting
+    source_id: video-qy0l1t7x6le
+    observed_at: "00:24:09-00:29:20"
+    kind: method
+    observation: >-
+      Search by industry and location, inspect map listings for businesses with
+      an active profile but no website link, and optionally ask a research agent
+      for 10–20 candidates meeting those criteria.
+    confidence: high
+    verification: observed
+    conflict_note: >-
+      The presenter does not establish lead-data licensing, contact consent,
+      directory terms, or regional outreach compliance.
+    atlas_interpretation: >-
+      Use approved directory adapters and retain source, eligibility, policy,
+      and operator-review evidence for every prospect.
+    capability_ids: [leads.find]
+    specification: docs/specs/p2/revenue-pilot.md
+    artifacts:
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:24:09-00:25:11
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:27:42-00:29:20
+      - type: frame
+        ref: watch:QY0L1T7x6lE:frame_0101@00:24:43
+      - type: frame
+        ref: watch:QY0L1T7x6lE:frame_0103@00:25:11
+
+  - id: video-qy0l1t7x6le-prebuild-demos
+    source_id: video-qy0l1t7x6le
+    observed_at: "00:29:20-00:29:37"
+    kind: method
+    observation: >-
+      The presenter recommends prebuilding five or ten tailored website demos
+      before beginning outreach.
+    confidence: high
+    verification: observed
+    conflict_note: >-
+      The video does not quantify conversion lift or the labor and quality cost
+      of producing unsolicited demos.
+    atlas_interpretation: >-
+      Use a capped demo queue with source provenance, quality checks, expiration,
+      and explicit review before any prospect receives a link.
+    capability_ids: [factory.build_site]
+    specification: docs/specs/p2/revenue-pilot.md
+    artifacts:
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:29:20-00:29:37
+      - type: frame
+        ref: watch:QY0L1T7x6lE:frame_0129@00:29:23
+
+  - id: video-qy0l1t7x6le-multichannel-outreach
+    source_id: video-qy0l1t7x6le
+    observed_at: "00:29:38-00:30:42"
+    kind: method
+    observation: >-
+      The proposed sequence sends the website concept by email, then follows
+      with a text message, social direct message, and phone call.
+    observed_labels: [Email, SMS, Social DM, Phone call]
+    confidence: high
+    verification: observed
+    conflict_note: >-
+      The presenter recommends contact frequency but does not address consent,
+      suppression lists, calling windows, carrier policy, or regional law.
+    atlas_interpretation: >-
+      Atlas may draft a regionalized sequence, but every outbound touch remains
+      policy-checked, approval-gated, capped, suppressible, and audited.
+    capability_ids: [outreach.send]
+    specification: docs/specs/p2/revenue-pilot.md
+    artifacts:
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:29:38-00:30:42
+      - type: frame
+        ref: watch:QY0L1T7x6lE:frame_0130@00:29:38
+
+  - id: video-qy0l1t7x6le-free-hosting-offer
+    source_id: video-qy0l1t7x6le
+    observed_at: "00:29:23-00:30:06"
+    kind: offer
+    observation: >-
+      The outreach offer gives away a prebuilt site concept or site and asks the
+      business to pay only for hosting; the site is framed as value in advance.
+    confidence: high
+    verification: observed
+    conflict_note: >-
+      The offer economics, hosting terms, ownership, support boundary, taxes,
+      and cancellation obligations are not independently validated.
+    atlas_interpretation: >-
+      Make site ownership, hosting scope, support, edits, data portability,
+      renewal, taxes, and cancellation terms explicit before activation.
+    capability_ids: [factory.deploy_site]
+    specification: docs/specs/p2/revenue-pilot.md
+    artifacts:
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:29:23-00:30:06
+      - type: frame
+        ref: watch:QY0L1T7x6lE:frame_0129@00:29:23
+
+  - id: video-qy0l1t7x6le-upsell-reputation
+    source_id: video-qy0l1t7x6le
+    observed_at: "00:13:09-00:35:28"
+    kind: offer
+    observation: >-
+      Reputation marketing is presented as a recurring or higher-value service
+      that becomes easier to offer after establishing the website relationship.
+    confidence: high
+    verification: presenter_reported
+    conflict_note: >-
+      No controlled outcome evidence or market comparison is supplied.
+    atlas_interpretation: >-
+      Stage reputation monitoring and response assistance as an integration-led
+      upsell with human approval and platform-policy safeguards.
+    capability_ids: [reputation.manage]
+    specification: docs/specs/p2/upsell-capabilities.md
+    artifacts:
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:13:09-00:13:30
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:35:05-00:35:28
+
+  - id: video-qy0l1t7x6le-upsell-seo
+    source_id: video-qy0l1t7x6le
+    observed_at: "00:13:09-00:40:32"
+    kind: offer
+    observation: >-
+      Search-engine optimization and an SEO-analysis prospecting workflow are
+      presented as follow-on services.
+    confidence: high
+    verification: presenter_reported
+    conflict_note: >-
+      The video provides no ranking guarantee, scope definition, or market validation.
+    atlas_interpretation: >-
+      Begin with a transparent technical and local-search audit; recommendations
+      must distinguish measured findings from uncertain ranking effects.
+    capability_ids: [seo.audit]
+    specification: docs/specs/p2/upsell-capabilities.md
+    artifacts:
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:13:09-00:13:30
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:40:25-00:40:32
+
+  - id: video-qy0l1t7x6le-upsell-social
+    source_id: video-qy0l1t7x6le
+    observed_at: "00:10:10-00:35:28"
+    kind: offer
+    observation: >-
+      Social planning and posting are shown as platform functions and proposed
+      as recurring services after an initial customer relationship exists.
+    confidence: high
+    verification: presenter_reported
+    conflict_note: >-
+      The video does not define deliverables, channels, content rights, or outcomes.
+    atlas_interpretation: >-
+      Stage regional content planning and approval workflows before adding
+      publishing adapters.
+    capability_ids: [marketing.social]
+    specification: docs/specs/p2/upsell-capabilities.md
+    artifacts:
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:10:10-00:11:24
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:35:05-00:35:28
+
+  - id: video-qy0l1t7x6le-upsell-email
+    source_id: video-qy0l1t7x6le
+    observed_at: "00:22:20-00:22:58"
+    kind: offer
+    observation: >-
+      The presenter proposes using collected customer contacts for email
+      marketing and reports a USD 1,000 monthly service price.
+    confidence: high
+    verification: presenter_reported
+    conflict_note: >-
+      The claimed price, permission model, list quality, service scope, and
+      outcomes are not independently validated.
+    atlas_interpretation: >-
+      Treat email as a consent-dependent campaign capability with list provenance,
+      suppression, approval, and measurable scope.
+    capability_ids: [marketing.email]
+    specification: docs/specs/p2/upsell-capabilities.md
+    artifacts:
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:22:20-00:22:58
+      - type: frame
+        ref: watch:QY0L1T7x6lE:frame_0092@00:22:47
+
+  - id: video-qy0l1t7x6le-upsell-ads
+    source_id: video-qy0l1t7x6le
+    observed_at: "00:34:41-00:35:28"
+    kind: offer
+    observation: >-
+      Google advertising is recommended for a search-led vertical and is used
+      as an example of a service that can precede social and reputation work.
+    confidence: high
+    verification: presenter_reported
+    conflict_note: >-
+      The recommendation is an illustrative answer, not a researched media plan
+      or authorization to spend.
+    atlas_interpretation: >-
+      Keep advertising deferred behind account access, budget approval,
+      conversion measurement, regional policy review, and spend caps.
+    capability_ids: [ads.manage]
+    specification: docs/specs/p2/upsell-capabilities.md
+    artifacts:
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:34:41-00:35:28
+      - type: frame
+        ref: watch:QY0L1T7x6lE:frame_0138@00:34:59
+
+  - id: video-qy0l1t7x6le-upsell-aeo
+    source_id: video-qy0l1t7x6le
+    observed_at: "00:34:49-00:38:58"
+    kind: offer
+    observation: >-
+      The presenter proposes helping businesses appear in AI recommendations
+      and later calls this an AI search optimization campaign.
+    confidence: medium
+    verification: presenter_reported
+    conflict_note: >-
+      Terminology, deliverables, causal impact, and the caption-rendered price
+      are not independently validated.
+    atlas_interpretation: >-
+      Stage an answer-engine visibility audit based on observable citations,
+      entity consistency, structured data, and transparent uncertainty.
+    capability_ids: [aeo.audit]
+    specification: docs/specs/p2/upsell-capabilities.md
+    artifacts:
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:34:49-00:35:01
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:38:47-00:38:58
+
+  - id: video-qy0l1t7x6le-presenter-pricing
+    source_id: video-qy0l1t7x6le
+    observed_at: "00:12:37-00:38:58"
+    kind: claim
+    observation: >-
+      Presenter-reported offer figures include USD 100 or USD 119 plus tax
+      monthly hosting, USD 2,000 website/SEO/reputation offers, USD 500 monthly
+      social posting, USD 1,000 monthly email marketing, USD 50 basic edits,
+      USD 100 complex edits, and a caption-rendered USD 9.97 monthly AI-search
+      figure. None is an approved Atlas price.
+    confidence: high
+    verification: presenter_reported
+    conflict_note: >-
+      These are first-party sales claims inside an affiliate and training pitch.
+      No customer sample, cost model, regional comparison, tax analysis, or
+      independent market validation is supplied; the 9.97 caption rendering
+      especially requires audio and offer-page verification.
+    atlas_interpretation: >-
+      Store each figure only as an unvalidated research input. Regional market
+      research, cost-to-serve, terms, taxes, and measured willingness to pay
+      must precede any Atlas pricing decision.
+    capability_ids:
+      - factory.deploy_site
+      - seo.audit
+      - reputation.manage
+      - marketing.social
+      - marketing.email
+      - aeo.audit
+    specification: docs/specs/p2/revenue-pilot.md
+    artifacts:
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:12:37-00:13:19
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:22:45-00:22:58
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:29:40-00:30:06
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:37:45-00:38:58
+    claim:
+      type: price
+      presenter_reported: true
+      validation: unvalidated
+      values:
+        - offering: website hosting
+          currency: USD
+          amount: 100
+          cadence: monthly
+          qualifier: plus tax in the first example
+        - offering: website hosting with security and chat
+          currency: USD
+          amount: 119
+          cadence: monthly
+        - offering: website reference price
+          currency: USD
+          amount: 2000
+          cadence: one_time
+        - offering: search-engine optimization
+          currency: USD
+          amount: 2000
+          cadence: unspecified
+        - offering: reputation marketing
+          currency: USD
+          amount: 2000
+          cadence: unspecified
+        - offering: social media posting
+          currency: USD
+          amount: 500
+          cadence: monthly
+        - offering: email marketing
+          currency: USD
+          amount: 1000
+          cadence: monthly
+        - offering: basic website changes
+          currency: USD
+          amount: 50
+          cadence: hourly
+        - offering: complicated website changes
+          currency: USD
+          amount: 100
+          cadence: hourly
+        - offering: AI search optimization
+          currency: USD
+          amount: 9.97
+          cadence: monthly
+          qualifier: auto-caption rendering; verify against audio and offer before use
+
+  - id: video-qy0l1t7x6le-affiliate-conflict
+    source_id: video-qy0l1t7x6le
+    observed_at: "00:35:44-00:40:40"
+    kind: conflict
+    observation: >-
+      The presenter repeatedly offers a 30-day platform trial through his link,
+      bundles a snapshot and prospecting workflows, promotes a free masterclass
+      with a paid upgrade, and states that viewers must use his link for the bundle.
+    confidence: high
+    verification: observed
+    conflict_note: >-
+      Platform recommendations, opportunity claims, feature framing, pricing,
+      and workflow emphasis may be influenced by affiliate and training-funnel incentives.
+    atlas_interpretation: >-
+      Preserve the workflow as a hypothesis, keep vendor choice replaceable,
+      and independently validate product, market, price, and outcome claims.
+    capability_ids: [affiliates.manage]
+    specification: docs/specs/p2/README.md
+    artifacts:
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:35:44-00:37:42
+      - type: transcript
+        ref: watch:QY0L1T7x6lE:captions@00:39:21-00:40:40
+      - type: frame
+        ref: watch:QY0L1T7x6lE:frame_0145@00:37:05

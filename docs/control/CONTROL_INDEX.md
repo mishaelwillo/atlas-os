@@ -14,6 +14,8 @@ Other code spans are commands or identifiers and are not interpreted as paths.
 6. Generated observed state and drift: run `pnpm control:status` to refresh the
    uncommitted files in `docs/control/generated/`; absence means no live refresh
    has been performed in this worktree
+7. Research evidence: `path:docs/control/RESEARCH_LEDGER.yaml`
+8. Staged non-executable capabilities: `path:docs/control/CAPABILITY_CANDIDATES.yaml`
 
 ## Current phase
 
