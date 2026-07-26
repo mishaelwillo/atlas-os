@@ -16,6 +16,7 @@ Other code spans are commands or identifiers and are not interpreted as paths.
    has been performed in this worktree
 7. Research evidence: `path:docs/control/RESEARCH_LEDGER.yaml`
 8. Staged non-executable capabilities: `path:docs/control/CAPABILITY_CANDIDATES.yaml`
+9. Retained research artifact hashes: `path:docs/control/research/ARTIFACT_MANIFEST.yaml`
 
 ## Current phase
 

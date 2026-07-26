@@ -1,11 +1,16 @@
 import { describe, expect, test } from 'vitest';
-import { dirname, resolve } from 'node:path';
+import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   CapabilityCandidatesSchema,
+  ResearchArtifactManifestSchema,
   ResearchLedgerSchema,
+  assertResearchArtifactsResolvable,
   assertRepositoryResearchIntegrity,
   assertResearchIntegrity,
+  auditResearchArtifactStore,
 } from './research.js';
 
 const evidenceId = 'video-qy0l1t7x6le-website-wedge';
@@ -33,13 +38,14 @@ const validLedger = {
       kind: 'method',
       observation:
         'The website is the familiar entry product; automation and agents operate underneath it.',
+      observed_labels: ['Dashboard'],
       confidence: 'high',
       verification: 'observed',
       conflict_note:
         'Presenter promotes an affiliate-linked platform and a related masterclass.',
       atlas_interpretation:
         'Use a website as the acquisition wedge without copying the vendor platform.',
-      capability_ids: ['factory.build_site'],
+      capability_ids: ['factory.build_site', 'conversations.inbox'],
       specification: 'docs/specs/p2/website-factory.md',
       artifacts: [
         {
@@ -51,6 +57,7 @@ const validLedger = {
           ref: 'watch:QY0L1T7x6lE:frame_0019@00:07:10',
         },
       ],
+      visual_evidence_refs: ['watch:QY0L1T7x6lE:frame_0019@00:07:10'],
     },
     {
       id: 'video-qy0l1t7x6le-hosting-price',
@@ -106,6 +113,44 @@ const validCandidates = {
       atlas_description: 'Unify inbound customer conversations.',
       evidence_ids: [evidenceId],
       specification: 'docs/specs/p2/website-factory.md',
+    },
+  ],
+};
+
+const validManifest = {
+  schema_version: 1,
+  artifacts: [
+    {
+      id: 'qy0l1t7x6le-captions-000004-000741',
+      ref: 'watch:QY0L1T7x6lE:captions@00:00:04-00:07:41',
+      source_video_id: 'QY0L1T7x6lE',
+      timestamp: '00:00:04-00:07:41',
+      relative_path: 'download/video.en.vtt',
+      sha256: 'a'.repeat(64),
+    },
+    {
+      id: 'qy0l1t7x6le-frame-0019-000710',
+      ref: 'watch:QY0L1T7x6lE:frame_0019@00:07:10',
+      source_video_id: 'QY0L1T7x6lE',
+      timestamp: '00:07:10',
+      relative_path: 'frames/frame_0019.jpg',
+      sha256: 'b'.repeat(64),
+    },
+    {
+      id: 'qy0l1t7x6le-captions-001237-001255',
+      ref: 'watch:QY0L1T7x6lE:captions@00:12:37-00:12:55',
+      source_video_id: 'QY0L1T7x6lE',
+      timestamp: '00:12:37-00:12:55',
+      relative_path: 'download/video.en.vtt',
+      sha256: 'a'.repeat(64),
+    },
+    {
+      id: 'qy0l1t7x6le-frame-0046-001223',
+      ref: 'watch:QY0L1T7x6lE:frame_0046@00:12:23',
+      source_video_id: 'QY0L1T7x6lE',
+      timestamp: '00:12:23',
+      relative_path: 'frames/frame_0046.jpg',
+      sha256: 'c'.repeat(64),
     },
   ],
 };
@@ -240,6 +285,100 @@ describe('research schemas', () => {
     ).toThrow(/on-screen labels require frame evidence/i);
   });
 
+  test('requires observed labels to name their related frame evidence', () => {
+    expect(() =>
+      ResearchLedgerSchema.parse({
+        ...validLedger,
+        evidence: [
+          {
+            ...validLedger.evidence[0],
+            observed_labels: ['Dashboard'],
+            visual_evidence_refs: [],
+          },
+        ],
+      }),
+    ).toThrow(/visual evidence reference/i);
+  });
+
+  test('accepts spoken items with transcript evidence and no frame', () => {
+    const { visual_evidence_refs: _visualRefs, ...evidence } = validLedger.evidence[0];
+    expect(() =>
+      ResearchLedgerSchema.parse({
+        ...validLedger,
+        evidence: [
+          {
+            ...evidence,
+            observed_labels: undefined,
+            spoken_items: ['Email', 'SMS', 'Social DM', 'Phone call'],
+            artifacts: [validLedger.evidence[0].artifacts[0]],
+          },
+        ],
+      }),
+    ).not.toThrow();
+  });
+
+  test('rejects invalid, reversed, and out-of-duration timecodes', () => {
+    for (const duration of ['00:60:00', '00:00:60']) {
+      expect(() =>
+        ResearchLedgerSchema.parse({
+          ...validLedger,
+          sources: [{ ...validLedger.sources[0], duration }],
+        }),
+      ).toThrow(/HH:MM:SS/i);
+    }
+
+    expect(() =>
+      ResearchLedgerSchema.parse({
+        ...validLedger,
+        evidence: [{ ...validLedger.evidence[0], observed_at: '00:07:41-00:00:04' }],
+      }),
+    ).toThrow(/chronological/i);
+
+    expect(() =>
+      ResearchLedgerSchema.parse({
+        ...validLedger,
+        evidence: [
+          {
+            ...validLedger.evidence[0],
+            observed_at: '00:42:36-00:42:38',
+            artifacts: [
+              {
+                type: 'transcript',
+                ref: 'watch:QY0L1T7x6lE:captions@00:42:36-00:42:38',
+              },
+            ],
+          },
+        ],
+      }),
+    ).toThrow(/source duration/i);
+  });
+
+  test('accepts a qualified presenter-reported price range', () => {
+    expect(() =>
+      ResearchLedgerSchema.parse({
+        ...validLedger,
+        evidence: [
+          {
+            ...validLedger.evidence[1],
+            claim: {
+              ...validLedger.evidence[1].claim,
+              values: [
+                {
+                  offering: 'social media posting',
+                  currency: 'USD',
+                  min_amount: 300,
+                  max_amount: 2500,
+                  cadence: 'monthly',
+                  qualifier: 'depends on post and platform volume',
+                },
+              ],
+            },
+          },
+        ],
+      }),
+    ).not.toThrow();
+  });
+
   test('requires claim conflict disclosure and structured claim details', () => {
     const { conflict_note: _conflictNote, ...withoutConflict } = validLedger.evidence[1];
     expect(() =>
@@ -307,6 +446,23 @@ describe('research cross-reference integrity', () => {
         capabilityEvidenceIds: { 'factory.build_site': ['missing-evidence'] },
       }),
     ).toThrow(/missing-evidence.*absent from the research ledger/i);
+  });
+
+  test('rejects executable metadata linked to unrelated ledger evidence', () => {
+    expect(() =>
+      assertResearchIntegrity({
+        ledger: ResearchLedgerSchema.parse(validLedger),
+        candidates: CapabilityCandidatesSchema.parse(validCandidates),
+        executableCapabilityIds: ['factory.build_site', 'factory.deploy_site'],
+        capabilityEvidenceIds: {
+          'factory.build_site': [
+            evidenceId,
+            'video-qy0l1t7x6le-hosting-price',
+          ],
+          'factory.deploy_site': ['video-qy0l1t7x6le-hosting-price'],
+        },
+      }),
+    ).toThrow(/factory\.build_site.*hosting-price.*does not name that capability/i);
   });
 
   test('rejects executable ledger evidence missing from capability metadata', () => {
@@ -393,5 +549,104 @@ describe('research cross-reference integrity', () => {
         capabilityEvidenceIds: {},
       }),
     ).toThrow(/candidate conversations\.inbox.*missing-evidence/i);
+  });
+
+  test('rejects candidate metadata linked to unrelated ledger evidence', () => {
+    const candidates = CapabilityCandidatesSchema.parse({
+      ...validCandidates,
+      candidates: [
+        {
+          ...validCandidates.candidates[0],
+          evidence_ids: [
+            evidenceId,
+            'video-qy0l1t7x6le-hosting-price',
+          ],
+        },
+      ],
+    });
+
+    expect(() =>
+      assertResearchIntegrity({
+        ledger: ResearchLedgerSchema.parse(validLedger),
+        candidates,
+        executableCapabilityIds: ['factory.build_site', 'factory.deploy_site'],
+        capabilityEvidenceIds: {
+          'factory.build_site': [evidenceId],
+          'factory.deploy_site': ['video-qy0l1t7x6le-hosting-price'],
+        },
+      }),
+    ).toThrow(/conversations\.inbox.*hosting-price.*does not name that capability/i);
+  });
+});
+
+describe('research artifact manifest', () => {
+  test('requires every ledger artifact to resolve exactly', () => {
+    expect(() =>
+      assertResearchArtifactsResolvable(
+        ResearchLedgerSchema.parse(validLedger),
+        ResearchArtifactManifestSchema.parse(validManifest),
+      ),
+    ).not.toThrow();
+
+    expect(() =>
+      assertResearchArtifactsResolvable(
+        ResearchLedgerSchema.parse(validLedger),
+        ResearchArtifactManifestSchema.parse({
+          ...validManifest,
+          artifacts: validManifest.artifacts.slice(1),
+        }),
+      ),
+    ).toThrow(/absent from the artifact manifest/i);
+  });
+
+  test('rejects manifest timestamp and source-video mismatches', () => {
+    expect(() =>
+      ResearchArtifactManifestSchema.parse({
+        ...validManifest,
+        artifacts: [
+          {
+            ...validManifest.artifacts[0],
+            timestamp: '00:00:05-00:07:41',
+          },
+        ],
+      }),
+    ).toThrow(/timestamp.*reference/i);
+
+    expect(() =>
+      ResearchArtifactManifestSchema.parse({
+        ...validManifest,
+        artifacts: [
+          {
+            ...validManifest.artifacts[0],
+            source_video_id: 'AAAAAAAAAAA',
+          },
+        ],
+      }),
+    ).toThrow(/video ID.*reference/i);
+  });
+
+  test('optionally audits retained local artifact hashes', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'atlas-watch-'));
+    await mkdir(join(root, 'frames'), { recursive: true });
+    await writeFile(join(root, 'frames', 'frame_0001.jpg'), 'frame bytes');
+    const manifest = ResearchArtifactManifestSchema.parse({
+      schema_version: 1,
+      artifacts: [
+        {
+          id: 'qy0l1t7x6le-frame-0001-000000',
+          ref: 'watch:QY0L1T7x6lE:frame_0001@00:00:00',
+          source_video_id: 'QY0L1T7x6lE',
+          timestamp: '00:00:00',
+          relative_path: 'frames/frame_0001.jpg',
+          sha256: 'f9dea2843a6dfb6dafd2a97c8f1848754d9266b82980f2f7fae9fb599266fd0f',
+        },
+      ],
+    });
+
+    await expect(auditResearchArtifactStore(manifest, root)).resolves.toEqual([]);
+    await writeFile(join(root, 'frames', 'frame_0001.jpg'), 'changed');
+    await expect(auditResearchArtifactStore(manifest, root)).resolves.toContainEqual(
+      expect.stringMatching(/hash mismatch/i),
+    );
   });
 });

@@ -15,6 +15,7 @@
     "build": "tsc",
     "test": "vitest run --pool=forks",
     "verify": "tsx src/verify-static.ts",
+    "audit:research": "tsx src/audit-research-artifacts.ts",
     "status": "tsx src/collect-observed-state.ts",
     "handoff": "tsx src/create-handoff.ts",
     "archive-handoff": "tsx src/archive-handoff.ts"

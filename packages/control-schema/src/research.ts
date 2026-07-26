@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { isAbsolute, join, posix } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parse } from 'yaml';
@@ -13,10 +14,13 @@ const CapabilityIdSchema = z
   .regex(/^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$/, 'must be a dot-namespaced capability ID');
 const TimecodeSchema = z
   .string()
-  .regex(/^\d{2}:\d{2}:\d{2}$/, 'must use HH:MM:SS');
+  .regex(/^\d{2}:[0-5]\d:[0-5]\d$/, 'must use HH:MM:SS with minutes and seconds from 00 to 59');
 const TimeRangeSchema = z
   .string()
-  .regex(/^\d{2}:\d{2}:\d{2}-\d{2}:\d{2}:\d{2}$/, 'must use HH:MM:SS-HH:MM:SS');
+  .regex(
+    /^\d{2}:[0-5]\d:[0-5]\d-\d{2}:[0-5]\d:[0-5]\d$/,
+    'must use HH:MM:SS-HH:MM:SS with minutes and seconds from 00 to 59',
+  );
 const WatchArtifactReferenceSchema = z
   .string()
   .regex(
@@ -32,6 +36,17 @@ function isSafeRepositoryPath(value: string): boolean {
     !normalized.startsWith('../') &&
     normalized !== '..' &&
     normalized.startsWith('docs/')
+  );
+}
+
+function isSafeRelativeArtifactPath(value: string): boolean {
+  if (isAbsolute(value) || value.includes('\\')) return false;
+  const normalized = posix.normalize(value);
+  return (
+    normalized === value &&
+    !normalized.startsWith('../') &&
+    normalized !== '..' &&
+    (normalized.startsWith('download/') || normalized.startsWith('frames/'))
   );
 }
 
@@ -61,7 +76,16 @@ const ResearchSourceSchema = z
     captured_with: z.enum(['watch', 'manual', 'import']),
     artifact_note: z.string().min(1),
   })
-  .strict();
+  .strict()
+  .superRefine((source, context) => {
+    if (source.source_type === 'video' && !source.duration) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'video source requires duration',
+        path: ['duration'],
+      });
+    }
+  });
 
 const EvidenceArtifactSchema = z
   .object({
@@ -87,11 +111,36 @@ const PriceValueSchema = z
   .object({
     offering: z.string().min(1),
     currency: z.string().regex(/^[A-Z]{3}$/, 'must be an ISO-style currency code'),
-    amount: z.number().nonnegative(),
+    amount: z.number().nonnegative().optional(),
+    min_amount: z.number().nonnegative().optional(),
+    max_amount: z.number().nonnegative().optional(),
     cadence: z.enum(['one_time', 'hourly', 'monthly', 'unspecified']),
     qualifier: z.string().min(1).optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((price, context) => {
+    const hasAmount = price.amount !== undefined;
+    const hasRange = price.min_amount !== undefined || price.max_amount !== undefined;
+    if (hasAmount === hasRange) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'price requires either amount or min_amount and max_amount',
+        path: ['amount'],
+      });
+    }
+    if (
+      hasRange &&
+      (price.min_amount === undefined ||
+        price.max_amount === undefined ||
+        price.min_amount > price.max_amount)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'price range requires min_amount less than or equal to max_amount',
+        path: ['min_amount'],
+      });
+    }
+  });
 
 const ResearchClaimSchema = z
   .object({
@@ -126,6 +175,8 @@ const ResearchEvidenceSchema = z
     kind: z.enum(['method', 'feature', 'workflow', 'offer', 'claim', 'conflict']),
     observation: z.string().min(1),
     observed_labels: z.array(z.string().min(1)).min(1).optional(),
+    spoken_items: z.array(z.string().min(1)).min(1).optional(),
+    visual_evidence_refs: z.array(WatchArtifactReferenceSchema).min(1).optional(),
     confidence: z.enum(['low', 'medium', 'high']),
     verification: z.enum(['observed', 'presenter_reported', 'needs_research', 'validated']),
     conflict_note: z.string().min(1).optional(),
@@ -152,6 +203,40 @@ const ResearchEvidenceSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'on-screen labels require frame evidence',
+        path: ['artifacts'],
+      });
+    }
+    if (evidence.observed_labels && !evidence.visual_evidence_refs?.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'on-screen labels require a visual evidence reference',
+        path: ['visual_evidence_refs'],
+      });
+    }
+    if (!evidence.observed_labels && evidence.visual_evidence_refs) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'visual evidence references require observed labels',
+        path: ['visual_evidence_refs'],
+      });
+    }
+    for (const [index, visualRef] of (evidence.visual_evidence_refs ?? []).entries()) {
+      const relatedArtifact = evidence.artifacts.find((artifact) => artifact.ref === visualRef);
+      if (!relatedArtifact || relatedArtifact.type !== 'frame') {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'visual evidence reference must name a frame artifact on this record',
+          path: ['visual_evidence_refs', index],
+        });
+      }
+    }
+    if (
+      evidence.spoken_items &&
+      !evidence.artifacts.some((artifact) => artifact.type === 'transcript')
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'spoken items require transcript evidence',
         path: ['artifacts'],
       });
     }
@@ -230,6 +315,7 @@ export const ResearchLedgerSchema = z
   .strict()
   .superRefine((ledger, context) => {
     const sourceIds = new Set<string>();
+    const sourcesById = new Map<string, z.infer<typeof ResearchSourceSchema>>();
     ledger.sources.forEach((source, index) => {
       if (sourceIds.has(source.id)) {
         context.addIssue({
@@ -239,6 +325,7 @@ export const ResearchLedgerSchema = z
         });
       }
       sourceIds.add(source.id);
+      sourcesById.set(source.id, source);
     });
 
     const evidenceIds = new Set<string>();
@@ -257,7 +344,92 @@ export const ResearchLedgerSchema = z
           message: `unknown source id: ${evidence.source_id}`,
           path: ['evidence', index, 'source_id'],
         });
+      } else {
+        const source = sourcesById.get(evidence.source_id);
+        if (source?.duration) {
+          const duration = timecodeToSeconds(source.duration);
+          const [observationStart, observationEnd] = rangeBounds(evidence.observed_at);
+          if (observationStart > duration || observationEnd > duration) {
+            context.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `evidence exceeds source duration ${source.duration}`,
+              path: ['evidence', index, 'observed_at'],
+            });
+          }
+          evidence.artifacts.forEach((artifact, artifactIndex) => {
+            const artifactRange = artifact.ref.slice(artifact.ref.lastIndexOf('@') + 1);
+            const [artifactStart, artifactEnd] = rangeBounds(artifactRange);
+            if (artifactStart > duration || artifactEnd > duration) {
+              context.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `artifact exceeds source duration ${source.duration}`,
+                path: ['evidence', index, 'artifacts', artifactIndex, 'ref'],
+              });
+            }
+          });
+        }
       }
+    });
+  });
+
+const ResearchArtifactSchema = z
+  .object({
+    id: IdentifierSchema,
+    ref: WatchArtifactReferenceSchema,
+    source_video_id: z.string().regex(/^[A-Za-z0-9_-]{11}$/, 'must be a Watch video ID'),
+    timestamp: z.union([TimecodeSchema, TimeRangeSchema]),
+    relative_path: z
+      .string()
+      .min(1)
+      .refine(isSafeRelativeArtifactPath, 'must be a safe Watch-store relative path'),
+    sha256: z.string().regex(/^[a-f0-9]{64}$/, 'must be a lowercase SHA-256 digest'),
+  })
+  .strict()
+  .superRefine((artifact, context) => {
+    const [, refVideoId] = artifact.ref.split(':');
+    const refTimestamp = artifact.ref.slice(artifact.ref.lastIndexOf('@') + 1);
+    if (artifact.source_video_id !== refVideoId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'manifest video ID does not match reference',
+        path: ['source_video_id'],
+      });
+    }
+    if (artifact.timestamp !== refTimestamp) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'manifest timestamp does not match reference',
+        path: ['timestamp'],
+      });
+    }
+  });
+
+export const ResearchArtifactManifestSchema = z
+  .object({
+    schema_version: z.literal(1),
+    artifacts: z.array(ResearchArtifactSchema).min(1),
+  })
+  .strict()
+  .superRefine((manifest, context) => {
+    const ids = new Set<string>();
+    const refs = new Set<string>();
+    manifest.artifacts.forEach((artifact, index) => {
+      if (ids.has(artifact.id)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `duplicate artifact id: ${artifact.id}`,
+          path: ['artifacts', index, 'id'],
+        });
+      }
+      if (refs.has(artifact.ref)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `duplicate artifact reference: ${artifact.ref}`,
+          path: ['artifacts', index, 'ref'],
+        });
+      }
+      ids.add(artifact.id);
+      refs.add(artifact.ref);
     });
   });
 
@@ -305,6 +477,45 @@ export const CapabilityCandidatesSchema = z
 
 export type ResearchLedger = z.infer<typeof ResearchLedgerSchema>;
 export type CapabilityCandidates = z.infer<typeof CapabilityCandidatesSchema>;
+export type ResearchArtifactManifest = z.infer<typeof ResearchArtifactManifestSchema>;
+
+export function assertResearchArtifactsResolvable(
+  ledger: ResearchLedger,
+  manifest: ResearchArtifactManifest,
+): void {
+  const manifestRefs = new Set(manifest.artifacts.map((artifact) => artifact.ref));
+  const missing = ledger.evidence.flatMap((evidence) =>
+    evidence.artifacts
+      .filter((artifact) => !manifestRefs.has(artifact.ref))
+      .map((artifact) => `${evidence.id}: ${artifact.ref}`),
+  );
+  if (missing.length > 0) {
+    throw new Error(`ledger artifact is absent from the artifact manifest:\n${missing.sort().join('\n')}`);
+  }
+}
+
+export async function auditResearchArtifactStore(
+  manifest: ResearchArtifactManifest,
+  watchRoot: string,
+): Promise<string[]> {
+  const failures: string[] = [];
+  for (const artifact of manifest.artifacts) {
+    const artifactPath = join(watchRoot, artifact.relative_path);
+    try {
+      const bytes = await readFile(artifactPath);
+      const actual = createHash('sha256').update(bytes).digest('hex');
+      if (actual !== artifact.sha256) {
+        failures.push(`${artifact.id}: hash mismatch`);
+      }
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      failures.push(
+        `${artifact.id}: ${code === 'ENOENT' ? 'artifact missing' : 'artifact read failed'}`,
+      );
+    }
+  }
+  return failures;
+}
 
 export interface ResearchIntegrityInput {
   ledger: ResearchLedger;
@@ -326,9 +537,14 @@ export function assertResearchIntegrity(input: ResearchIntegrityInput): void {
       failures.push(`capability metadata key ${capabilityId} is not executable`);
     }
     for (const referencedEvidenceId of referencedEvidenceIds) {
-      if (!evidenceIds.has(referencedEvidenceId)) {
+      const evidence = input.ledger.evidence.find((item) => item.id === referencedEvidenceId);
+      if (!evidence) {
         failures.push(
           `capability ${capabilityId} evidence ${referencedEvidenceId} is absent from the research ledger`,
+        );
+      } else if (!evidence.capability_ids.includes(capabilityId)) {
+        failures.push(
+          `capability ${capabilityId} evidence ${referencedEvidenceId} does not name that capability`,
         );
       }
     }
@@ -365,9 +581,14 @@ export function assertResearchIntegrity(input: ResearchIntegrityInput): void {
       failures.push(`candidate ${candidate.id} duplicates an executable capability`);
     }
     for (const referencedEvidenceId of candidate.evidence_ids) {
-      if (!evidenceIds.has(referencedEvidenceId)) {
+      const evidence = input.ledger.evidence.find((item) => item.id === referencedEvidenceId);
+      if (!evidence) {
         failures.push(
           `candidate ${candidate.id} references absent evidence ${referencedEvidenceId}`,
+        );
+      } else if (!evidence.capability_ids.includes(candidate.id)) {
+        failures.push(
+          `candidate ${candidate.id} evidence ${referencedEvidenceId} does not name that capability`,
         );
       }
     }
@@ -381,21 +602,24 @@ export function assertResearchIntegrity(input: ResearchIntegrityInput): void {
 export async function loadResearchFiles(root: string): Promise<{
   ledger: ResearchLedger;
   candidates: CapabilityCandidates;
+  manifest: ResearchArtifactManifest;
 }> {
   const controlRoot = join(root, 'docs', 'control');
-  const [ledgerYaml, candidatesYaml] = await Promise.all([
+  const [ledgerYaml, candidatesYaml, manifestYaml] = await Promise.all([
     readFile(join(controlRoot, 'RESEARCH_LEDGER.yaml'), 'utf8'),
     readFile(join(controlRoot, 'CAPABILITY_CANDIDATES.yaml'), 'utf8'),
+    readFile(join(controlRoot, 'research', 'ARTIFACT_MANIFEST.yaml'), 'utf8'),
   ]);
 
   return {
     ledger: ResearchLedgerSchema.parse(parse(ledgerYaml)),
     candidates: CapabilityCandidatesSchema.parse(parse(candidatesYaml)),
+    manifest: ResearchArtifactManifestSchema.parse(parse(manifestYaml)),
   };
 }
 
 export async function assertRepositoryResearchIntegrity(root: string): Promise<void> {
-  const { ledger, candidates } = await loadResearchFiles(root);
+  const { ledger, candidates, manifest } = await loadResearchFiles(root);
   const registryUrl = pathToFileURL(join(root, 'packages', 'registry', 'registry.ts')).href;
   const metadataUrl = pathToFileURL(join(root, 'packages', 'registry', 'metadata.ts')).href;
   const registryModule = (await import(/* @vite-ignore */ registryUrl)) as {
@@ -416,4 +640,5 @@ export async function assertRepositoryResearchIntegrity(root: string): Promise<v
       ]),
     ),
   });
+  assertResearchArtifactsResolvable(ledger, manifest);
 }
