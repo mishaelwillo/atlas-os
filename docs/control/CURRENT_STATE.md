@@ -13,11 +13,12 @@ state.
 
 - Active branch: `codex/atlas-continuity`.
 - Current code boundary:
-  `67a803a9212bc6cc19b3ef04ac287675594a19f9`.
+  `d2e69a025694c9ef7fcdf5325ba68660c4035754`.
 - Focused remediation code boundary:
   `4023a14e4873ae681c165b182e1b9ddd326ffbf4`.
 - Focused whole-branch remediation review: approved with no findings.
 - Integration-path and secret-gate remediation: implemented and locally green.
+- Full-history trusted-target CI checkout: implemented and locally green.
 - Final `origin/main..HEAD` whole-branch re-review: pending.
 - Active work item: `P2A-MEMORY-001`.
 - Active owning spec: `docs/specs/p2/intelligence-foundation.md`.

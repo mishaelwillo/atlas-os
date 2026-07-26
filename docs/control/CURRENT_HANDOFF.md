@@ -14,8 +14,8 @@ continuity foundation and evidence-backed P2 specification set.
 - Owning specification: `docs/specs/p2/intelligence-foundation.md`
 - Branch: `codex/atlas-continuity`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `67a803a9212bc6cc19b3ef04ac287675594a19f9`
-- Review status: integration remediation implemented; final whole-branch re-review pending
+- Head commit: `d2e69a025694c9ef7fcdf5325ba68660c4035754`
+- Review status: CI checkout remediation implemented; final whole-branch re-review pending
 
 ## Completed scope
 
@@ -78,6 +78,10 @@ continuity foundation and evidence-backed P2 specification set.
 - Integration GREEN: 32/32 static/integration tests, 10/10 redaction/drift
   tests, 234/234 control-schema tests, 14/14 workspace test tasks, and 8/8
   build tasks passed at commit `67a803a`.
+- CI checkout RED: the workflow contract failed because checkout did not fetch
+  full history. GREEN: 7/7 workflow-contract and 235/235 control-schema tests
+  passed at commit `d2e69a0`; checkout now selects the trusted event target with
+  full Git history.
 
 ## Database actions
 
@@ -93,7 +97,7 @@ continuity foundation and evidence-backed P2 specification set.
 ## External side effects
 
 - Local commits only: `61ffc93`, `535cedd`, `4023a14`, `264ec8b`, `a8f4e6d`,
-  and `67a803a`.
+  `67a803a`, `941178b`, and `d2e69a0`.
 - No push, pull request, deploy, database write, message send, billing action,
   or other external write.
 
