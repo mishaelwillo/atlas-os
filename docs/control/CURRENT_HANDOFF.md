@@ -12,7 +12,7 @@
 - Work item: `P2A-MEMORY-001`
 - Branch: `codex/p2a-intelligence-reconciliation`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `25cfb9707a29bbe974abb5560a6c49c6854aa9d4`
+- Head commit: `52e7dc59792da5cf88755e2c0dbf04eccb8c4a95`
 - Review status: pending independent review
 
 ## Task change evidence
