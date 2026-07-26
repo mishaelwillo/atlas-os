@@ -6,6 +6,15 @@ Make Atlas knowledge, decisions, capability state, model activity, and playbooks
 owned, attributable, verifiable, and portable so another model can resume from
 the repository control entry point without rediscovery.
 
+This document is the P2A target/delta and reconciliation specification. It does
+not replace the current owner specification for existing P1 capabilities.
+`memory.answer`, `memory.ingest`, `memory.distill`, `memory.adjudicate`,
+`runs.execute`, `approvals.list`, `approvals.decide`,
+`status.mission_control`, and `bench.run` remain owned by
+`briefs/P1-CODEX-services.md` until an approved registry-metadata migration
+changes that authority. P2A work must first reconcile this target against the P1
+contract and record any compatible delta.
+
 ## Users
 
 Operators review truth and approvals; builders/models query memory and execute
@@ -43,11 +52,13 @@ digests, decision, outcome, retention class, and correlation ID. `playbook` and
 
 ## APIs, events, and integrations
 
-Owns existing `memory.answer`, `memory.ingest`, `memory.distill`,
-`memory.adjudicate`, `runs.execute`, `playbooks.author`, `approvals.list`,
-`approvals.decide`, `status.mission_control`, and `bench.run`. Adds candidate
-`platform.dashboard` and `agents.logs` views. Events: `memory.*`, `playbook.*`,
-`run.*`, `approval.*`, `agent.tool_called`, and `control.drift_detected`.
+Defines the P2A delta for the existing P1-owned `memory.answer`,
+`memory.ingest`, `memory.distill`, `memory.adjudicate`, `runs.execute`,
+`approvals.list`, `approvals.decide`, `status.mission_control`, and `bench.run`;
+it does not claim current ownership. It owns the P2A `playbooks.author` target
+and candidate `platform.dashboard` and `agents.logs` views. Events:
+`memory.*`, `playbook.*`, `run.*`, `approval.*`, `agent.tool_called`, and
+`control.drift_detected`.
 
 ## Permissions, approvals, and autonomy
 
@@ -106,6 +117,9 @@ state matches Git.
 - Approved playbooks are versioned, diffable, and resumable.
 - Mission Control exposes P1 deployment drift and does not suppress unknowns.
 - Agent logs are auditable without secrets or private reasoning.
+- Reconciliation maps every proposed P2A change to the current P1 owner contract,
+  proves backward compatibility or records an approved migration, and leaves
+  `capabilityMetadata.specification` unchanged until that migration is accepted.
 
 ## Progressive integration
 

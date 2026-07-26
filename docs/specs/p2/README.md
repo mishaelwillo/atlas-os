@@ -149,53 +149,57 @@ marketplace, memberships, agent studio, or globally uniform legal/pricing policy
 
 ## Durable capability traceability
 
-| Capability/candidate | Kind | Phase | Lifecycle decision | Owning specification |
-|---|---|---|---|---|
-| `memory.answer` | executable | P1 | build now/core | `intelligence-foundation.md` |
-| `memory.ingest` | executable | P1 | build now/core | `intelligence-foundation.md` |
-| `memory.distill` | executable | P1 | build now/core | `intelligence-foundation.md` |
-| `memory.adjudicate` | executable | P1 | build now/core | `intelligence-foundation.md` |
-| `runs.execute` | executable | P1 | build now/core | `intelligence-foundation.md` |
-| `playbooks.author` | executable | P2A | build now | `intelligence-foundation.md` |
-| `approvals.list` | executable | P1 | build now/core | `intelligence-foundation.md` |
-| `approvals.decide` | executable | P1 | build now/core | `intelligence-foundation.md` |
-| `status.mission_control` | executable | P1 | build now/core | `intelligence-foundation.md` |
-| `bench.run` | executable | P1 | build now/core | `intelligence-foundation.md` |
-| `factory.build_site` | executable | P2B | build now | `website-factory.md` |
-| `factory.deploy_site` | executable | P2B | build now | `website-factory.md` |
-| `events.site` | executable | P2B | build now | `website-factory.md` |
-| `leads.find` | executable | P2C | integrate now | `revenue-pilot.md` |
-| `outreach.send` | executable | P2C | integrate now/shadow | `revenue-pilot.md` |
-| `platform.dashboard` | candidate | P2A | build now | `intelligence-foundation.md` |
-| `agents.logs` | candidate | P2A | build now | `intelligence-foundation.md` |
-| `conversations.inbox` | candidate | P2B | build now | `website-factory.md` |
-| `factory.template_library` | candidate | P2B | build now | `website-factory.md` |
-| `factory.assisted_editor` | candidate | P2B | build now | `website-factory.md` |
-| `automation.sequence` | candidate | P2C | build now | `revenue-pilot.md` |
-| `prospecting.workspace` | candidate | P2C | build now | `revenue-pilot.md` |
-| `billing.manage` | candidate | P3 | integrate now after pilot approval | `revenue-pilot.md` |
-| `calendar.manage` | candidate | P3 | integrate later | `upsell-capabilities.md` |
-| `contacts.manage` | candidate | P3 | build later | `upsell-capabilities.md` |
-| `opportunities.manage` | candidate | P3 | build later | `upsell-capabilities.md` |
-| `agents.studio` | candidate | P3 | build later | `upsell-capabilities.md` |
-| `voice.agent` | candidate | P3 | integrate later | `upsell-capabilities.md` |
-| `conversations.agent` | candidate | P3 | build later | `upsell-capabilities.md` |
-| `knowledge.base` | candidate | P3 | build later | `upsell-capabilities.md` |
-| `agents.templates` | candidate | P3 | exclude pending evidence | `upsell-capabilities.md` |
-| `content.generate` | candidate | P3 | build later | `upsell-capabilities.md` |
-| `marketing.email` | candidate | P3 | integrate later | `upsell-capabilities.md` |
-| `marketing.social` | candidate | P3 | integrate later | `upsell-capabilities.md` |
-| `marketing.snippets` | candidate | P3 | build later | `upsell-capabilities.md` |
-| `marketing.countdown` | candidate | P3 | exclude pending evidence | `upsell-capabilities.md` |
-| `marketing.trigger_links` | candidate | P3 | build later | `upsell-capabilities.md` |
-| `reputation.manage` | candidate | P3 | integrate later | `upsell-capabilities.md` |
-| `seo.audit` | candidate | P3 | build later | `upsell-capabilities.md` |
-| `aeo.audit` | candidate | P3 | build later | `upsell-capabilities.md` |
-| `ads.manage` | candidate | P3 | integrate later | `upsell-capabilities.md` |
-| `brand.manage` | candidate | P3 | build later | `upsell-capabilities.md` |
-| `affiliates.manage` | candidate | P3 | exclude pending evidence | `upsell-capabilities.md` |
-| `memberships.manage` | candidate | P3 | exclude pending evidence | `upsell-capabilities.md` |
-| `media.storage` | candidate | P3 | integrate later | `upsell-capabilities.md` |
-| `reporting.analytics` | candidate | P3 | build later | `upsell-capabilities.md` |
-| `marketplace.apps` | candidate | P3 | exclude pending evidence | `upsell-capabilities.md` |
-| `mobile.app` | candidate | P3 | exclude pending evidence | `upsell-capabilities.md` |
+“Owner specification” is the authoritative `capabilityMetadata.specification` or
+candidate-registry value. A target/delta spec guides future reconciliation but
+does not replace ownership without an approved registry migration.
+
+| Capability/candidate | Kind | Phase | Lifecycle decision | Owner specification | P2 target/delta specification |
+|---|---|---|---|---|---|
+| `memory.answer` | executable | P1 | build now/core | `briefs/P1-CODEX-services.md` | `docs/specs/p2/intelligence-foundation.md` |
+| `memory.ingest` | executable | P1 | build now/core | `briefs/P1-CODEX-services.md` | `docs/specs/p2/intelligence-foundation.md` |
+| `memory.distill` | executable | P1 | build now/core | `briefs/P1-CODEX-services.md` | `docs/specs/p2/intelligence-foundation.md` |
+| `memory.adjudicate` | executable | P1 | build now/core | `briefs/P1-CODEX-services.md` | `docs/specs/p2/intelligence-foundation.md` |
+| `runs.execute` | executable | P1 | build now/core | `briefs/P1-CODEX-services.md` | `docs/specs/p2/intelligence-foundation.md` |
+| `playbooks.author` | executable | P2A | build now | `docs/specs/p2/intelligence-foundation.md` | — |
+| `approvals.list` | executable | P1 | build now/core | `briefs/P1-CODEX-services.md` | `docs/specs/p2/intelligence-foundation.md` |
+| `approvals.decide` | executable | P1 | build now/core | `briefs/P1-CODEX-services.md` | `docs/specs/p2/intelligence-foundation.md` |
+| `status.mission_control` | executable | P1 | build now/core | `briefs/P1-CODEX-services.md` | `docs/specs/p2/intelligence-foundation.md` |
+| `bench.run` | executable | P1 | build now/core | `briefs/P1-CODEX-services.md` | `docs/specs/p2/intelligence-foundation.md` |
+| `factory.build_site` | executable | P2B | build now | `docs/specs/p2/website-factory.md` | — |
+| `factory.deploy_site` | executable | P2B | build now | `docs/specs/p2/website-factory.md` | — |
+| `events.site` | executable | P2B | build now | `docs/specs/p2/website-factory.md` | — |
+| `leads.find` | executable | P2C | integrate now | `docs/specs/p2/revenue-pilot.md` | — |
+| `outreach.send` | executable | P2C | integrate now/shadow | `docs/specs/p2/revenue-pilot.md` | — |
+| `platform.dashboard` | candidate | P2A | build now | `docs/specs/p2/intelligence-foundation.md` | — |
+| `agents.logs` | candidate | P2A | build now | `docs/specs/p2/intelligence-foundation.md` | — |
+| `conversations.inbox` | candidate | P2B | build now | `docs/specs/p2/website-factory.md` | — |
+| `factory.template_library` | candidate | P2B | build now | `docs/specs/p2/website-factory.md` | — |
+| `factory.assisted_editor` | candidate | P2B | build now | `docs/specs/p2/website-factory.md` | — |
+| `automation.sequence` | candidate | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
+| `prospecting.workspace` | candidate | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
+| `billing.manage` | candidate | P3 | integrate now after pilot approval | `docs/specs/p2/revenue-pilot.md` | — |
+| `calendar.manage` | candidate | P3 | integrate later | `docs/specs/p2/upsell-capabilities.md` | — |
+| `contacts.manage` | candidate | P3 | build later | `docs/specs/p2/upsell-capabilities.md` | — |
+| `opportunities.manage` | candidate | P3 | build later | `docs/specs/p2/upsell-capabilities.md` | — |
+| `agents.studio` | candidate | P3 | build later | `docs/specs/p2/upsell-capabilities.md` | — |
+| `voice.agent` | candidate | P3 | integrate later | `docs/specs/p2/upsell-capabilities.md` | — |
+| `conversations.agent` | candidate | P3 | build later | `docs/specs/p2/upsell-capabilities.md` | — |
+| `knowledge.base` | candidate | P3 | build later | `docs/specs/p2/upsell-capabilities.md` | — |
+| `agents.templates` | candidate | P3 | exclude pending evidence | `docs/specs/p2/upsell-capabilities.md` | — |
+| `content.generate` | candidate | P3 | build later | `docs/specs/p2/upsell-capabilities.md` | — |
+| `marketing.email` | candidate | P3 | integrate later | `docs/specs/p2/upsell-capabilities.md` | — |
+| `marketing.social` | candidate | P3 | integrate later | `docs/specs/p2/upsell-capabilities.md` | — |
+| `marketing.snippets` | candidate | P3 | build later | `docs/specs/p2/upsell-capabilities.md` | — |
+| `marketing.countdown` | candidate | P3 | exclude pending evidence | `docs/specs/p2/upsell-capabilities.md` | — |
+| `marketing.trigger_links` | candidate | P3 | build later | `docs/specs/p2/upsell-capabilities.md` | — |
+| `reputation.manage` | candidate | P3 | integrate later | `docs/specs/p2/upsell-capabilities.md` | — |
+| `seo.audit` | candidate | P3 | build later | `docs/specs/p2/upsell-capabilities.md` | — |
+| `aeo.audit` | candidate | P3 | build later | `docs/specs/p2/upsell-capabilities.md` | — |
+| `ads.manage` | candidate | P3 | integrate later | `docs/specs/p2/upsell-capabilities.md` | — |
+| `brand.manage` | candidate | P3 | build later | `docs/specs/p2/upsell-capabilities.md` | — |
+| `affiliates.manage` | candidate | P3 | exclude pending evidence | `docs/specs/p2/upsell-capabilities.md` | — |
+| `memberships.manage` | candidate | P3 | exclude pending evidence | `docs/specs/p2/upsell-capabilities.md` | — |
+| `media.storage` | candidate | P3 | integrate later | `docs/specs/p2/upsell-capabilities.md` | — |
+| `reporting.analytics` | candidate | P3 | build later | `docs/specs/p2/upsell-capabilities.md` | — |
+| `marketplace.apps` | candidate | P3 | exclude pending evidence | `docs/specs/p2/upsell-capabilities.md` | — |
+| `mobile.app` | candidate | P3 | exclude pending evidence | `docs/specs/p2/upsell-capabilities.md` | — |
