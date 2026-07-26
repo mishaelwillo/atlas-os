@@ -12,7 +12,7 @@
 - Work item: `P2A-MEMORY-001`
 - Branch: `codex/atlas-continuity`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: pending main specification commit
+- Head commit: `a8772dfbfc594734246bd1a2a4fa3f8a9d350bbe`
 - Review status: pending independent review
 
 ## Task change evidence
@@ -30,14 +30,17 @@
 
 ## Current working tree
 
-- Contains the Task 5 specification/validator boundary pending commit and review.
+- Clean after the Task 5 code/docs boundary; this handoff update is metadata-only.
 
 ## Verification evidence
 
 - RED: focused suite failed because the specification validator did not exist.
 - GREEN: focused control-schema suite passed 155 of 155 tests after all required
   specs and the evidence-backed crosswalk were installed.
-- Full static/control/registry/research/build gates are pending before commit.
+- Full workspace tests passed 219 of 219; build passed 8 of 8 packages.
+- Static control verification, required-section/staging scans, 53 retained
+  artifact hashes, registry catalog regeneration, API/client generation diffs,
+  source diff, whitespace check, and focused secret scan passed.
 
 ## Database actions
 
@@ -51,8 +54,8 @@
 
 ## External side effects
 
-- Local repository files only; no push, deploy, message send, billing action, or
-  other external write.
+- Created local code/docs commit `a8772dfbfc594734246bd1a2a4fa3f8a9d350bbe`;
+  no push, deploy, message send, billing action, or other external write.
 
 ## Blockers
 
