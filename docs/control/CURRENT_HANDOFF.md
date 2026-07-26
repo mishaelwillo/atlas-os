@@ -10,14 +10,15 @@
 ## Active work
 
 - Work item: `P2A-MEMORY-001`
-- Branch: `main`
+- Branch: `codex/allow-archived-handoff-metadata`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `23a0b6426d7831f3eeeeb029c8feba08d048c4dc`
+- Head commit: `c976a9736291a97bfbba231a9f7e09a3e67ececf`
 - Review status: pending independent review
 
 ## Task change evidence
 
 - Merged PR #1 into main; deployed api service to Railway at the exact main SHA
+- Fixed the metadata-only boundary gate to approve archived handoff Markdown, unblocking the mandated archive workflow on `main`
 
 ## Current working tree
 
