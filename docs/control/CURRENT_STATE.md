@@ -52,28 +52,27 @@ satisfied, and the live drift report has no blocking finding.
   accepts `unknown`, and drift detection keys on `gitSha`, so this is an honest
   gap rather than a failure. Optional polish: pass the build arg at build time
   or add a Railway-provided timestamp fallback in `env.ts`.
-- Verified live after the change: `/healthz` reports `gitSha 0fdb2f8` sourced
-  from Railway Git, `registryVersion 2`, schema `0001_init`.
-  `POST /v1/memory/ingest` and `GET /v1/status/mission_control` return 401
-  auth-gated — previously 404, which was the recorded P0-versus-P1 route drift.
-- Live drift report: Blocking — none. Sole warning is
-  `supabase.live_state_unknown`.
+- Verified live: `/healthz` reports the current `main` SHA sourced from Railway
+  Git, `registryVersion 2`, schema `0001_init`. `POST /v1/memory/ingest` and
+  `GET /v1/status/mission_control` return 401 auth-gated — previously 404, which
+  was the recorded P0-versus-P1 route drift.
+- Live drift report at `6894fc3` (2026-07-26T21:30Z): **Blocking none, Warning
+  none, Info none**, with every authority reporting `ok` — local Git, GitHub
+  head and CI, Supabase tables and migration identity, Railway API, Railway OS,
+  and the registry. This is the first fully clean observation recorded for this
+  project.
 
 ## Remaining caveats
 
-- **Supabase migration history does not exist.** Diagnosed 2026-07-26: the
-  database is reachable and the table check passes — all 18 required tables are
-  present and match `ENVIRONMENTS.yaml` exactly. The migration-history query
-  fails with `42P01 relation "supabase_migrations.schema_migrations" does not
-  exist`, and no `supabase_migrations` schema exists at all, so `0001_init.sql`
-  was applied directly (SQL editor or `psql`) rather than through the Supabase
-  CLI. The collector therefore cannot prove exact migration identity and
-  correctly reports `supabase.live_state_unknown` — this is a missing ledger,
-  not a connectivity or credentials problem.
-  - Consequence: `expected_migration: 0001_init` can never be satisfied until a
-    migration ledger is established (baseline `0001_init` as applied), and
-    applying `0002` through the Supabase CLI would need that baseline first.
-  - Establishing the ledger is a database write and remains approval-gated.
+- Resolved 2026-07-26: the Supabase migration ledger is baselined. Originally
+  no `supabase_migrations` schema existed at all — `0001_init.sql` had been
+  applied directly rather than through the Supabase CLI, so exact migration
+  identity was unprovable and the collector honestly reported
+  `supabase.live_state_unknown`. The operator created
+  `supabase_migrations.schema_migrations` (in the shape the Supabase CLI
+  expects) and recorded `0001` / `init` as applied. The collector's
+  migration-identity query now returns `0001_init`, matching
+  `expected_migration` in `ENVIRONMENTS.yaml`.
 - The P1 brief's manual token-seeded live acceptance (seed Space + API token,
   ingest with the token, approval-gate round trip) has not been run. It requires
   an authorized Supabase write and remains approval-gated.
@@ -87,15 +86,26 @@ satisfied, and the live drift report has no blocking finding.
   each as additive-optional or internal-only, and leaves every
   `capabilityMetadata.specification` unchanged. The ownership migration register
   is deliberately empty.
-- `supabase/migrations/0002_intelligence_enrichment.sql` is staged in PR #4 and
-  **has not been applied to any database**. `0001_init.sql` is unmodified, so
-  the exact migration-identity anchor is intact. The file is statically reviewed
-  only — no PostgreSQL instance was available to execute it.
+- `supabase/migrations/0002_intelligence_enrichment.sql` is merged into `main`
+  (PR #4) and **has not been applied to any database**. Merging moved the file
+  into the repository and nothing else: nothing in CI, the Docker image, or the
+  API boot path executes migrations, and the P1 routes were re-verified as
+  unchanged afterward. `0001_init.sql` is unmodified, so the migration-identity
+  anchor is intact and the ledger still reports `0001_init`.
+- The `0002` file is statically reviewed only. Every referenced table exists in
+  `0001_init` and no added column name collides with an existing one, but no
+  PostgreSQL instance was available to execute it, so it is not
+  execution-proven. Run it against a scratch database before applying.
 
 ## Next exact action
 
-Review PR #4. If the staged schema is approved for application, bump
+Implement the code side of Intelligence Bank enrichment (`P2A-MEMORY-001`)
+behind the unchanged P1 routes, per `docs/specs/p2/intelligence-foundation.md`
+and the reconciliation deltas.
+
+Applying `0002` is a separate approval-gated step. When it is approved: execute
+it against a scratch database first, then apply it and bump
 `expected_migration` in `docs/control/ENVIRONMENTS.yaml` to
-`0002_intelligence_enrichment` in the same change, execute the migration against
-a scratch database first, then implement the code side of card/node/run
-enrichment behind the unchanged P1 routes.
+`0002_intelligence_enrichment` in the same change, or the collector will report
+blocking Supabase migration drift. Now that the ledger exists, `supabase
+migration list` and `db push` are usable for this.
