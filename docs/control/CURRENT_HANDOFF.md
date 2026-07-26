@@ -1,33 +1,34 @@
 # Current Handoff
 
-**Handoff ID:** `p1-deployment-closure-and-p2a-memory`
+**Handoff ID:** `p2a-memory-reconciliation`
 **Status:** active
-**Started:** 2026-07-26T18:03:53.021Z
-**Updated:** 2026-07-26T18:03:53.021Z
+**Started:** 2026-07-26T18:27:07.299Z
+**Updated:** 2026-07-26T18:27:07.299Z
 **Actor:** Codex
-**Objective:** Record P1 production deployment closure evidence and begin P2A Intelligence Bank implementation (P2A-MEMORY-001)
+**Objective:** Satisfy the intelligence-foundation reconciliation acceptance test by mapping every proposed P2A memory change to the current P1 owner contract (P2A-MEMORY-001)
 
 ## Active work
 
 - Work item: `P2A-MEMORY-001`
-- Branch: `codex/allow-archived-handoff-metadata`
+- Branch: `codex/p2a-intelligence-reconciliation`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `c976a9736291a97bfbba231a9f7e09a3e67ececf`
+- Head commit: `52e7dc59792da5cf88755e2c0dbf04eccb8c4a95`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Merged PR #1 into main; deployed api service to Railway at the exact main SHA
-- Fixed the metadata-only boundary gate to approve archived handoff Markdown, unblocking the mandated archive workflow on `main`
+- Added docs/specs/p2/intelligence-reconciliation.md and indexed it in the P2 spec index and control index
 
 ## Current working tree
 
+- ` M docs/control/CONTROL_INDEX.md`
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-26-atlas-continuity-whole-branch-rereview.md`
+- ` M docs/specs/p2/README.md`
+- `?? docs/specs/p2/intelligence-reconciliation.md`
 
 ## Verification evidence
 
-- CI success on exact main SHA 23a0b64; Railway API /healthz fingerprint gitSha 23a0b64 registryVersion 2; POST /v1/memory/ingest 401 auth-gated; drift report blocking: none
+- pnpm control:verify, pnpm build, and pnpm test run on this branch
 
 ## Database actions
 
@@ -35,19 +36,19 @@
 
 ## Hosting actions
 
-- Deployed Railway api service from pristine checkout of main @ 23a0b64; set ATLAS_GIT_SHA/ATLAS_BUILD_TIME/ATLAS_SCHEMA_VERSION service variables
+- No external action reported.
 
 ## External side effects
 
-- Merged PR 1; pushed merge commit to origin main; Railway api production deployment replaced
+- No external action reported.
 
 ## Blockers
 
-- Supabase live migration-history observation still unknown from local network; manual token-seeded live acceptance (P1 brief) not yet run
+- Not supplied.
 
 ## Next exact action
 
-Implement P2A-MEMORY-001 per docs/specs/p2/intelligence-foundation.md on a new feature branch from main @ 23a0b6426d7831f3eeeeb029c8feba08d048c4dc
+Obtain review of the reconciliation delta, then implement build-now step 1 (internal card/node/run record enrichment) behind the unchanged P1 routes
 
 ## Definition of done
 
