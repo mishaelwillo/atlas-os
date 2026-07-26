@@ -48,11 +48,19 @@ satisfied, and the live drift report has no blocking finding.
 
 ## Remaining caveats
 
-- **Supabase live state is unknown.** The read-only table and migration-history
-  query fails from this machine even with service credentials injected via
-  `railway run`. Historical verification (2026-07-24) showed all 18 tables from
-  `0001_init`. The control plane reports this as unknown rather than inferring
-  success; it must be observed from a network that can reach the database.
+- **Supabase migration history does not exist.** Diagnosed 2026-07-26: the
+  database is reachable and the table check passes — all 18 required tables are
+  present and match `ENVIRONMENTS.yaml` exactly. The migration-history query
+  fails with `42P01 relation "supabase_migrations.schema_migrations" does not
+  exist`, and no `supabase_migrations` schema exists at all, so `0001_init.sql`
+  was applied directly (SQL editor or `psql`) rather than through the Supabase
+  CLI. The collector therefore cannot prove exact migration identity and
+  correctly reports `supabase.live_state_unknown` — this is a missing ledger,
+  not a connectivity or credentials problem.
+  - Consequence: `expected_migration: 0001_init` can never be satisfied until a
+    migration ledger is established (baseline `0001_init` as applied), and
+    applying `0002` through the Supabase CLI would need that baseline first.
+  - Establishing the ledger is a database write and remains approval-gated.
 - The P1 brief's manual token-seeded live acceptance (seed Space + API token,
   ingest with the token, approval-gate round trip) has not been run. It requires
   an authorized Supabase write and remains approval-gated.
