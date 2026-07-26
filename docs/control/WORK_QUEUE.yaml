@@ -38,7 +38,7 @@ items:
       - Video observations resolve through a validated research evidence ledger
       - Global, North American, and Caribbean region packs validate through inheritance
       - Deferred discoveries remain catalogued without generating executable routes
-    next_action: Independently review Task 4 from base 009937cd741b63b358db58cfc956191c4b85d1ca through exact code boundary 7673cebbd21b647d648b60545046efe2c4fb75d3; only after approval execute Task 5 of the approved Atlas capabilities, research, and regions plan
+    next_action: Independently re-review Task 4 from base 009937cd741b63b358db58cfc956191c4b85d1ca through exact review-fix code boundary e73929efc710b671123a92c8266cd16b751c7703; only after approval execute Task 5 of the approved Atlas capabilities, research, and regions plan
   - id: P2A-MEMORY-001
     phase: P2A
     title: Establish the Intelligence Bank foundation
