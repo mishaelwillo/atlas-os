@@ -11,51 +11,72 @@ state.
 
 ## Repository state
 
-- Active branch: `main`.
-- Authoritative `main`:
-  `23a0b6426d7831f3eeeeb029c8feba08d048c4dc` (merge of PR #1).
-- Pull request #1 (`codex/atlas-continuity`, head
-  `79f50c549b6771ecf3c079cd9f669f4f1c3c4be2`): merged on 2026-07-26 after
-  explicit approval; final independent whole-branch verdict was READY TO MERGE
-  with no Critical or Important finding.
-- GitHub CI `Build & Test` succeeded on the exact merged `main` SHA
-  `23a0b64` (run 30213365765, 40 seconds).
+- Authoritative `main`: `0fdb2f835482e58690c73701cb8a86ebc7b80d18`.
+- Active branch: `codex/p2a-memory-enrichment` (open in PR #4).
+- Merged on 2026-07-26, each after explicit approval and with `Build & Test`
+  green on the exact resulting `main` SHA:
+  - PR #1 `codex/atlas-continuity` → `23a0b64`. Continuity control plane and P2
+    monetization playbook. Independent whole-branch verdict was READY TO MERGE
+    with no Critical or Important finding.
+  - PR #2 `codex/allow-archived-handoff-metadata` → `9be3a76`. Boundary-gate
+    fix: `control:archive-handoff` output is now approved metadata.
+  - PR #3 `codex/p2a-intelligence-reconciliation` → `0fdb2f8`. P2A↔P1 memory
+    contract reconciliation.
 - Active work item: `P2A-MEMORY-001`.
 - Active owning spec: `docs/specs/p2/intelligence-foundation.md`.
 - Exactly one queue item is `in_progress`.
 
 ## Production deployment state
 
-- Railway `os` service auto-deployed from GitHub on the merge;
-  `/build-info.json` reports `gitSha 23a0b64`, schema `0001_init`,
-  registry version 2.
-- Railway `api` service had no GitHub source (its prior deployment was a local
-  upload with no commit metadata), which is why the merge did not auto-deploy
-  it. It was redeployed on 2026-07-26 from a pristine `git archive` checkout of
-  exactly `main @ 23a0b64`; `ATLAS_GIT_SHA`, `ATLAS_BUILD_TIME`, and
-  `ATLAS_SCHEMA_VERSION` service variables carry the fingerprint.
-- Post-deploy verification: `/healthz` reports `gitSha 23a0b64`,
-  `registryVersion 2`, schema `0001_init`; `POST /v1/memory/ingest` and
-  `GET /v1/status/mission_control` return 401 auth-gated (previously 404).
-- Live drift report: Blocking — none. The only warning is
+P1 production deployment closure is **complete**. The roadmap exit condition
+(Railway API fingerprint matches the selected P1 commit and P1 routes exist) is
+satisfied, and the live drift report has no blocking finding.
+
+- Railway `os` deploys from GitHub automatically; `/build-info.json` reports the
+  merged `main` SHA, schema `0001_init`, registry version 2.
+- Railway `api` has **no GitHub source** — its prior deployment was a local
+  upload with no commit metadata, which is why merges do not auto-deploy it. It
+  is deployed from a pristine `git archive` checkout of exactly
+  `main @ 0fdb2f8`, with `ATLAS_GIT_SHA`, `ATLAS_BUILD_TIME`, and
+  `ATLAS_SCHEMA_VERSION` service variables carrying the fingerprint.
+- Verified live: `/healthz` reports `gitSha 0fdb2f8`, `registryVersion 2`,
+  schema `0001_init`. `POST /v1/memory/ingest` and
+  `GET /v1/status/mission_control` return 401 auth-gated — previously 404, which
+  was the recorded P0-versus-P1 route drift.
+- Live drift report: Blocking — none. Sole warning is
   `supabase.live_state_unknown`.
-- The roadmap's P1 deployment-closure exit (Railway API fingerprint matches the
-  selected P1 commit and P1 routes exist) is satisfied.
 
 ## Remaining caveats
 
-- Supabase live table/migration-history observation remains unknown: the
-  read-only query fails from the local network even with injected credentials.
-  Historical verification (2026-07-24) showed all 18 tables from `0001_init`.
+- **Supabase live state is unknown.** The read-only table and migration-history
+  query fails from this machine even with service credentials injected via
+  `railway run`. Historical verification (2026-07-24) showed all 18 tables from
+  `0001_init`. The control plane reports this as unknown rather than inferring
+  success; it must be observed from a network that can reach the database.
 - The P1 brief's manual token-seeded live acceptance (seed Space + API token,
-  ingest with token, approval-gate round trip) has not been run; it requires an
-  authorized Supabase write and remains approval-gated.
-- The Railway `api` service should be connected to the GitHub repo
-  (root directory = repo root, dockerfile `apps/api/Dockerfile`) so future
-  merges auto-deploy like `os`; this requires a dashboard action.
+  ingest with the token, approval-gate round trip) has not been run. It requires
+  an authorized Supabase write and remains approval-gated.
+- Railway `api` should be connected to the GitHub repository (root directory =
+  repo root, dockerfile `apps/api/Dockerfile`) so future merges auto-deploy as
+  `os` does. This is a dashboard action. Until then, every `main` advance leaves
+  the API fingerprint stale and the collector will report SHA drift.
+
+## P2A progress
+
+- Reconciliation (`docs/specs/p2/intelligence-reconciliation.md`) is merged. It
+  maps every proposed P2A memory change to the P1 owner contract, classifies
+  each as additive-optional or internal-only, and leaves every
+  `capabilityMetadata.specification` unchanged. The ownership migration register
+  is deliberately empty.
+- `supabase/migrations/0002_intelligence_enrichment.sql` is staged in PR #4 and
+  **has not been applied to any database**. `0001_init.sql` is unmodified, so
+  the exact migration-identity anchor is intact. The file is statically reviewed
+  only — no PostgreSQL instance was available to execute it.
 
 ## Next exact action
 
-Implement `P2A-MEMORY-001` per `docs/specs/p2/intelligence-foundation.md` on a
-new feature branch cut from `main @ 23a0b64`. Production release evidence for
-this closure is recorded in the current handoff.
+Review PR #4. If the staged schema is approved for application, bump
+`expected_migration` in `docs/control/ENVIRONMENTS.yaml` to
+`0002_intelligence_enrichment` in the same change, execute the migration against
+a scratch database first, then implement the code side of card/node/run
+enrichment behind the unchanged P1 routes.
