@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `unassigned-2026-07-26`
+**Handoff ID:** `p2a-memory-enrichment-schema`
 **Status:** active
-**Started:** 2026-07-26T18:33:21.768Z
-**Updated:** 2026-07-26T18:33:21.768Z
-**Actor:** Unassigned
-**Objective:** Preserve a safe takeover point while no model is assigned.
+**Started:** 2026-07-26T18:33:38.459Z
+**Updated:** 2026-07-26T18:33:38.459Z
+**Actor:** Codex
+**Objective:** Stage the additive Intelligence Bank enrichment schema for P2A-MEMORY-001 without applying it to any database
 
 ## Active work
 
 - Work item: `P2A-MEMORY-001`
-- Branch: `codex/p2a-intelligence-reconciliation`
+- Branch: `codex/p2a-memory-enrichment`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `52e7dc59792da5cf88755e2c0dbf04eccb8c4a95`
+- Head commit: `2402b58e5c41efd7d0489cd4f7a9fd7f1714636d`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- The prior current handoff was archived byte-for-byte.
+- Added supabase/migrations/0002_intelligence_enrichment.sql (review only) and recorded it in the reconciliation specification
 
 ## Current working tree
 
@@ -25,11 +25,11 @@
 
 ## Verification evidence
 
-- The prior handoff was archived without altering its contents.
+- All five referenced tables exist in 0001_init and no added column name collides; pnpm control:verify, build, and tests pass
 
 ## Database actions
 
-- No external action reported.
+- None. The migration file was written but NOT executed against any database; production still reports 0001_init
 
 ## Hosting actions
 
@@ -37,16 +37,16 @@
 
 ## External side effects
 
-- Created an immutable repository-local handoff archive.
+- No external action reported.
 
 ## Blockers
 
-- Not supplied.
+- The migration is statically reviewed only; no PostgreSQL instance was available to execute it
 
 ## Next exact action
 
-select a ready work item from WORK_QUEUE.yaml.
+Obtain review of 0002_intelligence_enrichment.sql; on approval to apply, bump expected_migration in ENVIRONMENTS.yaml in the same change, then implement the code side of card/node/run enrichment behind unchanged P1 routes
 
 ## Definition of done
 
-A model claims the active work item and creates a new handoff.
+The active task acceptance checks pass and the handoff is updated.
