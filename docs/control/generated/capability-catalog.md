@@ -14,7 +14,7 @@ ledgers is not executable and does not appear here.
 - Regions: `global`
 - Entitlements: `website-hosting`
 - Evidence: `video-qy0l1t7x6le-follow-up-automation`, `video-qy0l1t7x6le-unified-conversations`, `video-qy0l1t7x6le-website-wedge`
-- Specification: `docs/control/CONTINUITY_DESIGN.md`
+- Specification: `docs/specs/p2/website-factory.md`
 - Method: POST
 - Task class: quick
 - Approval required: no
@@ -128,7 +128,7 @@ ledgers is not executable and does not appear here.
 - Regions: `global`
 - Entitlements: `platform`
 - Evidence: none
-- Specification: `docs/control/CONTINUITY_DESIGN.md`
+- Specification: `docs/specs/p2/intelligence-foundation.md`
 - Method: POST
 - Task class: think
 - Approval required: yes
@@ -179,7 +179,7 @@ ledgers is not executable and does not appear here.
 - Regions: `global`
 - Entitlements: `revenue-pilot`
 - Evidence: `video-qy0l1t7x6le-multichannel-outreach`
-- Specification: `docs/control/CONTINUITY_DESIGN.md`
+- Specification: `docs/specs/p2/revenue-pilot.md`
 - Method: POST
 - Task class: quick
 - Approval required: yes
@@ -196,7 +196,7 @@ ledgers is not executable and does not appear here.
 - Regions: `global`
 - Entitlements: `revenue-pilot`
 - Evidence: `video-qy0l1t7x6le-google-maps-prospecting`
-- Specification: `docs/control/CONTINUITY_DESIGN.md`
+- Specification: `docs/specs/p2/revenue-pilot.md`
 - Method: POST
 - Task class: do
 - Approval required: no
@@ -230,7 +230,7 @@ ledgers is not executable and does not appear here.
 - Regions: `global`
 - Entitlements: `website-factory`
 - Evidence: `video-qy0l1t7x6le-ai-assisted-editor`, `video-qy0l1t7x6le-gbp-site-prompt`, `video-qy0l1t7x6le-generation-stages`, `video-qy0l1t7x6le-prebuild-demos`, `video-qy0l1t7x6le-template-library`, `video-qy0l1t7x6le-website-wedge`
-- Specification: `docs/control/CONTINUITY_DESIGN.md`
+- Specification: `docs/specs/p2/website-factory.md`
 - Method: POST
 - Task class: do
 - Approval required: no
@@ -246,7 +246,7 @@ ledgers is not executable and does not appear here.
 - Regions: `global`
 - Entitlements: `website-hosting`
 - Evidence: `video-qy0l1t7x6le-free-hosting-offer`, `video-qy0l1t7x6le-generation-stages`, `video-qy0l1t7x6le-presenter-pricing`
-- Specification: `docs/control/CONTINUITY_DESIGN.md`
+- Specification: `docs/specs/p2/website-factory.md`
 - Method: POST
 - Task class: quick
 - Approval required: yes

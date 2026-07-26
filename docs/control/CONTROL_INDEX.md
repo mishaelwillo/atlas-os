@@ -17,10 +17,20 @@ Other code spans are commands or identifiers and are not interpreted as paths.
 7. Research evidence: `path:docs/control/RESEARCH_LEDGER.yaml`
 8. Staged non-executable capabilities: `path:docs/control/CAPABILITY_CANDIDATES.yaml`
 9. Retained research artifact hashes: `path:docs/control/research/ARTIFACT_MANIFEST.yaml`
+10. P2 specification index: `path:docs/specs/p2/README.md`
+11. Regional behavior: `path:docs/specs/p2/regional-packs.md`
+12. Intelligence foundation: `path:docs/specs/p2/intelligence-foundation.md`
+13. Website Factory: `path:docs/specs/p2/website-factory.md`
+14. Revenue pilot: `path:docs/specs/p2/revenue-pilot.md`
+15. Recurring upsells: `path:docs/specs/p2/upsell-capabilities.md`
+16. Presenter method playbook: `path:docs/specs/p2/presenter-workflow-playbook.md`
+17. Observed menu crosswalk: `path:docs/specs/p2/menu-crosswalk.md`
 
 ## Current phase
 
-P1 code is complete. P1 production API deployment closure is blocking. P2A follows.
+P1 code is complete. P1 production API deployment closure remains blocking and
+ready. The P2A control/capability/research/region foundation is specified; the
+Intelligence Bank implementation is the active local work boundary.
 
 ## Authority
 

@@ -37,7 +37,9 @@ export interface CapabilityMetadata {
 }
 
 const P1_SPECIFICATION = 'briefs/P1-CODEX-services.md';
-const P2_SPECIFICATION = 'docs/control/CONTINUITY_DESIGN.md';
+const P2_INTELLIGENCE_SPECIFICATION = 'docs/specs/p2/intelligence-foundation.md';
+const P2_FACTORY_SPECIFICATION = 'docs/specs/p2/website-factory.md';
+const P2_REVENUE_SPECIFICATION = 'docs/specs/p2/revenue-pilot.md';
 
 export const capabilityMetadata: Record<CapabilityId, CapabilityMetadata> = {
   'memory.answer': {
@@ -110,7 +112,7 @@ export const capabilityMetadata: Record<CapabilityId, CapabilityMetadata> = {
     implementation: 'build',
     autonomy: 'manual',
     evidenceIds: [],
-    specification: P2_SPECIFICATION,
+    specification: P2_INTELLIGENCE_SPECIFICATION,
   },
   'factory.build_site': {
     stage: 'candidate',
@@ -129,7 +131,7 @@ export const capabilityMetadata: Record<CapabilityId, CapabilityMetadata> = {
       'video-qy0l1t7x6le-generation-stages',
       'video-qy0l1t7x6le-prebuild-demos',
     ],
-    specification: P2_SPECIFICATION,
+    specification: P2_FACTORY_SPECIFICATION,
   },
   'factory.deploy_site': {
     stage: 'candidate',
@@ -145,7 +147,7 @@ export const capabilityMetadata: Record<CapabilityId, CapabilityMetadata> = {
       'video-qy0l1t7x6le-free-hosting-offer',
       'video-qy0l1t7x6le-presenter-pricing',
     ],
-    specification: P2_SPECIFICATION,
+    specification: P2_FACTORY_SPECIFICATION,
   },
   'leads.find': {
     stage: 'candidate',
@@ -157,7 +159,7 @@ export const capabilityMetadata: Record<CapabilityId, CapabilityMetadata> = {
     implementation: 'integrate',
     autonomy: 'manual',
     evidenceIds: ['video-qy0l1t7x6le-google-maps-prospecting'],
-    specification: P2_SPECIFICATION,
+    specification: P2_REVENUE_SPECIFICATION,
   },
   'outreach.send': {
     stage: 'candidate',
@@ -169,7 +171,7 @@ export const capabilityMetadata: Record<CapabilityId, CapabilityMetadata> = {
     implementation: 'integrate',
     autonomy: 'shadow',
     evidenceIds: ['video-qy0l1t7x6le-multichannel-outreach'],
-    specification: P2_SPECIFICATION,
+    specification: P2_REVENUE_SPECIFICATION,
   },
   'events.site': {
     stage: 'candidate',
@@ -185,7 +187,7 @@ export const capabilityMetadata: Record<CapabilityId, CapabilityMetadata> = {
       'video-qy0l1t7x6le-unified-conversations',
       'video-qy0l1t7x6le-follow-up-automation',
     ],
-    specification: P2_SPECIFICATION,
+    specification: P2_FACTORY_SPECIFICATION,
   },
   'approvals.list': {
     stage: 'core',

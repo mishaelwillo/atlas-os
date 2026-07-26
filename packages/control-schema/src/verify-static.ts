@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { parse } from 'yaml';
 import { loadRegionPacks } from './regions.js';
 import { assertRepositoryResearchIntegrity } from './research.js';
+import { assertRepositorySpecificationIntegrity } from './specifications.js';
 import { EnvironmentFileSchema, WorkQueueSchema, type Finding, type WorkQueue } from './schemas.js';
 
 const SEVERITY_ORDER = { blocking: 0, warning: 1, info: 2 } as const;
@@ -124,6 +125,20 @@ export async function verifyStatic(root: string): Promise<Finding[]> {
           'control.research_invalid',
           relative(root, researchLedgerPath),
           error instanceof Error ? error.message : 'invalid research control files',
+        ),
+      );
+    }
+  }
+
+  if (await pathExists(join(root, 'docs', 'specs', 'p2', 'README.md'))) {
+    try {
+      await assertRepositorySpecificationIntegrity(root);
+    } catch (error) {
+      findings.push(
+        blocking(
+          'control.specifications_invalid',
+          'docs/specs/p2',
+          error instanceof Error ? error.message : 'invalid P2 specifications',
         ),
       );
     }

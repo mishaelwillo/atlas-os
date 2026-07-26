@@ -28,7 +28,7 @@ items:
   - id: P2A-CAPABILITIES-001
     phase: P2A
     title: Add capability lifecycle, research evidence, and inherited regional packs
-    status: in_progress
+    status: done
     priority: high
     dependencies:
       - P2A-CONTROL-001
@@ -38,11 +38,11 @@ items:
       - Video observations resolve through a validated research evidence ledger
       - Global, North American, and Caribbean region packs validate through inheritance
       - Deferred discoveries remain catalogued without generating executable routes
-    next_action: Independently re-review Task 4 from base 009937cd741b63b358db58cfc956191c4b85d1ca through exact review-fix code boundary e73929efc710b671123a92c8266cd16b751c7703; only after approval execute Task 5 of the approved Atlas capabilities, research, and regions plan
+    next_action: Preserve the validated registries, research ledger, region packs, generated catalog, and integrated P2 specification set
   - id: P2A-MEMORY-001
     phase: P2A
     title: Establish the Intelligence Bank foundation
-    status: queued
+    status: in_progress
     priority: high
     dependencies:
       - P2A-CONTROL-001
@@ -51,7 +51,7 @@ items:
     acceptance_checks:
       - Intelligence foundation specification is approved
       - Owned memory remains governed and verifiable
-    next_action: Begin after continuity controls are verified
+    next_action: Reconcile the Intelligence Bank specification with the existing P1 memory implementation and write the smallest test-first P2A implementation plan without masking P1 production drift
   - id: P2B-FACTORY-001
     phase: P2B
     title: Build the Website Factory
