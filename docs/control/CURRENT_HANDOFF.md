@@ -1,7 +1,7 @@
 # Current Handoff
 
 **Handoff ID:** `atlas-continuity-whole-branch-rereview`
-**Status:** draft PR open; awaiting CI and review
+**Status:** draft PR open; awaiting review and merge approval
 **Started:** 2026-07-26
 **Updated:** 2026-07-26
 **Actor:** Codex
@@ -15,7 +15,7 @@ continuity foundation and evidence-backed P2 specification set.
 - Branch: `codex/atlas-continuity`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
 - Head commit: `0fec937`
-- Review status: CI fixture-isolation fix locally green; draft PR #1 rerun pending
+- Review status: CI fixture-isolation fix green locally and on GitHub
 
 ## Completed scope
 
@@ -116,8 +116,10 @@ continuity foundation and evidence-backed P2 specification set.
 - Opened draft pull request
   `https://github.com/mishaelwillo/atlas-os/pull/1` targeting `main`.
 - Initial GitHub `Build & Test` failed in the test step; all build, control,
-  catalog, and generated-file steps passed. The focused fix is ready to push
-  for a new exact-head CI run.
+  catalog, and generated-file steps passed.
+- The fix run for published checkpoint `d649e17` passed `Build & Test` in 42
+  seconds. Any later metadata-only head must also have its own green check
+  before merge.
 - No merge, deploy, database write, outreach send, billing action, or other
   production mutation.
 
@@ -131,14 +133,14 @@ continuity foundation and evidence-backed P2 specification set.
 
 ## Next exact action
 
-Push the verified fixture-isolation fix and wait for draft PR #1 CI on the exact
-new branch head. Review any further failure without weakening the control gate,
-and obtain explicit approval before merging. After merge, require successful CI
-on the exact resulting authoritative `main` SHA before selecting any immutable
-production release candidate. Do not deploy from this feature branch.
+Verify draft PR #1 `Build & Test` is green for its current exact head, then
+obtain explicit approval before merging. Review any failure without weakening
+the control gate. After merge, require successful CI on the exact resulting
+authoritative `main` SHA before selecting any immutable production release
+candidate. Do not deploy from this feature branch.
 
 ## Definition of done
 
-Draft PR #1 passes its exact-head checks and receives explicit merge approval.
+Draft PR #1 has a green exact-head check and receives explicit merge approval.
 Production release work remains a separate approval-gated sequence after
 exact-main-SHA CI.

@@ -22,9 +22,9 @@ state.
 - Final `origin/main..HEAD` whole-branch re-review: READY TO MERGE with no
   Critical or Important finding.
 - Draft pull request: `https://github.com/mishaelwillo/atlas-os/pull/1`.
-- Pull-request state: open/draft; initial `Build & Test` failed because test
-  fixtures inherited GitHub Actions context. Fix commit `0fec937` is locally
-  green and awaiting push/rerun.
+- Pull-request state: open/draft. The initial run exposed ambient GitHub Actions
+  contamination in temporary fixtures; fix commit `0fec937` is locally green,
+  and published checkpoint `d649e17` passed `Build & Test` in 42 seconds.
 - Active work item: `P2A-MEMORY-001`.
 - Active owning spec: `docs/specs/p2/intelligence-foundation.md`.
 - Exactly one queue item is `in_progress`.
@@ -64,8 +64,7 @@ routes. No production-complete claim is authorized.
 
 ## Next exact action
 
-Push the verified fixture-isolation fix, wait for draft PR #1 exact-head CI, and
-review the result. Merge only after explicit approval. After integration,
-require successful CI on the exact resulting authoritative `main` SHA before
-release selection. No merge, release, database action, or hosting action has
-yet been performed.
+Verify draft PR #1 is green for its current exact head and merge only after
+explicit approval. After integration, require successful CI on the exact
+resulting authoritative `main` SHA before release selection. No merge, release,
+database action, or hosting action has yet been performed.
