@@ -3,7 +3,7 @@ const pg = require('pg');
 
 const REF = 'yyyspvralawnvhtmuyvg';
 const urlNow = process.env.DATABASE_URL || '';
-const encPw = (urlNow.match(/postgres\.[^:]+:([^@]+)@/) || [, ''])[1];
+const encPw = (urlNow.match(/postgres\.[^:]+:([^@]+)@/) || ['', ''])[1];
 
 const REGIONS = [
   'us-east-1', 'us-east-2', 'us-west-1', 'us-west-2', 'ca-central-1', 'sa-east-1',

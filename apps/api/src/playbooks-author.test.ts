@@ -39,7 +39,7 @@ async function decide(db: FakeDb) {
     headers: { authorization: `Bearer ${operatorJwt(testEnv())}` },
     payload: { approvalId: APPROVAL, decision: 'approved' },
   });
-  return { status: res.statusCode, body: res.json() as Record<string, unknown> };
+  return { status: res.statusCode, body: res.json() };
 }
 
 function playbookInsert(db: FakeDb) {

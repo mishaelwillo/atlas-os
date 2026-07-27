@@ -34,7 +34,7 @@ async function build(db: FakeDb, payload: Record<string, unknown>) {
     headers: { authorization: `Bearer ${TOKEN_PLAINTEXT}` },
     payload,
   });
-  return { status: res.statusCode, body: res.json() as Record<string, unknown> };
+  return { status: res.statusCode, body: res.json() };
 }
 
 function siteInsert(db: FakeDb) {

@@ -179,11 +179,11 @@ export function resolveRegionPack(
         pack.id,
       ],
       outreach_policy: {
-        ...((parent.outreach_policy as Record<string, unknown> | undefined) ?? {}),
+        ...((parent.outreach_policy) ?? {}),
         ...(pack.outreach_policy ?? {}),
       },
       seo: {
-        ...((parent.seo as Record<string, unknown> | undefined) ?? {}),
+        ...((parent.seo) ?? {}),
         ...(pack.seo ?? {}),
       },
     };
@@ -229,7 +229,9 @@ export async function loadRegionPacks(
   const values = await Promise.all(
     [...fileNames]
       .sort()
-      .map(async (fileName) => parse(await readFile(join(directory, fileName), 'utf8'))),
+      .map(async (fileName): Promise<unknown> =>
+        parse(await readFile(join(directory, fileName), 'utf8')),
+      ),
   );
   return validateRegionPacks(values);
 }

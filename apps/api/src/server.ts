@@ -14,4 +14,5 @@ const start = async () => {
   }
 };
 
-start();
+// Errors are handled inside start(); `void` marks the omission deliberate.
+void start();

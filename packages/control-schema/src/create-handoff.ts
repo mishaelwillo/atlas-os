@@ -65,7 +65,7 @@ function parseArguments(args: string[]): ParsedArguments {
     }
     const scalarKey = flag ? SCALAR_ARGUMENTS[flag] : undefined;
     if (scalarKey) {
-      validateSafeHandoffText(flag!, value, scalarKey === 'actor' ? 80 : 500);
+      validateSafeHandoffText(flag, value, scalarKey === 'actor' ? 80 : 500);
       parsed[scalarKey] = value;
       continue;
     }
@@ -78,7 +78,7 @@ function parseArguments(args: string[]): ParsedArguments {
       '--blocker': parsed.blockers,
     }[flag ?? ''];
     if (!repeatable) throw new Error(`unknown argument: ${flag ?? '(missing)'}`);
-    validateSafeHandoffText(flag!, value, 1_000);
+    validateSafeHandoffText(flag, value, 1_000);
     repeatable.push(value);
   }
   if (!parsed.id) throw new Error('--id is required');
@@ -210,7 +210,7 @@ export async function runCreateHandoffCli(
         `WORK_QUEUE.yaml must contain exactly one in_progress item; found ${activeItems.length}`,
       );
     }
-    const activeWorkItem = activeItems[0]!;
+    const activeWorkItem = activeItems[0];
     validateSafeHandoffText('active work item', activeWorkItem.id, 200);
     if (parsed.workItem && !isSafeWorkItemId(parsed.workItem)) {
       throw new Error('--work-item contains unsafe characters');

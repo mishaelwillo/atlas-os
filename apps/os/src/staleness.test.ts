@@ -21,7 +21,7 @@ describe('isStale', () => {
     ['both unknown', 'unknown', 'unknown'],
     ['bundle empty', '', 'bbbb222'],
   ])('stays quiet when %s', (_name, bundle, live) => {
-    expect(isStale(bundle, live as string | null)).toBe(false);
+    expect(isStale(bundle, live)).toBe(false);
   });
 });
 

@@ -20,7 +20,7 @@ async function cards(db: FakeDb): Promise<Record<string, Record<string, unknown>
     headers: { authorization: `Bearer ${operatorJwt(testEnv())}` },
   });
   expect(res.statusCode).toBe(200);
-  const body = res.json() as { cards: Array<{ id: string; data: Record<string, unknown> }> };
+  const body = res.json<{ cards: Array<{ id: string; data: Record<string, unknown> }> }>();
   return Object.fromEntries(body.cards.map((c) => [c.id, c.data]));
 }
 

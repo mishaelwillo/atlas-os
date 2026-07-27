@@ -7,13 +7,13 @@
  * the field must not attract credential autofill.
  */
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MissionControlLive } from './MissionControl.js';
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __atlasClientOptions: { token?: string } | undefined;
 }
 

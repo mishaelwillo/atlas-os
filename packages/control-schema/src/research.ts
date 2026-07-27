@@ -525,7 +525,6 @@ export interface ResearchIntegrityInput {
 }
 
 export function assertResearchIntegrity(input: ResearchIntegrityInput): void {
-  const evidenceIds = new Set(input.ledger.evidence.map((evidence) => evidence.id));
   const executableIds = new Set(input.executableCapabilityIds);
   const candidateIds = new Set(input.candidates.candidates.map((candidate) => candidate.id));
   const failures: string[] = [];

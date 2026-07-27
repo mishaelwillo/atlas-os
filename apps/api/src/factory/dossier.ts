@@ -94,7 +94,7 @@ export function buildDossier(raw: readonly RawFact[]): Dossier {
     list.push({
       field,
       value,
-      sourceUrl: ownerProvided ? sourceUrl : (sourceUrl as string),
+      sourceUrl: ownerProvided ? sourceUrl : (sourceUrl),
       ownerProvided,
       confidence,
     });

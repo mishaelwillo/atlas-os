@@ -74,7 +74,7 @@ function redactForOutput<T>(value: T): T {
     return redactSecrets(value) as T;
   }
   if (Array.isArray(value)) {
-    return value.map((entry) => redactForOutput(entry)) as T;
+    return (value as unknown[]).map((entry) => redactForOutput(entry)) as T;
   }
   if (value !== null && typeof value === 'object') {
     return Object.fromEntries(

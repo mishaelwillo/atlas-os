@@ -1,31 +1,32 @@
 # Current Handoff
 
-**Handoff ID:** `fix-override-token-autofill`
+**Handoff ID:** `chore-eslint-gate`
 **Status:** active
-**Started:** 2026-07-27T07:50:04.242Z
-**Updated:** 2026-07-27T07:50:04.242Z
+**Started:** 2026-07-27T09:18:11.637Z
+**Updated:** 2026-07-27T09:18:11.637Z
 **Actor:** Codex
-**Objective:** Stop the diagnostic override field capturing and transmitting the operator password
+**Objective:** Make lint a substantive quality gate instead of a no-op script
 
 ## Active work
 
 - Work item: `P2A-MEMORY-001`
-- Branch: `fix/override-token-autofill`
+- Branch: `chore/eslint-gate`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `18c06597fb6a2d46be38e1b521387ac5f2214a71`
+- Head commit: `073628ace7e34c08a0df2675531ffd0e331b7819`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- The scoped-token override is now opt-in and guarded against credential autofill
+- Installed typescript-eslint with type-aware rules, wired it into CI, and fixed every finding
 
 ## Current working tree
 
-- Clean.
+- ` M docs/control/CURRENT_HANDOFF.md`
+- `?? docs/control/handoffs/archived/2026-07-27-fix-override-token-autofill.md`
 
 ## Verification evidence
 
-- 6 regression tests, 44/44 OS tests, 14/14 workspace test tasks, uncached 8/8 builds; verified the credential is never logged and a failed authentication writes no row
+- Lint exit 0 across the workspace, 14/14 workspace test tasks, uncached 8/8 builds; the build caught two incorrect autofixes before they could land
 
 ## Database actions
 
@@ -43,11 +44,11 @@
 
 ## Blockers
 
-- The operator credential was transmitted in an authorization header on roughly 1000 requests before this fix, so rotation is advisable
+- Not supplied.
 
 ## Next exact action
 
-Merge and deploy, then confirm Mission Control authenticates with the session token; rotating the Supabase credential is advisable
+Merge, then decide whether to run no-mistakes init on this repository
 
 ## Definition of done
 

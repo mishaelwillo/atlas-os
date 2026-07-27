@@ -195,7 +195,10 @@ export function createRouter(config: RouterConfig, provider: ModelProvider): Atl
             continue;
           }
           if (err instanceof RetryableModelError) {
-            throw new Error(`all models in '${taskClass}' chain failed: ${[...failures, `${model}: ${err.reason}`].join('; ')}`);
+            throw new Error(
+              `all models in '${taskClass}' chain failed: ${[...failures, `${model}: ${err.reason}`].join('; ')}`,
+              { cause: err },
+            );
           }
           throw err;
         }
