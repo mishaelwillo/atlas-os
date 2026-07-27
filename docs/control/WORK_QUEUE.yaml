@@ -3,7 +3,7 @@ items:
   - id: P1-DEPLOY-001
     phase: P1 deployment closure
     title: Close the P1 production API deployment gap
-    status: ready
+    status: review
     priority: critical
     dependencies:
       - P2A-CONTROL-001
@@ -12,7 +12,7 @@ items:
       - Railway API fingerprint matches the selected P1 commit
       - Required P1 routes exist
       - P1 live acceptance passes
-    next_action: Select the deployment SHA after continuity verification is operational
+    next_action: Run the operator half of live acceptance through the UI once outreach drafting exists; the fingerprint and required routes are already verified
   - id: P2A-CONTROL-001
     phase: P2A
     title: Establish the Atlas continuity control plane
@@ -42,7 +42,7 @@ items:
   - id: P2A-MEMORY-001
     phase: P2A
     title: Establish the Intelligence Bank foundation
-    status: in_progress
+    status: done
     priority: high
     dependencies:
       - P2A-CONTROL-001
@@ -51,11 +51,11 @@ items:
     acceptance_checks:
       - Intelligence foundation specification is approved
       - Owned memory remains governed and verifiable
-    next_action: Request the user branch integration decision; after integration require successful CI on the exact authoritative main SHA before release selection
+    next_action: Build-now scope is complete; the remaining agent audit views are candidates gated on an evidence decision
   - id: P2B-FACTORY-001
     phase: P2B
     title: Build the Website Factory
-    status: queued
+    status: blocked
     priority: high
     dependencies:
       - P2A-CONTROL-001
@@ -63,15 +63,15 @@ items:
     specification: docs/specs/p2/website-factory.md
     acceptance_checks:
       - GBP or profile URL becomes an approved live demo in under 30 minutes
-    next_action: Approve the Website Factory specification after P2A
+    next_action: Sourced descriptors, deterministic rendering and sandboxed previews are live; publishing is blocked pending a hosting, domain-proof and entitlement decision
   - id: P2C-REVENUE-001
     phase: P2C
     title: Run the minimum complete revenue pilot
-    status: queued
+    status: in_progress
     priority: high
     dependencies:
       - P2B-FACTORY-001
     specification: docs/specs/p2/revenue-pilot.md
     acceptance_checks:
       - One real hosting-paying customer completes an approval-gated sequence
-    next_action: Define the supervised pilot after Website Factory acceptance
+    next_action: Build outreach drafting so a governed action can be initiated from the product instead of an ad-hoc API call

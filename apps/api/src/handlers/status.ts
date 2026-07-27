@@ -77,7 +77,7 @@ export function deploymentFindings(
 export const statusMissionControl: CapabilityHandler = async (ctx) => {
   const space = ctx.spaceId; // null → operator, all spaces
 
-  const [approvals, runs, schedules, ladder, failures, memory, nodes, sites, migration] = await Promise.all([
+  const [approvals, runs, schedules, ladder, failures, memory, nodes, sites, leads, migration] = await Promise.all([
     ctx.q.query(
       `select approval_id, kind, reason, payload, created_at from approvals
         where status = 'pending' and ($1::uuid is null or space_id = $1::uuid)
@@ -126,6 +126,13 @@ export const statusMissionControl: CapabilityHandler = async (ctx) => {
       `select site_id, business_name, status, template, updated_at
          from sites where ($1::uuid is null or space_id = $1::uuid)
         order by updated_at desc limit 20`,
+      [space],
+    ),
+    ctx.q.query(
+      `select lead_id, business_name, status, phone, score
+         from leads where ($1::uuid is null or space_id = $1::uuid)
+          and status not in ('suppressed', 'lost')
+        order by score desc, created_at desc limit 25`,
       [space],
     ),
     observedMigration(ctx.q),
@@ -219,6 +226,20 @@ export const statusMissionControl: CapabilityHandler = async (ctx) => {
           // Null means no card has ever been ingested, not "fresh".
           newestCardAt,
           nodesByTruthStatus: truthCounts,
+        },
+      },
+      {
+        id: 'leads',
+        kind: 'leads',
+        title: 'Leads',
+        data: {
+          items: leads.rows.map((r) => ({
+            leadId: String(r.lead_id),
+            businessName: String(r.business_name),
+            status: String(r.status),
+            phone: r.phone === null ? null : String(r.phone),
+            score: Number(r.score),
+          })),
         },
       },
       {
