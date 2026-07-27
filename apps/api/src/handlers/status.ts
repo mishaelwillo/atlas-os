@@ -77,7 +77,7 @@ export function deploymentFindings(
 export const statusMissionControl: CapabilityHandler = async (ctx) => {
   const space = ctx.spaceId; // null → operator, all spaces
 
-  const [approvals, runs, schedules, ladder, failures, memory, nodes, migration] = await Promise.all([
+  const [approvals, runs, schedules, ladder, failures, memory, nodes, sites, migration] = await Promise.all([
     ctx.q.query(
       `select approval_id, kind, reason, payload, created_at from approvals
         where status = 'pending' and ($1::uuid is null or space_id = $1::uuid)
@@ -120,6 +120,12 @@ export const statusMissionControl: CapabilityHandler = async (ctx) => {
       `select truth_status, count(*)::int as n
          from memory_nodes where ($1::uuid is null or space_id = $1::uuid)
         group by truth_status`,
+      [space],
+    ),
+    ctx.q.query(
+      `select site_id, business_name, status, template, updated_at
+         from sites where ($1::uuid is null or space_id = $1::uuid)
+        order by updated_at desc limit 20`,
       [space],
     ),
     observedMigration(ctx.q),
@@ -213,6 +219,20 @@ export const statusMissionControl: CapabilityHandler = async (ctx) => {
           // Null means no card has ever been ingested, not "fresh".
           newestCardAt,
           nodesByTruthStatus: truthCounts,
+        },
+      },
+      {
+        id: 'sites',
+        kind: 'sites',
+        title: 'Sites',
+        data: {
+          items: sites.rows.map((r) => ({
+            siteId: String(r.site_id),
+            businessName: String(r.business_name),
+            status: String(r.status),
+            template: r.template === null ? null : String(r.template),
+            updatedAt: String(r.updated_at),
+          })),
         },
       },
       {
