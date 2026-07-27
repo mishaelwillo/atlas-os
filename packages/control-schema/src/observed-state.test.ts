@@ -705,6 +705,97 @@ describe('observed-state collection and drift', () => {
     );
   });
 
+  /**
+   * Nothing previously compared what a service *claims* about the schema
+   * against what is expected, so a stale-but-well-formed schemaVersion passed
+   * every gate. That is exactly how the OS build-info defect survived.
+   */
+  it('blocks when a deployed service claims a schema version that is not expected', async () => {
+    const root = await fixtureRoot();
+    const observed = await collectObservedState({
+      root,
+      collectedAt,
+      environment,
+      run: injectedRun(),
+      fetch: injectedFetch({
+        healthSha: githubSha,
+        ingestStatus: 401,
+        healthBody: {
+          ok: true,
+          service: 'atlas-api',
+          appVersion: '0.1.0',
+          gitSha: githubSha,
+          buildTime: collectedAt,
+          schemaVersion: '0001_init',
+          registryVersion: 1,
+        },
+      }),
+      queryTables: injectedSupabaseQuery(),
+      databaseUrl: 'opaque-test-database-url',
+    } as Parameters<typeof collectObservedState>[0]);
+
+    expect(
+      detectDrift(desired({ expectedMigration: '0002_intelligence_enrichment' }), observed),
+    ).toContainEqual(
+      expect.objectContaining({
+        severity: 'blocking',
+        code: 'railway.api.schema_claim_mismatch',
+      }),
+    );
+  });
+
+  /**
+   * An admitted unknown is honest and must not be reported as a false claim;
+   * only a specific-but-wrong value is a defect.
+   */
+  it('does not fault a service that admits an unknown schema version', async () => {
+    const root = await fixtureRoot();
+    const observed = await collectObservedState({
+      root,
+      collectedAt,
+      environment,
+      run: injectedRun(),
+      fetch: injectedFetch({
+        healthSha: githubSha,
+        ingestStatus: 401,
+        healthBody: {
+          ok: true,
+          service: 'atlas-api',
+          appVersion: '0.1.0',
+          gitSha: githubSha,
+          buildTime: collectedAt,
+          schemaVersion: 'unknown',
+          registryVersion: 1,
+        },
+      }),
+      queryTables: injectedSupabaseQuery(),
+      databaseUrl: 'opaque-test-database-url',
+    } as Parameters<typeof collectObservedState>[0]);
+
+    expect(
+      detectDrift(desired({ expectedMigration: '0002_intelligence_enrichment' }), observed),
+    ).not.toContainEqual(
+      expect.objectContaining({ code: 'railway.api.schema_claim_mismatch' }),
+    );
+  });
+
+  it('reports no schema-claim finding when the service agrees with expectation', async () => {
+    const root = await fixtureRoot();
+    const observed = await collectObservedState({
+      root,
+      collectedAt,
+      environment,
+      run: injectedRun(),
+      fetch: injectedFetch({ healthSha: githubSha, ingestStatus: 401 }),
+      queryTables: injectedSupabaseQuery(),
+      databaseUrl: 'opaque-test-database-url',
+    } as Parameters<typeof collectObservedState>[0]);
+
+    expect(detectDrift(desired(), observed)).not.toContainEqual(
+      expect.objectContaining({ code: 'railway.api.schema_claim_mismatch' }),
+    );
+  });
+
   it('blocks when generated route count differs from the local registry authority', async () => {
     const root = await fixtureRoot();
     await writeFile(

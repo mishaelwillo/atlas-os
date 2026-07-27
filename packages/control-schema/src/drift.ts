@@ -169,6 +169,30 @@ export function detectDrift(
         ),
       );
     }
+    /*
+     * Compare what each service *claims* about the schema against expectation.
+     * Nothing else does this: the Supabase check compares the database against
+     * ENVIRONMENTS.yaml, and never against a running service's own fingerprint,
+     * so a stale-but-well-formed schemaVersion passed every gate. An admitted
+     * 'unknown' is honest and is not a claim, so only a specific wrong value
+     * is reported.
+     */
+    for (const [service, claimed] of [
+      ['api', observed.railwayApi.value?.fingerprint?.schemaVersion],
+      ['os', observed.railwayOs.value?.fingerprint?.schemaVersion],
+    ] as const) {
+      if (claimed === undefined || claimed === 'unknown') continue;
+      if (claimed !== desired.expectedMigration) {
+        findings.push(
+          finding(
+            'blocking',
+            `railway.${service}.schema_claim_mismatch`,
+            `Railway ${service.toUpperCase()} reports schema ${claimed} but ${desired.expectedMigration} is expected.`,
+          ),
+        );
+      }
+    }
+
     const deployedVersions = [
       observed.railwayApi.value?.fingerprint?.registryVersion,
       observed.railwayOs.value?.fingerprint?.registryVersion,
