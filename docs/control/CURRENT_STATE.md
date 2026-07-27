@@ -128,6 +128,33 @@ satisfied, and the live drift report has no blocking finding.
   `/build-info.json` report `0002_intelligence_enrichment` rather than a stale
   value.
 
+## Production defects found and fixed
+
+- **Mission Control status poll (PR #5).** The generated client stored the bare
+  global `fetch` and invoked it as `this.fetchImpl(...)`, so the receiver was
+  the client rather than the window. Browsers reject that, and every call
+  through the generated client threw before reaching the network:
+  `'fetch' called on an object that does not implement interface Window`. The
+  health card still read OK because `App.tsx` calls `fetch` directly, which
+  masked the failure to one code path. Fixed in the codegen template and
+  regenerated; a patch to the generated file alone would have been reverted by
+  the next `pnpm run gen`.
+- **OS build-info schema claim (PR #6).** `write-build-info.cjs` returned a
+  hardcoded `0001_init` when `ATLAS_SCHEMA_VERSION` was unset, asserting a
+  migration identity the build cannot observe. Production published
+  `0001_init` after `0002` was applied because the variable was simply not set
+  on the service. Absent now resolves to `unknown`.
+- Both shipped with tests written RED first, and both are live at `5f465ba`.
+
+## Known gap in drift coverage
+
+The collector compares the Supabase ledger against `expected_migration` but
+never cross-checks the `schemaVersion` each service reports in its own
+fingerprint. A service can therefore publish a stale-but-well-formed schema
+version and pass every gate — which is exactly how the OS defect above survived
+until manual inspection. PR #6 makes the failure honest rather than false, but
+a fingerprint-versus-expected comparison is still unimplemented.
+
 ## Next exact action
 
 Implement the code side of Intelligence Bank enrichment (`P2A-MEMORY-001`)

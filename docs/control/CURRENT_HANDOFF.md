@@ -1,42 +1,42 @@
 # Current Handoff
 
-**Handoff ID:** `fix-build-info-unknown-schema`
+**Handoff ID:** `p2a-memory-code-start`
 **Status:** active
-**Started:** 2026-07-27T00:01:36.994Z
-**Updated:** 2026-07-27T00:01:36.994Z
+**Started:** 2026-07-27T00:15:15.440Z
+**Updated:** 2026-07-27T00:15:15.440Z
 **Actor:** Codex
-**Objective:** Stop the OS build from asserting a migration identity it cannot observe
+**Objective:** Begin the code side of Intelligence Bank enrichment (P2A-MEMORY-001) against the applied 0002 columns
 
 ## Active work
 
 - Work item: `P2A-MEMORY-001`
-- Branch: `fix/build-info-unknown-schema`
+- Branch: `main`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `37f5e3a4ec25fe281465f2b907fc55247727f0a1`
+- Head commit: `5f465ba9b3a31bc3cdbb81795414f1cbbaa07cdb`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- write-build-info.cjs now resolves an absent ATLAS_SCHEMA_VERSION to 'unknown' instead of a hardcoded '0001_init', with a regression test that deletes the ambient variable
+- Merged PR #5 (generated-client fetch binding) and PR #6 (OS build-info honesty); both live in production
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-27-p2a-memory-code-enrichment.md`
+- `?? docs/control/handoffs/archived/2026-07-27-fix-build-info-unknown-schema.md`
 
 ## Verification evidence
 
-- RED reproduced the stale '0001_init' claim; GREEN 6/6 build-info tests, 14/14 workspace test tasks, 8/8 builds, control:verify exit 0
+- CI success on exact main SHA 5f465ba; both services auto-deployed to that SHA; drift shows every authority ok
 
 ## Database actions
 
 - No external action reported.
-- Observed Supabase status: ok (live-read-only at 2026-07-26T23:13:08.478Z).
+- Observed Supabase status: ok (live-read-only at 2026-07-27T00:14:48.061Z).
 
 ## Hosting actions
 
 - No external action reported.
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-07-26T23:13:08.478Z).
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-07-27T00:14:48.061Z).
 
 ## External side effects
 
@@ -44,11 +44,11 @@
 
 ## Blockers
 
-- Not supplied.
+- The operator half of the P1 approval round trip is still unexercised; it requires an operator sign-in through Mission Control
 
 ## Next exact action
 
-Merge after review; no production change is expected because ATLAS_SCHEMA_VERSION is set explicitly on both Railway services
+Implement card/node/run enrichment behind the unchanged P1 routes per docs/specs/p2/intelligence-foundation.md and the reconciliation deltas
 
 ## Definition of done
 
