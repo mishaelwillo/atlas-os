@@ -1,32 +1,32 @@
 # Current Handoff
 
-**Handoff ID:** `feat-dispatch-outcome`
+**Handoff ID:** `p2c-revenue-pilot-continued`
 **Status:** active
-**Started:** 2026-07-27T20:38:53.707Z
-**Updated:** 2026-07-27T20:38:53.707Z
+**Started:** 2026-07-27T20:43:24.827Z
+**Updated:** 2026-07-27T20:43:24.827Z
 **Actor:** Codex
-**Objective:** Report approval dispatch outcomes and record P1 as complete
+**Objective:** Continue the revenue pilot now that P1 is closed end to end
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `feat/dispatch-outcome`
+- Branch: `main`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `87065da89af75ec103ceb46688b323a3b6bb59c3`
+- Head commit: `788b522010f8dba7949b5d330382d6becbaaa510`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Surfaced the dispatch result on an approval decision and marked P1-DEPLOY-001 done after the operator acceptance leg passed
+- P1 is complete: deployment closure and both halves of live acceptance are verified against production
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-27-p2c-revenue-pilot-next.md`
+- `?? docs/control/handoffs/archived/2026-07-27-feat-dispatch-outcome.md`
 
 ## Verification evidence
 
-- 6 outcome tests, 62/62 OS tests, lint 0, uncached 8/8 builds; a mutation ignoring a failed dispatch failed a test; acceptance verified server-side against production
+- Approval dispatch outcomes now reported in the UI and confirmed live in the served bundle; drift clean with every authority ok
 
 ## Database actions
 
@@ -44,11 +44,11 @@
 
 ## Blockers
 
-- Not supplied.
+- Lead sourcing, publishing, the frontier session, and agent audit views each await an operator decision
 
 ## Next exact action
 
-Continue revenue-pilot build-now scope, or resolve one of the four decisions blocking the remaining phases
+Build prospect qualification or the demo queue, or resolve one of the four decisions blocking the remaining phases
 
 ## Definition of done
 
