@@ -168,6 +168,7 @@ does not replace ownership without an approved registry migration.
 | `status.mission_control` | executable | P1 | build now/core | `briefs/P1-CODEX-services.md` | `docs/specs/p2/intelligence-foundation.md` |
 | `bench.run` | executable | P1 | build now/core | `briefs/P1-CODEX-services.md` | `docs/specs/p2/intelligence-foundation.md` |
 | `factory.build_site` | executable | P2B | build now | `docs/specs/p2/website-factory.md` | — |
+| `factory.preview` | executable | P2B | build now | `docs/specs/p2/website-factory.md` | — |
 | `factory.deploy_site` | executable | P2B | build now | `docs/specs/p2/website-factory.md` | — |
 | `events.site` | executable | P2B | build now | `docs/specs/p2/website-factory.md` | — |
 | `leads.find` | executable | P2C | integrate now | `docs/specs/p2/revenue-pilot.md` | — |

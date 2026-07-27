@@ -133,6 +133,21 @@ export const capabilityMetadata: Record<CapabilityId, CapabilityMetadata> = {
     ],
     specification: P2_FACTORY_SPECIFICATION,
   },
+  'factory.preview': {
+    stage: 'candidate',
+    phase: 'P2B',
+    menuGroup: 'Website Factory',
+    regions: ['global'],
+    entitlements: ['website-factory'],
+    monetization: 'acquisition',
+    implementation: 'build',
+    // Access-controlled and expiring; it publishes nothing on its own.
+    autonomy: 'manual',
+    // No video evidence names this capability. It derives from the preview
+    // requirements in the owning specification, so no evidence is claimed.
+    evidenceIds: [],
+    specification: P2_FACTORY_SPECIFICATION,
+  },
   'factory.deploy_site': {
     stage: 'candidate',
     phase: 'P2B',

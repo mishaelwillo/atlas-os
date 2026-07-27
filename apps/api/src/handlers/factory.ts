@@ -10,6 +10,7 @@ import {
   type RawFact,
 } from '../factory/dossier.js';
 import { renderSite } from '../factory/render.js';
+import type { Descriptor } from '../factory/dossier.js';
 
 /**
  * factory.build_site — turn supplied research facts into a versioned draft
@@ -110,5 +111,61 @@ export const factoryBuildSite: CapabilityHandler = async (ctx, input) => {
     // The fingerprint publishing would promote; absent when nothing rendered.
     buildHash: render?.rendered ? render.hash : undefined,
     renderIssues: render && !render.rendered ? render.issues : undefined,
+  };
+};
+
+/** How long a preview stays viewable after its last build. */
+export const PREVIEW_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+export function previewExpiry(builtAt: Date, ttlMs = PREVIEW_TTL_MS): Date {
+  return new Date(builtAt.getTime() + ttlMs);
+}
+
+/**
+ * factory.preview — return the immutable build for a stored descriptor.
+ *
+ * The build is not stored: rendering is deterministic, so re-rendering the
+ * persisted descriptor reproduces the same bytes and the same hash. That keeps
+ * a single source of truth and makes it impossible for a stored copy to drift
+ * from the descriptor it claims to represent.
+ *
+ * Previews are access-controlled and expiring by design. They are never served
+ * publicly, and the markup carries noindex, because publishing is a separate
+ * approved step.
+ */
+export const factoryPreview: CapabilityHandler = async (ctx, input) => {
+  const siteId = typeof input.siteId === 'string' ? input.siteId.trim() : '';
+  if (siteId === '') {
+    throw new CapabilityError(400, 'factory.preview: siteId is required');
+  }
+
+  const res = await ctx.q.query(
+    `select site_id, descriptor, updated_at from sites where site_id = $1`,
+    [siteId],
+  );
+  const row = res.rows[0];
+  if (!row) {
+    // RLS scopes this query, so "not visible in this space" and "does not
+    // exist" are deliberately indistinguishable to the caller.
+    throw new CapabilityError(404, 'factory.preview: site not found');
+  }
+
+  const descriptor = row.descriptor as Descriptor;
+  const builtAt = row.updated_at ? new Date(String(row.updated_at)) : new Date(0);
+  const expiresAt = previewExpiry(builtAt);
+  if (expiresAt.getTime() <= Date.now()) {
+    return { expired: true, expiresAt: expiresAt.toISOString() };
+  }
+
+  const render = renderSite(descriptor);
+  if (!render.rendered) {
+    return { expired: false, expiresAt: expiresAt.toISOString(), issues: render.issues };
+  }
+
+  return {
+    expired: false,
+    expiresAt: expiresAt.toISOString(),
+    html: render.html,
+    hash: render.hash,
   };
 };

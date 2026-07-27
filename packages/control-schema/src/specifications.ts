@@ -145,8 +145,11 @@ export function assertTraceabilityIntegrity(
   const candidate = new Map(
     candidates.candidates.map((item) => [item.id, item.specification]),
   );
-  if (executable.size !== 15) {
-    throw new Error(`expected exactly 15 executable capabilities, found ${executable.size}`);
+  // Pinned deliberately: adding an executable capability is a governance
+  // event, so the count must be changed knowingly rather than drifting.
+  // 16 as of factory.preview (P2B preview builds).
+  if (executable.size !== 16) {
+    throw new Error(`expected exactly 16 executable capabilities, found ${executable.size}`);
   }
   if (candidate.size !== 33) {
     throw new Error(`expected exactly 33 capability candidates, found ${candidate.size}`);

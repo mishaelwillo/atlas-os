@@ -97,6 +97,17 @@ export type FactoryBuildSiteOutput = {
   renderIssues?: Array<unknown>;
 };
 
+export type FactoryPreviewInput = {
+  siteId: string;
+};
+export type FactoryPreviewOutput = {
+  html?: string;
+  hash?: string;
+  expiresAt?: string;
+  expired?: boolean;
+  issues?: Array<unknown>;
+};
+
 export type FactoryDeploySiteInput = {
   siteId: string;
   domain?: string;
@@ -226,6 +237,11 @@ export class AtlasGeneratedClient {
   /** Build wedge site — POST /v1/factory/build_site */
   factoryBuildSite(input: FactoryBuildSiteInput): Promise<FactoryBuildSiteOutput | ApprovalPending> {
     return this.request<FactoryBuildSiteOutput>("POST", "/v1/factory/build_site", input);
+  }
+
+  /** Preview built site — GET /v1/factory/preview */
+  factoryPreview(input: FactoryPreviewInput): Promise<FactoryPreviewOutput | ApprovalPending> {
+    return this.request<FactoryPreviewOutput>("GET", "/v1/factory/preview", input);
   }
 
   /** Deploy site live — POST /v1/factory/deploy_site (approval-gated: returns {approvalId, status:"review"}) */

@@ -4,7 +4,7 @@ import { approvalsDecide, approvalsList } from './approvals.js';
 import { eventsSite } from './events.js';
 import { memoryAnswer, memoryDistill, memoryIngest } from './memory.js';
 import { runsExecute } from './runs.js';
-import { factoryBuildSite } from './factory.js';
+import { factoryBuildSite, factoryPreview } from './factory.js';
 import { statusMissionControl } from './status.js';
 import {
   benchRun,
@@ -29,6 +29,7 @@ export const handlers: Record<string, CapabilityHandler> = {
   'memory.adjudicate': memoryAdjudicate,
   'playbooks.author': playbooksAuthor,
   'factory.build_site': factoryBuildSite,
+  'factory.preview': factoryPreview,
   'factory.deploy_site': factoryDeploySite,
   'leads.find': leadsFind,
   'outreach.send': outreachSend,

@@ -14,6 +14,7 @@ export const GENERATED_CAPABILITY_IDS = [
   "runs.execute",
   "playbooks.author",
   "factory.build_site",
+  "factory.preview",
   "factory.deploy_site",
   "leads.find",
   "outreach.send",
@@ -295,6 +296,48 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "string"
         },
         "renderIssues": {
+          "type": "array"
+        }
+      }
+    }
+  } as const satisfies CapabilityRouteMeta, deps);
+  registerCapabilityRoute(app, {
+    "id": "factory.preview",
+    "name": "Preview built site",
+    "path": "/v1/factory/preview",
+    "method": "GET",
+    "taskClass": "quick",
+    "requiresApproval": false,
+    "scopes": [
+      "factory:write"
+    ],
+    "input": {
+      "type": "object",
+      "required": [
+        "siteId"
+      ],
+      "properties": {
+        "siteId": {
+          "type": "string"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "html": {
+          "type": "string"
+        },
+        "hash": {
+          "type": "string"
+        },
+        "expiresAt": {
+          "type": "string"
+        },
+        "expired": {
+          "type": "boolean"
+        },
+        "issues": {
           "type": "array"
         }
       }
