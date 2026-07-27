@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import styles from './App.module.css';
 import { MissionControlLive } from './MissionControl';
+import { fetchLiveSha, isStale } from './staleness.js';
 
 const SECTIONS = [
   { name: 'Mission Control', path: '/' },
@@ -125,10 +126,44 @@ export function PlaceholderPage({ title }: { title: string }) {
   );
 }
 
+/**
+ * Warns when this page is running an outdated bundle. index.html is served
+ * without a Cache-Control header, so a cached copy can pin a browser to old
+ * code against a current API — which presents as confusing failures rather
+ * than an obvious version problem.
+ *
+ * It prompts rather than reloading automatically: a forced reload that did not
+ * fix the mismatch would loop.
+ */
+export function StaleBundleBanner() {
+  const [stale, setStale] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void fetchLiveSha().then((live) => {
+      if (active && isStale(__ATLAS_BUILD_SHA__, live)) setStale(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (!stale) return null;
+  return (
+    <div className={styles.staleBanner} role="alert" data-testid="stale-banner">
+      A newer version of Atlas OS is available. This page is running cached code.{' '}
+      <button type="button" onClick={() => window.location.reload()}>
+        Reload
+      </button>
+    </div>
+  );
+}
+
 function App() {
   return (
     <BrowserRouter>
       <div className={styles.appLayout}>
+        <StaleBundleBanner />
         <Sidebar />
         <main className={styles.mainContent}>
           <Routes>
