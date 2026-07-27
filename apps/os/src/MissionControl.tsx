@@ -7,6 +7,23 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { createGeneratedClient, type AtlasGeneratedClient } from '@atlas/client';
 import styles from './MissionControl.module.css';
+import { SignIn } from './SignIn.js';
+import {
+  SIGNED_OUT,
+  clearLegacyToken,
+  getSupabase,
+  listSpaces,
+  readStoredSpace,
+  toOperatorSession,
+  writeStoredSpace,
+  type OperatorSession,
+  type SpaceOption,
+} from './session.js';
+
+/** Must match the pinned address in apps/api/src/env.ts and is_operator(). */
+const OPERATOR_EMAIL =
+  ((import.meta.env.VITE_OPERATOR_EMAIL as string | undefined) ?? '').trim() ||
+  'mobiledynamic876@gmail.com';
 
 const POLL_MS = 5000;
 
@@ -42,16 +59,74 @@ interface MissionControlPayload {
 
 type Decision = 'approved' | 'rejected' | 'defer';
 
-function useToken(): [string, (t: string) => void] {
-  const [token, setTokenState] = useState<string>(() => localStorage.getItem('atlas.token') ?? '');
-  const setToken = useCallback((t: string) => {
-    localStorage.setItem('atlas.token', t);
-    setTokenState(t);
+/**
+ * Operator session state. The pre-session `atlas.token` key is cleared on
+ * mount so a stale pasted credential cannot outlive the upgrade and keep
+ * granting access.
+ */
+function useOperatorSession(): {
+  session: OperatorSession;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+} {
+  const [session, setSession] = useState<OperatorSession>({
+    status: 'loading',
+    email: null,
+    accessToken: null,
+    error: null,
+  });
+
+  useEffect(() => {
+    clearLegacyToken(localStorage);
+    const supabase = getSupabase();
+    if (!supabase) {
+      setSession({
+        status: 'unavailable',
+        email: null,
+        accessToken: null,
+        error: 'Supabase identity is not configured in this build.',
+      });
+      return;
+    }
+    let active = true;
+    void supabase.auth.getSession().then(({ data }) => {
+      if (active) setSession(toOperatorSession(data.session, OPERATOR_EMAIL));
+    });
+    // Covers refresh and expiry: the SDK re-emits on both, so an expired
+    // access token renews without interrupting the operator.
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+      if (active) setSession(toOperatorSession(next, OPERATOR_EMAIL));
+    });
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
-  return [token, setToken];
+
+  const signIn = useCallback(async (email: string, password: string) => {
+    const supabase = getSupabase();
+    if (!supabase) return;
+    setSession((s) => ({ ...s, status: 'authenticating', error: null }));
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      setSession({ status: 'signed_out', email: null, accessToken: null, error: error.message });
+      return;
+    }
+    setSession(toOperatorSession(data.session, OPERATOR_EMAIL));
+  }, []);
+
+  const signOut = useCallback(async () => {
+    const supabase = getSupabase();
+    writeStoredSpace(localStorage, null);
+    clearLegacyToken(localStorage);
+    if (supabase) await supabase.auth.signOut();
+    setSession(SIGNED_OUT);
+  }, []);
+
+  return { session, signIn, signOut };
 }
 
-function ApprovalsCard({ card, client, onDecided }: { card: StatusCard; client: AtlasGeneratedClient; onDecided: () => void }) {
+function ApprovalsCard({ card, client, onDecided, hasSpace }: { card: StatusCard; client: AtlasGeneratedClient; onDecided: () => void; hasSpace: boolean }) {
   const items = (card.data.items ?? []) as ApprovalItem[];
   const [choice, setChoice] = useState<Record<string, Decision>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
@@ -62,6 +137,12 @@ function ApprovalsCard({ card, client, onDecided }: { card: StatusCard; client: 
   const submit = async (item: ApprovalItem) => {
     const decision = choice[item.approvalId];
     if (!decision) return;
+    // Block before sending: the API would reject this for want of a Space, and
+    // a local message names the actual cause instead of surfacing a 400.
+    if (!hasSpace) {
+      setError('Select a Space before deciding an approval.');
+      return;
+    }
     if (decision === 'defer') {
       // defer = leave pending, hide locally until next session
       setDeferred((d) => ({ ...d, [item.approvalId]: true }));
@@ -210,10 +291,54 @@ function SchedulesCard({ card }: { card: StatusCard }) {
 
 export function MissionControlLive() {
   const apiUrl = ((import.meta.env.VITE_API_URL as string | undefined) || 'http://localhost:3000').replace(/\/$/, '');
-  const [token, setToken] = useToken();
-  const client = useMemo(() => createGeneratedClient({ baseUrl: apiUrl, token: token || undefined }), [apiUrl, token]);
+  const { session, signIn, signOut } = useOperatorSession();
+  const [spaces, setSpaces] = useState<SpaceOption[]>([]);
+  const [spaceId, setSpaceIdState] = useState<string | null>(() => readStoredSpace(localStorage));
+  const [spaceError, setSpaceError] = useState<string | null>(null);
+  // Optional agent-scoped override, used to reproduce what a scoped API token
+  // can do. Deliberately not persisted: it is a diagnostic, not a session.
+  const [overrideToken, setOverrideToken] = useState('');
+
+  const setSpaceId = useCallback((next: string | null) => {
+    writeStoredSpace(localStorage, next);
+    setSpaceIdState(next);
+  }, []);
+
+  // The Space is sent as x-atlas-space; without it the API refuses every
+  // approval-gated capability (apps/api/src/pipeline.ts).
+  const client = useMemo(
+    () =>
+      createGeneratedClient({
+        baseUrl: apiUrl,
+        token: overrideToken.trim() || session.accessToken || undefined,
+        spaceId: spaceId ?? undefined,
+      }),
+    [apiUrl, session.accessToken, spaceId, overrideToken],
+  );
   const [payload, setPayload] = useState<MissionControlPayload | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (session.status !== 'signed_in') return;
+    const supabase = getSupabase();
+    if (!supabase) return;
+    let active = true;
+    void listSpaces(supabase)
+      .then((options) => {
+        if (!active) return;
+        setSpaces(options);
+        setSpaceError(null);
+        // Only auto-select when the choice is unambiguous; silently picking
+        // among several would change what every governed action applies to.
+        if (!spaceId && options.length === 1) setSpaceId(options[0].spaceId);
+      })
+      .catch((err: unknown) => {
+        if (active) setSpaceError(err instanceof Error ? err.message : String(err));
+      });
+    return () => {
+      active = false;
+    };
+  }, [session.status, spaceId, setSpaceId]);
 
   const refresh = useCallback(async () => {
     try {
@@ -226,29 +351,92 @@ export function MissionControlLive() {
   }, [client]);
 
   useEffect(() => {
+    if (session.status !== 'signed_in') return;
     void refresh();
     const t = setInterval(() => void refresh(), POLL_MS);
     return () => clearInterval(t);
-  }, [refresh]);
+  }, [refresh, session.status]);
+
+  if (session.status === 'loading') {
+    return <p className={styles.when}>Restoring session…</p>;
+  }
+
+  if (session.status !== 'signed_in') {
+    return (
+      <SignIn
+        onSubmit={signIn}
+        status={session.status}
+        error={session.error}
+      />
+    );
+  }
 
   return (
     <div>
       <div className={styles.toolbar}>
+        <span className={styles.when} data-testid="operator-email">
+          {session.email}
+        </span>
+        <label className={styles.field}>
+          <span>Space</span>
+          <select
+            data-testid="space-select"
+            value={spaceId ?? ''}
+            onChange={(e) => setSpaceId(e.target.value || null)}
+          >
+            <option value="">— select a Space —</option>
+            {spaces.map((s) => (
+              <option key={s.spaceId} value={s.spaceId}>
+                {s.name} ({s.slug})
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="button" onClick={() => void signOut()}>
+          Sign out
+        </button>
+        {payload && <span className={styles.when}>updated {new Date(payload.generatedAt).toLocaleTimeString()}</span>}
+      </div>
+      {!spaceId && (
+        <p className={styles.error} role="alert">
+          Select a Space before approving or sending. Governed actions require one.
+        </p>
+      )}
+      <details className={styles.advanced}>
+        <summary>Advanced: act as a scoped API token</summary>
+        <p className={styles.when}>
+          Overrides the operator session for every call below, so you can observe
+          exactly what an agent-scoped credential is allowed to do. Not saved.
+        </p>
         <input
           className={styles.tokenInput}
           type="password"
-          placeholder="operator JWT / api token"
-          value={token}
-          onChange={(e) => setToken(e.target.value)}
+          data-testid="override-token"
+          placeholder="api token (diagnostic only)"
+          value={overrideToken}
+          onChange={(e) => setOverrideToken(e.target.value)}
         />
-        {payload && <span className={styles.when}>updated {new Date(payload.generatedAt).toLocaleTimeString()}</span>}
-      </div>
+        {overrideToken.trim() !== '' && (
+          <p className={styles.error} role="alert">
+            Acting as a scoped API token, not as the operator.
+          </p>
+        )}
+      </details>
+      {spaceError && <p className={styles.error}>space lookup failed: {spaceError}</p>}
       {fetchError && <p className={styles.error}>status fetch failed: {fetchError}</p>}
       <div className={styles.cardGrid}>
         {(payload?.cards ?? []).map((card) => {
           switch (card.kind) {
             case 'approvals':
-              return <ApprovalsCard key={card.id} card={card} client={client} onDecided={() => void refresh()} />;
+              return (
+                <ApprovalsCard
+                  key={card.id}
+                  card={card}
+                  client={client}
+                  onDecided={() => void refresh()}
+                  hasSpace={spaceId !== null}
+                />
+              );
             case 'runs':
               return <RunsCard key={card.id} card={card} />;
             case 'model_chain':
