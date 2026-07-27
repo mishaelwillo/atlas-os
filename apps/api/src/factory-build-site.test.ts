@@ -48,11 +48,12 @@ const NAME = {
 };
 
 describe('factory.build_site', () => {
+  // No template here: this case is about persistence and provenance. Template
+  // satisfaction is covered separately below.
   it('creates a draft site from sourced facts', async () => {
     const db = dbReady();
     const { status, body } = await build(db, {
       profileUrl: 'https://maps.example/acme',
-      template: 'trades-1',
       facts: [NAME, { field: 'phone', value: '555-0100', sourceUrl: 'https://maps.example/acme' }],
     });
 
@@ -127,5 +128,64 @@ describe('factory.build_site', () => {
     await build(db, { profileUrl: 'https://maps.example/acme', facts: [NAME] });
     const audits = db.auditInserts();
     expect(audits.some((a) => (a.params ?? []).includes('factory.build_site'))).toBe(true);
+  });
+});
+
+describe('factory.build_site rendering', () => {
+  const complete = [
+    NAME,
+    { field: 'phone', value: '555-0100', sourceUrl: 'https://maps.example/acme' },
+    { field: 'hours', value: 'Mon-Fri 9-5', sourceUrl: 'https://maps.example/acme' },
+  ];
+
+  it('returns a build hash when the template is satisfied', async () => {
+    const db = dbReady();
+    const { body } = await build(db, {
+      profileUrl: 'https://maps.example/acme',
+      template: 'trades-1',
+      facts: complete,
+    });
+
+    expect(body.status).toBe('preview_built');
+    expect(typeof body.buildHash).toBe('string');
+    expect(String(body.buildHash)).toHaveLength(64);
+    expect(body.renderIssues).toBeUndefined();
+  });
+
+  /** The research is still worth keeping when a template cannot be satisfied. */
+  it('persists the descriptor and reports issues when the template is unsatisfied', async () => {
+    const db = dbReady();
+    const { body } = await build(db, {
+      profileUrl: 'https://maps.example/acme',
+      template: 'trades-1',
+      facts: [NAME],
+    });
+
+    expect(body.created).toBe(true);
+    expect(body.status).toBe('template_unsatisfied');
+    expect(body.buildHash).toBeUndefined();
+    const issues = body.renderIssues as Array<{ code: string; section?: string }>;
+    expect(issues.map((i) => i.section).sort()).toEqual(['contact', 'hours']);
+  });
+
+  it('refuses a region the template is not approved for', async () => {
+    const db = dbReady();
+    const { body } = await build(db, {
+      profileUrl: 'https://maps.example/acme',
+      template: 'services-1',
+      region: 'caribbean',
+      facts: complete,
+    });
+
+    expect(body.status).toBe('template_unsatisfied');
+    const issues = body.renderIssues as Array<{ code: string }>;
+    expect(issues.map((i) => i.code)).toContain('region_unsupported');
+  });
+
+  it('stays a plain descriptor draft when no template is chosen', async () => {
+    const db = dbReady();
+    const { body } = await build(db, { profileUrl: 'https://maps.example/acme', facts: complete });
+    expect(body.status).toBe('descriptor_draft');
+    expect(body.buildHash).toBeUndefined();
   });
 });

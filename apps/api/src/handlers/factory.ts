@@ -9,6 +9,7 @@ import {
   businessNameFrom,
   type RawFact,
 } from '../factory/dossier.js';
+import { renderSite } from '../factory/render.js';
 
 /**
  * factory.build_site — turn supplied research facts into a versioned draft
@@ -35,6 +36,7 @@ export const factoryBuildSite: CapabilityHandler = async (ctx, input) => {
 
   const template = typeof input.template === 'string' && input.template.trim() !== '' ? input.template.trim() : null;
   const stylePack = typeof input.stylePack === 'string' && input.stylePack.trim() !== '' ? input.stylePack.trim() : null;
+  const region = typeof input.region === 'string' && input.region.trim() !== '' ? input.region.trim() : 'global';
   const rawFacts: RawFact[] = Array.isArray(input.facts) ? (input.facts as RawFact[]) : [];
 
   const dossier = buildDossier(rawFacts);
@@ -55,7 +57,15 @@ export const factoryBuildSite: CapabilityHandler = async (ctx, input) => {
     };
   }
 
-  const descriptor = buildDescriptor({ profileUrl, template, stylePack, dossier });
+  const descriptor = buildDescriptor({ profileUrl, region, template, stylePack, dossier });
+
+  /*
+   * Render only when a template was chosen. A refusal is reported rather than
+   * thrown: the descriptor is still worth persisting so the operator can see
+   * exactly which sections could not be satisfied and supply the missing
+   * facts, instead of losing the research done so far.
+   */
+  const render = template === null ? null : renderSite(descriptor);
 
   const res = await ctx.q.query(
     `insert into sites (space_id, business_name, status, descriptor, template, style_pack, source_profile)
@@ -82,11 +92,23 @@ export const factoryBuildSite: CapabilityHandler = async (ctx, input) => {
     blocked: dossier.blocked.length,
   });
 
+  const buildStatus =
+    render === null
+      ? 'descriptor_draft'
+      : render.rendered
+        ? 'preview_built'
+        : 'template_unsatisfied';
+
   return {
     siteId,
-    status: dossier.blocked.length > 0 ? 'descriptor_draft_with_gaps' : 'descriptor_draft',
+    status: dossier.blocked.length > 0 && buildStatus === 'descriptor_draft'
+      ? 'descriptor_draft_with_gaps'
+      : buildStatus,
     created: true,
     factCount: dossier.facts.length,
     blocked: dossier.blocked,
+    // The fingerprint publishing would promote; absent when nothing rendered.
+    buildHash: render?.rendered ? render.hash : undefined,
+    renderIssues: render && !render.rendered ? render.issues : undefined,
   };
 };

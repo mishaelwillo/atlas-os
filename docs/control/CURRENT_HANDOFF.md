@@ -1,32 +1,32 @@
 # Current Handoff
 
-**Handoff ID:** `feat-factory-dossier`
+**Handoff ID:** `feat-factory-renderer`
 **Status:** active
-**Started:** 2026-07-27T05:17:06.919Z
-**Updated:** 2026-07-27T05:17:06.919Z
+**Started:** 2026-07-27T06:10:18.098Z
+**Updated:** 2026-07-27T06:10:18.098Z
 **Actor:** Codex
-**Objective:** Begin P2B Website Factory with the sourced dossier and descriptor foundation (P2B-FACTORY-001)
+**Objective:** Add the Website Factory template library and deterministic renderer (P2B-FACTORY-001)
 
 ## Active work
 
 - Work item: `P2A-MEMORY-001`
-- Branch: `feat/factory-dossier`
+- Branch: `feat/factory-renderer`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `308a3f37a61bc232a0fad998d2d26cb866072d08`
+- Head commit: `3af09963769fb0b1d7347e96ac15d609f6f09904`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- factory.build_site now creates a draft site from a sourced dossier; unsourced and conflicting facts are blocked instead of rendered
+- Templates validate component/region combinations before build; the renderer produces deterministic escaped HTML with a sha256 build hash
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-27-feat-mission-control-cards.md`
+- `?? docs/control/handoffs/archived/2026-07-27-feat-factory-dossier.md`
 
 ## Verification evidence
 
-- 13 dossier tests plus 7 route tests, 78/78 API tests, 14/14 workspace test tasks, uncached 8/8 builds; a mutation admitting unsourced facts failed 6 tests
+- 16 render tests plus 4 new route tests, 98/98 API tests, 14/14 workspace test tasks, uncached 8/8 builds; mutations removing HTML escaping and the region gate each failed tests
 
 ## Database actions
 
@@ -48,7 +48,7 @@
 
 ## Next exact action
 
-Merge after review, then add the template library and deterministic renderer so a descriptor can produce a preview build
+Merge after review, then add preview hosting so a build hash becomes a reachable URL
 
 ## Definition of done
 

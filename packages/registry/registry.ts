@@ -92,8 +92,8 @@ export const registry = [
     description: 'GBP/FB profile → facts → declarative descriptor → template render → preview deploy.',
     // `facts` carries the research dossier until directory adapters exist; each
     // entry needs a sourceUrl or ownerProvided, or it is blocked, not rendered.
-    input: { type: 'object', required: ['profileUrl'], properties: { profileUrl: { type: 'string' }, template: { type: 'string' }, stylePack: { type: 'string' }, facts: { type: 'array' } } },
-    output: { type: 'object', properties: { siteId: { type: 'string' }, previewUrl: { type: 'string' }, status: { type: 'string' }, created: { type: 'boolean' }, factCount: { type: 'number' }, blocked: { type: 'array' } } },
+    input: { type: 'object', required: ['profileUrl'], properties: { profileUrl: { type: 'string' }, region: { type: 'string' }, template: { type: 'string' }, stylePack: { type: 'string' }, facts: { type: 'array' } } },
+    output: { type: 'object', properties: { siteId: { type: 'string' }, previewUrl: { type: 'string' }, status: { type: 'string' }, created: { type: 'boolean' }, factCount: { type: 'number' }, blocked: { type: 'array' }, buildHash: { type: 'string' }, renderIssues: { type: 'array' } } },
     taskClass: 'do', requiresApproval: false, scopes: ['factory:write'], method: 'POST',
   },
   {

@@ -123,6 +123,8 @@ export function buildDossier(raw: readonly RawFact[]): Dossier {
 export interface Descriptor {
   schemaVersion: 1;
   profileUrl: string;
+  /** Region pack this site is built for; templates declare what they support. */
+  region: string;
   template: string | null;
   stylePack: string | null;
   /** Every entry carries its provenance; the renderer needs no other source. */
@@ -136,6 +138,7 @@ export interface Descriptor {
  */
 export function buildDescriptor(args: {
   profileUrl: string;
+  region?: string | null;
   template: string | null;
   stylePack: string | null;
   dossier: Dossier;
@@ -143,6 +146,7 @@ export function buildDescriptor(args: {
   return {
     schemaVersion: 1,
     profileUrl: args.profileUrl,
+    region: args.region?.trim() || 'global',
     template: args.template,
     stylePack: args.stylePack,
     facts: args.dossier.facts,
