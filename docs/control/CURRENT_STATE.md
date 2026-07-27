@@ -22,7 +22,7 @@ pnpm control:status` supplies them.
 
 ## Production state
 
-P1 production deployment closure is **complete**. The Railway API serves the
+P1 is **complete**, including live acceptance. The Railway API serves the
 selected commit, `POST /v1/memory/ingest` and `GET /v1/status/mission_control`
 answer 401 auth-gated where they previously 404'd, and the drift report has no
 blocking finding.
@@ -39,7 +39,8 @@ blocking finding.
 
 ## Phase progress
 
-- **P1** — complete apart from the operator half of live acceptance.
+- **P1** — complete. Deployment closure and both halves of live acceptance are
+  verified against production.
 - **P2A Intelligence Bank** — build-now scope done: card enrichment and the
   source-free quarantine, versioned playbook authoring under approval, and
   Mission Control drift and memory-freshness cards. The remaining agent audit
@@ -62,9 +63,13 @@ returned 403 operator-only; and each successful call wrote one `audit_log` row.
 `messages` and `approvals` were both empty afterwards, so nothing was queued or
 sent. The acceptance credential was disabled after the run.
 
-**Outstanding:** the operator half — draft an outreach touch, then approve it
-and observe the log-only dispatcher fire. This is now possible entirely through
-the UI and no longer needs an ad-hoc API call.
+The operator half passed on 2026-07-27, run entirely through Mission Control.
+Two approvals were created and decided by the pinned operator, and both
+dispatched: the audit trail records `outreach.send` with `requiresApproval`,
+then `approvals.decide`, then `outreach.dispatched` with `stub: true`. Both a
+hand-entered lead reference and a well-formed but non-existent uuid worked.
+`messages` remained empty and no outbound row exists without `approved_by`, so
+nothing left the system.
 
 ## Defects found and fixed
 

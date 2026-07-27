@@ -126,6 +126,33 @@ function useOperatorSession(): {
   return { session, signIn, signOut };
 }
 
+interface DispatchResult {
+  executed?: boolean;
+  stub?: boolean;
+  note?: string;
+}
+
+/**
+ * Say what the decision actually caused.
+ *
+ * A rejection executes nothing by design. An approval may dispatch, may run a
+ * stub, or may find no dispatcher registered at all — and that last case
+ * previously passed silently, which is the worst of the three because the
+ * operator believes an action was taken.
+ */
+export function describeDispatch(
+  decision: 'approved' | 'rejected',
+  dispatched: DispatchResult | null,
+): string {
+  if (decision === 'rejected') return 'Rejected — nothing was executed.';
+  if (!dispatched) return 'Approved, but the server reported no dispatch result.';
+  if (dispatched.executed === false) {
+    return `Approved, but nothing executed${dispatched.note ? `: ${dispatched.note}` : '.'}`;
+  }
+  const stub = dispatched.stub ? ' (log-only stub)' : '';
+  return `Approved and dispatched${stub}${dispatched.note ? ` — ${dispatched.note}` : '.'}`;
+}
+
 function ApprovalsCard({ card, client, onDecided, hasSpace }: { card: StatusCard; client: AtlasGeneratedClient; onDecided: () => void; hasSpace: boolean }) {
   const items = (card.data.items ?? []) as ApprovalItem[];
   const [choice, setChoice] = useState<Record<string, Decision>>({});
@@ -133,6 +160,13 @@ function ApprovalsCard({ card, client, onDecided, hasSpace }: { card: StatusCard
   const [deferred, setDeferred] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
+  /*
+   * What the dispatcher actually did, kept after the item leaves the queue.
+   * Without this the operator authorises an external effect and is told
+   * nothing: a failed dispatch looks exactly like a successful one, because
+   * both simply remove the row from pending.
+   */
+  const [outcome, setOutcome] = useState<string | null>(null);
 
   const submit = async (item: ApprovalItem) => {
     const decision = choice[item.approvalId];
@@ -151,7 +185,12 @@ function ApprovalsCard({ card, client, onDecided, hasSpace }: { card: StatusCard
     setBusy((b) => ({ ...b, [item.approvalId]: true }));
     setError(null);
     try {
-      await client.approvalsDecide({ approvalId: item.approvalId, decision, notes: notes[item.approvalId] ?? '' });
+      const res = (await client.approvalsDecide({
+        approvalId: item.approvalId,
+        decision,
+        notes: notes[item.approvalId] ?? '',
+      })) as unknown as { dispatched?: DispatchResult | null };
+      setOutcome(describeDispatch(decision, res.dispatched ?? null));
       onDecided();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -167,6 +206,11 @@ function ApprovalsCard({ card, client, onDecided, hasSpace }: { card: StatusCard
         {card.title} <span className={styles.count}>{visible.length}</span>
       </h3>
       {error && <p className={styles.error}>{error}</p>}
+      {outcome && (
+        <p className={styles.when} data-testid="dispatch-outcome" role="status">
+          {outcome}
+        </p>
+      )}
       {visible.length === 0 && <p className={styles.empty}>Queue clear — nothing waiting on you.</p>}
       {visible.map((item) => (
         <div key={item.approvalId} className={styles.approvalItem}>
