@@ -142,6 +142,7 @@ marketplace, memberships, agent studio, or globally uniform legal/pricing policy
 | Region inheritance and specialization | `docs/specs/p2/regional-packs.md` |
 | Memory, mission control, playbooks, logs | `docs/specs/p2/intelligence-foundation.md` |
 | P2A↔P1 memory contract reconciliation | `docs/specs/p2/intelligence-reconciliation.md` |
+| Operator sign-in and Space selection | `docs/specs/p2/operator-sign-in.md` |
 | Research-to-approved-site factory | `docs/specs/p2/website-factory.md` |
 | Prospecting-to-hosting pilot | `docs/specs/p2/revenue-pilot.md` |
 | Recurring service expansion | `docs/specs/p2/upsell-capabilities.md` |

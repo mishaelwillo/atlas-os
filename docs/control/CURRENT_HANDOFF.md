@@ -1,42 +1,42 @@
 # Current Handoff
 
-**Handoff ID:** `p2a-memory-code-start`
+**Handoff ID:** `spec-operator-sign-in`
 **Status:** active
-**Started:** 2026-07-27T00:15:15.440Z
-**Updated:** 2026-07-27T00:15:15.440Z
+**Started:** 2026-07-27T00:31:59.626Z
+**Updated:** 2026-07-27T00:31:59.626Z
 **Actor:** Codex
-**Objective:** Begin the code side of Intelligence Bank enrichment (P2A-MEMORY-001) against the applied 0002 columns
+**Objective:** Specify operator sign-in and Space selection so governed capabilities can be exercised from Atlas OS
 
 ## Active work
 
 - Work item: `P2A-MEMORY-001`
-- Branch: `main`
+- Branch: `spec/operator-sign-in`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `5f465ba9b3a31bc3cdbb81795414f1cbbaa07cdb`
+- Head commit: `bcda380c5e2bd7f4e59b7c7df580d3c6ab419286`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Merged PR #5 (generated-client fetch binding) and PR #6 (OS build-info honesty); both live in production
+- Added docs/specs/p2/operator-sign-in.md and indexed it in the P2 spec index and control index
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-27-fix-build-info-unknown-schema.md`
+- `?? docs/control/handoffs/archived/2026-07-27-p2a-memory-code-start.md`
 
 ## Verification evidence
 
-- CI success on exact main SHA 5f465ba; both services auto-deployed to that SHA; drift shows every authority ok
+- Both defects verified in code: MissionControl.tsx builds the client without spaceId, and pipeline.ts rejects approval-gated calls when spaceId is null; auth.users observed empty by read-only query
 
 ## Database actions
 
 - No external action reported.
-- Observed Supabase status: ok (live-read-only at 2026-07-27T00:14:48.061Z).
+- Observed Supabase status: ok (live-read-only at 2026-07-27T00:17:09.417Z).
 
 ## Hosting actions
 
 - No external action reported.
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-07-27T00:14:48.061Z).
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-07-27T00:17:09.417Z).
 
 ## External side effects
 
@@ -44,11 +44,11 @@
 
 ## Blockers
 
-- The operator half of the P1 approval round trip is still unexercised; it requires an operator sign-in through Mission Control
+- The operator account does not exist in Supabase Auth; it must be created before any sign-in can succeed
 
 ## Next exact action
 
-Implement card/node/run enrichment behind the unchanged P1 routes per docs/specs/p2/intelligence-foundation.md and the reconciliation deltas
+On approval, implement the sign-in view, session refresh, and Space selector in apps/os per docs/specs/p2/operator-sign-in.md
 
 ## Definition of done
 

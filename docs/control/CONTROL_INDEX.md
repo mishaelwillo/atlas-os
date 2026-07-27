@@ -27,6 +27,8 @@ Other code spans are commands or identifiers and are not interpreted as paths.
 15. Recurring upsells: `path:docs/specs/p2/upsell-capabilities.md`
 16. Presenter method playbook: `path:docs/specs/p2/presenter-workflow-playbook.md`
 17. Observed menu crosswalk: `path:docs/specs/p2/menu-crosswalk.md`
+18. Operator sign-in and Space selection:
+    `path:docs/specs/p2/operator-sign-in.md`
 
 ## Current phase
 
