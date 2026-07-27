@@ -12,7 +12,7 @@
 - Work item: `P2C-REVENUE-001`
 - Branch: `feat/outreach-drafts`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `4c57f626467d4f1a66e7e81ea13aca703cb0db3e`
+- Head commit: `672a04d4de2c394c084ab1042afdf6385d01dbe8`
 - Review status: pending independent review
 
 ## Task change evidence
