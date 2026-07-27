@@ -3,26 +3,25 @@
 **Handoff ID:** `feat-publish-core`
 **Status:** active
 **Started:** 2026-07-27T23:37:55.183Z
-**Updated:** 2026-07-27T23:37:55.183Z
+**Updated:** 2026-07-27T23:39:00.769Z
 **Actor:** Codex
 **Objective:** Build the routing-independent publish and rollback core for the Website Factory (P2B-FACTORY-001)
 
 ## Active work
 
-- Work item: `P2C-REVENUE-001`
+- Work item: `P2B-FACTORY-001`
 - Branch: `feat/publish-core`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `0029e8dc482989de1355a0173001646d459262e8`
+- Head commit: `bd5459f7d6fd0664576383786459fd37cd10ee95`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Added publish verification, deployment history with rollback planning, and a review-only migration for site_deployments
+- Added publish verification, deployment history with rollback planning, a review-only migration, and corrected the queue now that routing is decided
 
 ## Current working tree
 
-- ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-27-p2c-revenue-pilot-continued.md`
+- ` M docs/control/WORK_QUEUE.yaml`
 
 ## Verification evidence
 
@@ -48,7 +47,7 @@
 
 ## Next exact action
 
-Decide site routing, then wire a hosting target so a queued deployment can go live
+Create the sites service and point sites.andtronai.com at it, then wire the hosting target so a queued deployment can serve
 
 ## Definition of done
 
