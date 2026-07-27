@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `unassigned-2026-07-27`
+**Handoff ID:** `fix-override-token-autofill`
 **Status:** active
-**Started:** 2026-07-27T07:49:20.388Z
-**Updated:** 2026-07-27T07:49:20.388Z
-**Actor:** Unassigned
-**Objective:** Preserve a safe takeover point while no model is assigned.
+**Started:** 2026-07-27T07:50:04.242Z
+**Updated:** 2026-07-27T07:50:04.242Z
+**Actor:** Codex
+**Objective:** Stop the diagnostic override field capturing and transmitting the operator password
 
 ## Active work
 
 - Work item: `P2A-MEMORY-001`
-- Branch: `fix/auth-failure-observability`
+- Branch: `fix/override-token-autofill`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `2673cfd4cd7e9b1b45c1de5c69282418f7d4118c`
+- Head commit: `18c06597fb6a2d46be38e1b521387ac5f2214a71`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- The prior current handoff was archived byte-for-byte.
+- The scoped-token override is now opt-in and guarded against credential autofill
 
 ## Current working tree
 
@@ -25,28 +25,30 @@
 
 ## Verification evidence
 
-- The prior handoff was archived without altering its contents.
+- 6 regression tests, 44/44 OS tests, 14/14 workspace test tasks, uncached 8/8 builds; verified the credential is never logged and a failed authentication writes no row
 
 ## Database actions
 
 - No external action reported.
+- Observed Supabase status: ok (live-read-only at 2026-07-27T01:04:56.531Z).
 
 ## Hosting actions
 
 - No external action reported.
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-07-27T01:04:56.531Z).
 
 ## External side effects
 
-- Created an immutable repository-local handoff archive.
+- No external action reported.
 
 ## Blockers
 
-- Not supplied.
+- The operator credential was transmitted in an authorization header on roughly 1000 requests before this fix, so rotation is advisable
 
 ## Next exact action
 
-select a ready work item from WORK_QUEUE.yaml.
+Merge and deploy, then confirm Mission Control authenticates with the session token; rotating the Supabase credential is advisable
 
 ## Definition of done
 
-A model claims the active work item and creates a new handoff.
+The active task acceptance checks pass and the handoff is updated.
