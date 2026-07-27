@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `fix-stale-bundle-detection`
+**Handoff ID:** `feat-factory-dossier`
 **Status:** active
-**Started:** 2026-07-27T05:32:45.698Z
-**Updated:** 2026-07-27T05:32:45.698Z
+**Started:** 2026-07-27T05:17:06.919Z
+**Updated:** 2026-07-27T05:17:06.919Z
 **Actor:** Codex
-**Objective:** Stop cached bundles from silently running outdated code against a current API
+**Objective:** Begin P2B Website Factory with the sourced dossier and descriptor foundation (P2B-FACTORY-001)
 
 ## Active work
 
 - Work item: `P2A-MEMORY-001`
-- Branch: `fix/stale-bundle-detection`
+- Branch: `feat/factory-dossier`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `1e6cc54307856b7e90518228c13c414229d07262`
+- Head commit: `308a3f37a61bc232a0fad998d2d26cb866072d08`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- The OS bundle now carries its build commit and warns when the server publishes a different one
+- factory.build_site now creates a draft site from a sourced dossier; unsourced and conflicting facts are blocked instead of rendered
 
 ## Current working tree
 
@@ -26,7 +26,7 @@
 
 ## Verification evidence
 
-- 11 staleness tests, 38/38 OS tests, 14/14 workspace test tasks, uncached 8/8 builds; a build with ATLAS_GIT_SHA set proved the commit is baked into the emitted bundle
+- 13 dossier tests plus 7 route tests, 78/78 API tests, 14/14 workspace test tasks, uncached 8/8 builds; a mutation admitting unsourced facts failed 6 tests
 
 ## Database actions
 
@@ -44,11 +44,11 @@
 
 ## Blockers
 
-- index.html is served without Cache-Control by Railway's static SPA serving; this detects the symptom rather than fixing the header
+- Not supplied.
 
 ## Next exact action
 
-Merge, then hard-refresh the OS once to land on the current build and retry operator sign-in
+Merge after review, then add the template library and deterministic renderer so a descriptor can produce a preview build
 
 ## Definition of done
 
