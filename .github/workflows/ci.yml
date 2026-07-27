@@ -46,11 +46,12 @@ jobs:
       - name: Verify Atlas control plane
         run: pnpm control:verify
 
-      - name: Lint
-        run: pnpm run lint
-
       - name: Build Workspace
         run: pnpm run build
+
+      # After Build: type-aware rules need the workspace declaration files.
+      - name: Lint
+        run: pnpm run lint
 
       - name: Verify capability catalog
         run: |
