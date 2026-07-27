@@ -1,42 +1,42 @@
 # Current Handoff
 
-**Handoff ID:** `p2c-revenue-pilot-continued`
+**Handoff ID:** `feat-publish-core`
 **Status:** active
-**Started:** 2026-07-27T20:43:24.827Z
-**Updated:** 2026-07-27T20:43:24.827Z
+**Started:** 2026-07-27T23:37:55.183Z
+**Updated:** 2026-07-27T23:37:55.183Z
 **Actor:** Codex
-**Objective:** Continue the revenue pilot now that P1 is closed end to end
+**Objective:** Build the routing-independent publish and rollback core for the Website Factory (P2B-FACTORY-001)
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `main`
+- Branch: `feat/publish-core`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `788b522010f8dba7949b5d330382d6becbaaa510`
+- Head commit: `0029e8dc482989de1355a0173001646d459262e8`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- P1 is complete: deployment closure and both halves of live acceptance are verified against production
+- Added publish verification, deployment history with rollback planning, and a review-only migration for site_deployments
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-27-feat-dispatch-outcome.md`
+- `?? docs/control/handoffs/archived/2026-07-27-p2c-revenue-pilot-continued.md`
 
 ## Verification evidence
 
-- Approval dispatch outcomes now reported in the UI and confirmed live in the served bundle; drift clean with every authority ok
+- 13 publish unit tests plus 10 through approval, 171/171 API tests, lint 0, uncached 8/8 builds; mutations trusting the approved hash and allowing rollback to a never-live build failed 3 tests each
 
 ## Database actions
 
-- No external action reported.
-- Observed Supabase status: ok (live-read-only at 2026-07-27T18:26:05.633Z).
+- None. 0003_site_deployments.sql is written for review and has NOT been executed
+- Observed Supabase status: ok (live-read-only at 2026-07-27T20:44:46.799Z).
 
 ## Hosting actions
 
 - No external action reported.
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-07-27T18:26:05.633Z).
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-07-27T20:44:46.799Z).
 
 ## External side effects
 
@@ -44,11 +44,11 @@
 
 ## Blockers
 
-- Lead sourcing, publishing, the frontier session, and agent audit views each await an operator decision
+- No hosting target exists, so deployments are recorded as queued and nothing serves publicly
 
 ## Next exact action
 
-Build prospect qualification or the demo queue, or resolve one of the four decisions blocking the remaining phases
+Decide site routing, then wire a hosting target so a queued deployment can go live
 
 ## Definition of done
 
