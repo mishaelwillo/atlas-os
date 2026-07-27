@@ -55,7 +55,7 @@ items:
   - id: P2B-FACTORY-001
     phase: P2B
     title: Build the Website Factory
-    status: blocked
+    status: in_progress
     priority: high
     dependencies:
       - P2A-CONTROL-001
@@ -63,15 +63,15 @@ items:
     specification: docs/specs/p2/website-factory.md
     acceptance_checks:
       - GBP or profile URL becomes an approved live demo in under 30 minutes
-    next_action: Sourced descriptors, deterministic rendering and sandboxed previews are live; publishing is blocked pending a hosting, domain-proof and entitlement decision
+    next_action: Publish verification and rollback history are built; wire a hosting target so a queued deployment can serve, using andtronai.com
   - id: P2C-REVENUE-001
     phase: P2C
     title: Run the minimum complete revenue pilot
-    status: in_progress
+    status: ready
     priority: high
     dependencies:
       - P2B-FACTORY-001
     specification: docs/specs/p2/revenue-pilot.md
     acceptance_checks:
       - One real hosting-paying customer completes an approval-gated sequence
-    next_action: Build outreach drafting so a governed action can be initiated from the product instead of an ad-hoc API call
+    next_action: Outreach drafting and policy enforcement are live; remaining build-now scope is prospect qualification, the demo queue and sequence state

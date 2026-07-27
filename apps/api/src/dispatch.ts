@@ -4,6 +4,9 @@
  * (SECURITY.md inv. 1/3/4). Keyed by approvals.kind (= capability id).
  */
 import { insertAudit, type ApprovalDispatcher } from './pipeline.js';
+import type { Descriptor } from './factory/dossier.js';
+import { renderSite } from './factory/render.js';
+import { planPublish } from './factory/publish.js';
 
 /**
  * outreach.send — LOG-ONLY sender stub (P1 acceptance: "dispatcher fires
@@ -33,11 +36,108 @@ const memoryAdjudicate: ApprovalDispatcher = async (ctx, payload) => {
   return { executed: true, updated: res.rowCount ?? 0 };
 };
 
-/** factory.deploy_site — stub: mark intent only; real deploy lands in P2. */
+/**
+ * factory.deploy_site — promote exactly the approved build.
+ *
+ * The descriptor is re-rendered here rather than trusting a hash recorded
+ * earlier. Rendering is deterministic, so a mismatch means the descriptor
+ * changed between approval and publish, which is precisely the case where
+ * publishing would put something live that nobody approved.
+ *
+ * Serving is not wired: no hosting target exists yet. The deployment is
+ * recorded as 'queued' rather than 'live', because claiming live without a
+ * reachable address would make the history lie about what is public.
+ */
 const factoryDeploySite: ApprovalDispatcher = async (ctx, payload) => {
   const input = (payload.input ?? {}) as Record<string, unknown>;
-  ctx.deps.log.info({ siteId: input.siteId, domain: input.domain }, 'DEPLOY DISPATCH (stub) — no deploy performed');
-  return { executed: true, stub: true, note: 'deploy adapter lands in P2' };
+  const siteId = typeof input.siteId === 'string' ? input.siteId.trim() : '';
+  if (siteId === '') {
+    return { executed: false, note: 'factory.deploy_site: siteId is required' };
+  }
+
+  const found = await ctx.q.query(
+    `select site_id, descriptor from sites where site_id = $1`,
+    [siteId],
+  );
+  const row = found.rows[0];
+  if (!row) return { executed: false, note: 'factory.deploy_site: site not found' };
+
+  const render = renderSite(row.descriptor as Descriptor);
+  const approvedBuildHash =
+    typeof input.buildHash === 'string' && input.buildHash.trim() !== ''
+      ? input.buildHash.trim()
+      : render.rendered
+        ? render.hash
+        : '';
+
+  const history = await ctx.q.query(
+    `select deployment_id, version, build_hash, status
+       from site_deployments where site_id = $1
+      order by version desc limit 1`,
+    [siteId],
+  );
+  const liveRow = await ctx.q.query(
+    `select deployment_id, version, build_hash
+       from site_deployments
+      where site_id = $1 and status = 'live' and environment = 'production'
+      limit 1`,
+    [siteId],
+  );
+  const latestVersion = Number(history.rows[0]?.version ?? 0);
+  const live = liveRow.rows[0]
+    ? {
+        deploymentId: String(liveRow.rows[0].deployment_id),
+        version: Number(liveRow.rows[0].version),
+        buildHash: String(liveRow.rows[0].build_hash),
+      }
+    : null;
+
+  const plan = planPublish({
+    approvedBuildHash,
+    currentBuildHash: render.rendered ? render.hash : null,
+    renderIssues: render.rendered ? [] : render.issues,
+    latestVersion,
+    live,
+  });
+
+  if (!plan.ok) {
+    await insertAudit(ctx.q, ctx.spaceId, ctx.auth.actor, 'factory.deploy_refused', siteId, {
+      code: plan.code,
+    });
+    return { executed: false, note: plan.message, code: plan.code };
+  }
+
+  const inserted = await ctx.q.query(
+    `insert into site_deployments
+       (space_id, site_id, version, environment, build_hash, renderer_sha, status, approved_by)
+     values ($1, $2, $3, 'production', $4, $5, 'queued', $6)
+     returning deployment_id`,
+    [
+      ctx.spaceId,
+      siteId,
+      plan.version,
+      plan.buildHash,
+      ctx.deps.buildInfo.gitSha,
+      ctx.auth.actor,
+    ],
+  );
+  const deploymentId = String(inserted.rows[0]?.deployment_id ?? '');
+
+  await insertAudit(ctx.q, ctx.spaceId, ctx.auth.actor, 'factory.deploy_queued', deploymentId, {
+    siteId,
+    version: plan.version,
+    buildHash: plan.buildHash,
+  });
+
+  return {
+    executed: true,
+    deploymentId,
+    version: plan.version,
+    buildHash: plan.buildHash,
+    supersedes: plan.supersedes,
+    status: 'queued',
+    note: 'build verified and recorded; no hosting target is configured, so it is not yet serving',
+  };
 };
 
 /** playbooks.author — stub: budgeted frontier session lands in P2. */
