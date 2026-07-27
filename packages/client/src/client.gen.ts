@@ -81,6 +81,7 @@ export type PlaybooksAuthorOutput = {
 
 export type FactoryBuildSiteInput = {
   profileUrl: string;
+  region?: string;
   template?: string;
   stylePack?: string;
   facts?: Array<unknown>;
@@ -92,6 +93,8 @@ export type FactoryBuildSiteOutput = {
   created?: boolean;
   factCount?: number;
   blocked?: Array<unknown>;
+  buildHash?: string;
+  renderIssues?: Array<unknown>;
 };
 
 export type FactoryDeploySiteInput = {

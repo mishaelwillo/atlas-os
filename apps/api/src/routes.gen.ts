@@ -256,6 +256,9 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
         "profileUrl": {
           "type": "string"
         },
+        "region": {
+          "type": "string"
+        },
         "template": {
           "type": "string"
         },
@@ -286,6 +289,12 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "number"
         },
         "blocked": {
+          "type": "array"
+        },
+        "buildHash": {
+          "type": "string"
+        },
+        "renderIssues": {
           "type": "array"
         }
       }
