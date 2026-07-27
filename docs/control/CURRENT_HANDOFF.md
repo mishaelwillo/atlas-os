@@ -1,42 +1,42 @@
 # Current Handoff
 
-**Handoff ID:** `p2c-revenue-pilot-next`
+**Handoff ID:** `feat-dispatch-outcome`
 **Status:** active
-**Started:** 2026-07-27T18:24:54.145Z
-**Updated:** 2026-07-27T18:24:54.145Z
+**Started:** 2026-07-27T20:38:53.707Z
+**Updated:** 2026-07-27T20:38:53.707Z
 **Actor:** Codex
-**Objective:** Continue the revenue pilot after outreach drafting and policy enforcement shipped
+**Objective:** Report approval dispatch outcomes and record P1 as complete
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `main`
+- Branch: `feat/dispatch-outcome`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `a622447e36ea6ae69b4edcb9d9919b854139a895`
+- Head commit: `87065da89af75ec103ceb46688b323a3b6bb59c3`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Autonomous session shipped outreach drafting, pre-approval policy enforcement, a fingerprint drift check, and a corrected control-plane state
+- Surfaced the dispatch result on an approval decision and marked P1-DEPLOY-001 done after the operator acceptance leg passed
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-27-docs-current-state-refresh.md`
+- `?? docs/control/handoffs/archived/2026-07-27-p2c-revenue-pilot-next.md`
 
 ## Verification evidence
 
-- Four pull requests merged with CI green on each exact main SHA; drift shows every authority ok
+- 6 outcome tests, 62/62 OS tests, lint 0, uncached 8/8 builds; a mutation ignoring a failed dispatch failed a test; acceptance verified server-side against production
 
 ## Database actions
 
 - No external action reported.
-- Observed Supabase status: ok (live-read-only at 2026-07-27T18:24:11.480Z).
+- Observed Supabase status: ok (live-read-only at 2026-07-27T18:26:05.633Z).
 
 ## Hosting actions
 
 - No external action reported.
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-07-27T18:24:11.480Z).
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-07-27T18:26:05.633Z).
 
 ## External side effects
 
@@ -44,11 +44,11 @@
 
 ## Blockers
 
-- Lead sourcing, publishing, the frontier session, and agent audit views each await an operator decision rather than code
+- Not supplied.
 
 ## Next exact action
 
-Run the operator half of P1 acceptance through Mission Control, then build prospect qualification or the demo queue
+Continue revenue-pilot build-now scope, or resolve one of the four decisions blocking the remaining phases
 
 ## Definition of done
 
