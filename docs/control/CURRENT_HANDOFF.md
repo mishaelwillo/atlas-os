@@ -1,32 +1,32 @@
 # Current Handoff
 
-**Handoff ID:** `feat-mission-control-cards`
+**Handoff ID:** `feat-factory-dossier`
 **Status:** active
-**Started:** 2026-07-27T04:57:16.512Z
-**Updated:** 2026-07-27T04:57:16.512Z
+**Started:** 2026-07-27T05:17:06.919Z
+**Updated:** 2026-07-27T05:17:06.919Z
 **Actor:** Codex
-**Objective:** Expose deployment drift and memory freshness in Mission Control for P2A-MEMORY-001
+**Objective:** Begin P2B Website Factory with the sourced dossier and descriptor foundation (P2B-FACTORY-001)
 
 ## Active work
 
 - Work item: `P2A-MEMORY-001`
-- Branch: `feat/mission-control-cards`
+- Branch: `feat/factory-dossier`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `6905f6cb84a304285e4a69b742759c56cbf97f10`
+- Head commit: `49321f1c87931c9ab0da48d832ac9638379d77f3`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Added deployment and memory cards to status.mission_control with UI renderers, and threaded the build fingerprint through PipelineDeps
+- factory.build_site now creates a draft site from a sourced dossier; unsourced and conflicting facts are blocked instead of rendered
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-27-feat-playbooks-author.md`
+- `?? docs/control/handoffs/archived/2026-07-27-feat-mission-control-cards.md`
 
 ## Verification evidence
 
-- 8 new card tests, 58/58 API tests, 27/27 OS tests, 14/14 workspace test tasks, uncached 8/8 builds; a mutation treating an unreadable ledger as agreement failed 2 tests
+- 13 dossier tests plus 7 route tests, 78/78 API tests, 14/14 workspace test tasks, uncached 8/8 builds; a mutation admitting unsourced facts failed 6 tests
 
 ## Database actions
 
@@ -48,7 +48,7 @@
 
 ## Next exact action
 
-Merge after review; remaining build-now item is agent audit views, whose candidate promotion is gated on evidence
+Merge after review, then add the template library and deterministic renderer so a descriptor can produce a preview build
 
 ## Definition of done
 
