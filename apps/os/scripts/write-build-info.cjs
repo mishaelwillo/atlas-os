@@ -36,7 +36,9 @@ const buildTime = (value) => {
 };
 
 const schemaVersion = (value) => {
-  if (value === undefined) return '0001_init';
+  // An absent variable means the build cannot observe the deployed migration.
+  // Say so, rather than asserting one — a wrong identity here is worse than
+  // an admitted unknown, and the fingerprint validator accepts 'unknown'.
   const normalized = normalizedValue(value);
   if (normalized === undefined) return 'unknown';
   return /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(normalized) ? normalized : 'unknown';

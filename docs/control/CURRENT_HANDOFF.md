@@ -1,32 +1,32 @@
 # Current Handoff
 
-**Handoff ID:** `fix-client-fetch-unbound`
+**Handoff ID:** `fix-build-info-unknown-schema`
 **Status:** active
-**Started:** 2026-07-26T23:55:57.055Z
-**Updated:** 2026-07-26T23:55:57.055Z
+**Started:** 2026-07-27T00:01:36.994Z
+**Updated:** 2026-07-27T00:01:36.994Z
 **Actor:** Codex
-**Objective:** Fix the Mission Control status poll failing with an unbound global fetch in the generated client
+**Objective:** Stop the OS build from asserting a migration identity it cannot observe
 
 ## Active work
 
 - Work item: `P2A-MEMORY-001`
-- Branch: `fix/client-fetch-unbound`
+- Branch: `fix/build-info-unknown-schema`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `d4dcbd3830fb29bbb55146cf464eea40c9a1b884`
+- Head commit: `37f5e3a4ec25fe281465f2b907fc55247727f0a1`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Bound the default fetchImpl to globalThis in the codegen template, regenerated the client, and added a regression test guarding both template and generated output
+- write-build-info.cjs now resolves an absent ATLAS_SCHEMA_VERSION to 'unknown' instead of a hardcoded '0001_init', with a regression test that deletes the ambient variable
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-26-p2a-memory-code-enrichment.md`
+- `?? docs/control/handoffs/archived/2026-07-27-p2a-memory-code-enrichment.md`
 
 ## Verification evidence
 
-- RED reproduced 4 failures including a behavioural test of the browser receiver rule; GREEN 5/5 focused, 14/14 workspace test tasks, 8/8 builds
+- RED reproduced the stale '0001_init' claim; GREEN 6/6 build-info tests, 14/14 workspace test tasks, 8/8 builds, control:verify exit 0
 
 ## Database actions
 
@@ -48,7 +48,7 @@
 
 ## Next exact action
 
-Merge after review, then confirm Mission Control loads its status cards in the browser
+Merge after review; no production change is expected because ATLAS_SCHEMA_VERSION is set explicitly on both Railway services
 
 ## Definition of done
 

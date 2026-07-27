@@ -128,4 +128,28 @@ describe('OS build metadata generator', () => {
     expect(info.schemaVersion).toBe('unknown');
     expect(info.buildTime).toBe('unknown');
   });
+
+  /**
+   * An absent schema variable must not be reported as a specific migration.
+   * The OS has no way to observe which migration is deployed, so claiming one
+   * is a silent-stale assertion: production published '0001_init' for hours
+   * after 0002_intelligence_enrichment was applied, because this variable was
+   * simply unset on the service.
+   */
+  it('reports an unknown schema when the variable is absent rather than guessing a migration', () => {
+    const cwd = mkdtempSync(resolve(tmpdir(), 'atlas-os-build-info-'));
+    temporaryDirectories.push(cwd);
+    const env = { ...process.env };
+    // Must be deleted explicitly: inheriting an ambient value would make this
+    // assertion depend on the machine running the suite.
+    delete env.ATLAS_SCHEMA_VERSION;
+
+    const result = spawnSync(process.execPath, [script], { cwd, env, encoding: 'utf8' });
+
+    expect(result.status, result.stderr).toBe(0);
+    const info = JSON.parse(readFileSync(resolve(cwd, 'public/build-info.json'), 'utf8')) as {
+      schemaVersion: string;
+    };
+    expect(info.schemaVersion).toBe('unknown');
+  });
 });
