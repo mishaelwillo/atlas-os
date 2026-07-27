@@ -47,7 +47,7 @@ interface RunItem {
 }
 interface StatusCard {
   id: string;
-  kind: 'approvals' | 'runs' | 'model_chain' | 'cache' | 'schedules';
+  kind: 'approvals' | 'runs' | 'model_chain' | 'cache' | 'schedules' | 'memory' | 'deployment';
   title: string;
   data: Record<string, unknown>;
 }
@@ -289,6 +289,79 @@ function SchedulesCard({ card }: { card: StatusCard }) {
   );
 }
 
+interface DeploymentFinding {
+  code: string;
+  severity: 'blocking' | 'unknown';
+  message: string;
+}
+
+/**
+ * Deployment fingerprint versus observed database state. Findings are rendered
+ * prominently rather than as data, because a stale schema claim is exactly the
+ * kind of thing that goes unnoticed when it is one field among many.
+ */
+function DeploymentCard({ card }: { card: StatusCard }) {
+  const service = (card.data.service ?? {}) as Record<string, unknown>;
+  const observed = card.data.observedMigration as string | null;
+  const findings = (card.data.findings ?? []) as DeploymentFinding[];
+
+  return (
+    <div className={styles.card} data-testid="card-deployment">
+      <h3>{card.title}</h3>
+      {findings.length === 0 && <p className={styles.empty}>Deployment and database agree.</p>}
+      {findings.map((f) => (
+        <p
+          key={f.code}
+          className={styles.error}
+          role={f.severity === 'blocking' ? 'alert' : undefined}
+          data-testid={`finding-${f.severity}`}
+        >
+          <strong>{f.severity === 'blocking' ? 'DRIFT' : 'UNKNOWN'}</strong> {f.message}
+        </p>
+      ))}
+      <table className={styles.table}>
+        <tbody>
+          <tr><td>commit</td><td><code>{String(service.gitSha ?? 'unknown')}</code></td></tr>
+          <tr><td>schema claimed</td><td><code>{String(service.schemaVersion ?? 'unknown')}</code></td></tr>
+          <tr><td>schema observed</td><td><code>{observed ?? 'unknown'}</code></td></tr>
+          <tr><td>registry</td><td><code>{String(service.registryVersion ?? 'unknown')}</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function MemoryCard({ card }: { card: StatusCard }) {
+  const counts = (card.data.nodesByTruthStatus ?? {}) as Record<string, number>;
+  const newest = card.data.newestCardAt as string | null;
+  const quarantined = Number(card.data.quarantined ?? 0);
+
+  return (
+    <div className={styles.card} data-testid="card-memory">
+      <h3>{card.title}</h3>
+      <div className={styles.bigNumbers}>
+        <div><span className={styles.big}>{Number(card.data.cards ?? 0)}</span><span className={styles.label}>cards</span></div>
+        <div><span className={styles.big}>{quarantined}</span><span className={styles.label}>quarantined</span></div>
+      </div>
+      <p className={styles.when}>
+        newest card: {newest ? new Date(newest).toLocaleString() : 'none ingested'}
+      </p>
+      {quarantined > 0 && (
+        <p className={styles.error}>{quarantined} card(s) held for review — source-free.</p>
+      )}
+      {Object.keys(counts).length > 0 && (
+        <table className={styles.table}>
+          <tbody>
+            {Object.entries(counts).map(([status, n]) => (
+              <tr key={status}><td>{status}</td><td>{n}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
 export function MissionControlLive() {
   const apiUrl = ((import.meta.env.VITE_API_URL as string | undefined) || 'http://localhost:3000').replace(/\/$/, '');
   const { session, signIn, signOut } = useOperatorSession();
@@ -445,6 +518,10 @@ export function MissionControlLive() {
               return <CacheCard key={card.id} card={card} />;
             case 'schedules':
               return <SchedulesCard key={card.id} card={card} />;
+            case 'memory':
+              return <MemoryCard key={card.id} card={card} />;
+            case 'deployment':
+              return <DeploymentCard key={card.id} card={card} />;
             default:
               return (
                 <div key={card.id} className={styles.card}>

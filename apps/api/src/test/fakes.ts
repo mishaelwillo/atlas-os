@@ -6,6 +6,7 @@ import { capabilityMetaMap } from '../deps.js';
 import { dispatchers } from '../dispatch.js';
 import { loadEnv, type Env } from '../env.js';
 import { handlers } from '../handlers/index.js';
+import { REGISTRY_VERSION } from '@atlas/registry';
 import type { PipelineDeps } from '../pipeline.js';
 
 export interface RecordedQuery {
@@ -75,6 +76,14 @@ export function buildTestDeps(db: FakeDb, env: Env = testEnv()): PipelineDeps {
   return {
     db,
     env,
+    buildInfo: {
+      service: 'atlas-api',
+      appVersion: '0.1.0',
+      gitSha: 'abc1234',
+      buildTime: '2026-07-24T00:00:00.000Z',
+      schemaVersion: '0002_intelligence_enrichment',
+      registryVersion: REGISTRY_VERSION,
+    },
     router: stubRouter,
     capabilities: capabilityMetaMap(),
     handlers,

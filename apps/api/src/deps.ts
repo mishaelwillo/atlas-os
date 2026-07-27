@@ -4,6 +4,7 @@ import { OpenRouterProvider, createRouter, type AtlasRouter } from '@atlas/route
 import { createDb, type Db } from './db.js';
 import { dispatchers } from './dispatch.js';
 import { loadEnv, type Env } from './env.js';
+import { loadBuildInfo, type BuildInfo } from './build-info.js';
 import { handlers } from './handlers/index.js';
 import type { CapabilityRouteMeta, PipelineDeps } from './pipeline.js';
 
@@ -29,6 +30,7 @@ export interface BuildDepsOptions {
   env?: Env;
   db?: Db;
   router?: AtlasRouter;
+  buildInfo?: BuildInfo;
   log?: PipelineDeps['log'];
 }
 
@@ -49,6 +51,7 @@ export function buildDeps(opts: BuildDepsOptions = {}): PipelineDeps {
   return {
     db,
     env,
+    buildInfo: opts.buildInfo ?? loadBuildInfo(),
     router,
     capabilities: capabilityMetaMap(),
     handlers,
