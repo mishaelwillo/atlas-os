@@ -14,7 +14,6 @@ import { MissionControlLive } from './MissionControl.js';
 declare global {
   // Swapped per case; the mock factory below is hoisted, so it must read this
   // through the global rather than closing over a module variable.
-  // eslint-disable-next-line no-var
   var __atlasTestClient: Record<string, unknown>;
 }
 
