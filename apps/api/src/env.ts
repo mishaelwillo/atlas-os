@@ -1,8 +1,11 @@
 /** Central env access — nothing else reads process.env directly. */
+import { parseDailyCap } from './policy.js';
 export interface Env {
   databaseUrl: string;
   /** Sole operator email pinned in is_operator() (SECURITY.md). */
   operatorEmail: string;
+  /** Maximum outreach touches per space per day; 0 or less disables the cap. */
+  outreachDailyCap: number;
   /** Supabase project URL — used to fetch the JWKS for ES256/RS256 operator
    *  tokens (new Supabase "JWT Signing Keys"). */
   supabaseUrl: string;
@@ -85,6 +88,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
   return {
     databaseUrl: source.DATABASE_URL ?? '',
     operatorEmail: source.OPERATOR_EMAIL ?? 'mobiledynamic876@gmail.com',
+    outreachDailyCap: parseDailyCap(source.ATLAS_OUTREACH_DAILY_CAP),
     supabaseUrl: (source.SUPABASE_URL ?? '').replace(/\/+$/, ''),
     supabaseJwtSecret: source.SUPABASE_JWT_SECRET ?? '',
     modelBaseUrl: source.ATLAS_MODEL_BASE_URL ?? 'https://openrouter.ai/api',
