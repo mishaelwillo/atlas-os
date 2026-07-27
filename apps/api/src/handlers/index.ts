@@ -4,10 +4,10 @@ import { approvalsDecide, approvalsList } from './approvals.js';
 import { eventsSite } from './events.js';
 import { memoryAnswer, memoryDistill, memoryIngest } from './memory.js';
 import { runsExecute } from './runs.js';
+import { factoryBuildSite } from './factory.js';
 import { statusMissionControl } from './status.js';
 import {
   benchRun,
-  factoryBuildSite,
   factoryDeploySite,
   leadsFind,
   memoryAdjudicate,

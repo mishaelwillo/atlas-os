@@ -83,10 +83,15 @@ export type FactoryBuildSiteInput = {
   profileUrl: string;
   template?: string;
   stylePack?: string;
+  facts?: Array<unknown>;
 };
 export type FactoryBuildSiteOutput = {
   siteId?: string;
   previewUrl?: string;
+  status?: string;
+  created?: boolean;
+  factCount?: number;
+  blocked?: Array<unknown>;
 };
 
 export type FactoryDeploySiteInput = {

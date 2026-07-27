@@ -261,6 +261,9 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
         },
         "stylePack": {
           "type": "string"
+        },
+        "facts": {
+          "type": "array"
         }
       }
     },
@@ -272,6 +275,18 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
         },
         "previewUrl": {
           "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "created": {
+          "type": "boolean"
+        },
+        "factCount": {
+          "type": "number"
+        },
+        "blocked": {
+          "type": "array"
         }
       }
     }
