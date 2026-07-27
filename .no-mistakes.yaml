@@ -1,0 +1,76 @@
+# no-mistakes gate configuration for Atlas.
+#
+# `allow_repo_commands` is deliberately left at its default (false), so the
+# daemon reads `commands` and `agent` from the trusted default branch rather
+# than from a pushed SHA. These settings therefore take effect once merged to
+# main, which is the point: a feature branch cannot change what runs.
+
+agent: claude
+
+commands:
+  # The workspace lint gate. Type-aware rules need the workspace declaration
+  # files, so this must run after a build; the pipeline builds before linting.
+  lint: "pnpm build && pnpm lint"
+
+  # The full suite is fast (~20s across 14 tasks), so running all of it before
+  # a PR is cheaper than discovering a break in CI. This deviates from the
+  # upstream dogfood pattern of leaving `test` empty, because that pattern
+  # assumes a slow repo-wide suite that belongs only in remote CI.
+  test: "pnpm test"
+
+  # No formatter is configured in this workspace; there is no prettier setup to
+  # invoke, and inventing one here would reformat the entire codebase.
+  format: ""
+
+# Derived artifacts. They are committed and CI asserts they match their source,
+# so reviewing their contents is noise — the source is what matters.
+ignore_patterns:
+  - "apps/api/src/routes.gen.ts"
+  - "packages/client/src/client.gen.ts"
+  - "docs/control/generated/**"
+  - "pnpm-lock.yaml"
+
+document:
+  instructions: |
+    Atlas has a control plane that gates CI. Respect these invariants or the
+    pipeline will produce commits that fail `pnpm control:verify` on push.
+
+    Handoff boundary. `docs/control/CURRENT_HANDOFF.md` records a Branch and a
+    Head commit. Any commit that touches a production file after that recorded
+    boundary is blocking, EXCEPT changes confined to CURRENT_HANDOFF.md,
+    CURRENT_STATE.md, and archived handoff Markdown. So after adding a fix
+    commit, update the `- Head commit:` line in CURRENT_HANDOFF.md to the new
+    HEAD, and make sure `- Branch:` names the branch being pushed. Verify with
+    `pnpm control:verify` and check its exit code; do not grep its output,
+    because a crashed run prints nothing and reads as success.
+
+    Generated files. Never hand-edit `apps/api/src/routes.gen.ts`,
+    `packages/client/src/client.gen.ts`, or
+    `docs/control/generated/capability-catalog.md`. Change the source
+    (`packages/registry/registry.ts` or `metadata.ts`) and regenerate with
+    `pnpm --filter @atlas/api run gen` and `pnpm --filter @atlas/registry catalog`.
+    CI fails if the committed output differs from a fresh generation.
+
+    Adding an executable capability is a governance event, not a routine edit.
+    It requires a registry entry, lifecycle metadata in
+    `packages/registry/metadata.ts` with an owner specification, a regenerated
+    catalog, a row in the traceability table in `docs/specs/p2/README.md`, and
+    bumping the pinned count in `packages/control-schema/src/specifications.ts`.
+    Do not claim research evidence for a capability unless a record in
+    `docs/control/RESEARCH_LEDGER.yaml` names that capability; the ledger
+    rejects unsupported claims.
+
+    Secrets. Control artifacts are scanned. Never write a value that looks like
+    `password:`, `secret:`, `token:`, `Bearer <value>`, or a postgres URL into
+    anything under `docs/control/`, including prose. Phrase audit actors and
+    similar text so no key-colon-value pattern appears.
+
+    Database migrations. `supabase/migrations/0001_init.sql` is immutable.
+    Applying a new migration requires bumping `expected_migration` in
+    `docs/control/ENVIRONMENTS.yaml` in the same change, or drift becomes
+    blocking. Do not apply migrations from the pipeline.
+
+    Documentation ownership. Specifications live in `docs/specs/p2/` and are
+    indexed in both `docs/specs/p2/README.md` and
+    `docs/control/CONTROL_INDEX.md`; add new specs to both. Operational state
+    belongs in `docs/control/CURRENT_STATE.md`, not in code comments.
