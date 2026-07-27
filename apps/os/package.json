@@ -11,16 +11,18 @@
     "verify:build-info": "node scripts/verify-build-info.cjs"
   },
   "dependencies": {
+    "@atlas/client": "workspace:*",
     "@atlas/registry": "workspace:*",
+    "@atlas/shared": "workspace:*",
+    "@supabase/supabase-js": "^2.110.8",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.23.1",
-    "@atlas/client": "workspace:*",
-    "@atlas/shared": "workspace:*"
+    "react-router-dom": "^6.23.1"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.5",
     "@testing-library/react": "^15.0.7",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.0",
