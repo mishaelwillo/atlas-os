@@ -1,32 +1,32 @@
 # Current Handoff
 
-**Handoff ID:** `feat-factory-preview`
+**Handoff ID:** `fix-auth-failure-observability`
 **Status:** active
-**Started:** 2026-07-27T06:23:21.537Z
-**Updated:** 2026-07-27T06:23:21.537Z
+**Started:** 2026-07-27T07:10:06.877Z
+**Updated:** 2026-07-27T07:10:06.877Z
 **Actor:** Codex
-**Objective:** Add access-controlled expiring preview builds for the Website Factory (P2B-FACTORY-001)
+**Objective:** Make operator token rejections diagnosable instead of silent
 
 ## Active work
 
 - Work item: `P2A-MEMORY-001`
-- Branch: `feat/factory-preview`
+- Branch: `fix/auth-failure-observability`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `766a6dc4bc6f612e82055a246209364359f55d13`
+- Head commit: `0bf88be0be157949571e73d0feadf39aef9592d6`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Added the factory.preview capability, its lifecycle metadata, and moved the pinned executable capability count from 15 to 16
+- verifyOperatorJwt and verifyJwksSignature now report a specific failure reason, logged at warn level by the pipeline
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-27-feat-factory-renderer.md`
+- `?? docs/control/handoffs/archived/2026-07-27-feat-factory-preview.md`
 
 ## Verification evidence
 
-- 10 preview tests, 108/108 API tests, 20/20 registry tests, 14/14 workspace test tasks, uncached 8/8 builds; a mutation disabling the expiry gate failed a test
+- 7 new failure-reason tests, 115/115 API tests, 14/14 workspace test tasks, uncached 8/8 builds
 
 ## Database actions
 
@@ -44,11 +44,11 @@
 
 ## Blockers
 
-- No evidence record names factory.preview, so it claims none; it derives from the owning specification
+- The production 401 cause is still unknown; this change is what will reveal it
 
 ## Next exact action
 
-Merge after review, then add the preview viewer in Atlas OS using a sandboxed iframe so the build never runs in the authenticated origin
+Merge, deploy, then read the API log to learn the exact reason the operator JWT is refused
 
 ## Definition of done
 
