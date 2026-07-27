@@ -1,32 +1,32 @@
 # Current Handoff
 
-**Handoff ID:** `feat-mission-control-cards`
+**Handoff ID:** `fix-stale-bundle-detection`
 **Status:** active
-**Started:** 2026-07-27T04:57:16.512Z
-**Updated:** 2026-07-27T04:57:16.512Z
+**Started:** 2026-07-27T05:32:45.698Z
+**Updated:** 2026-07-27T05:32:45.698Z
 **Actor:** Codex
-**Objective:** Expose deployment drift and memory freshness in Mission Control for P2A-MEMORY-001
+**Objective:** Stop cached bundles from silently running outdated code against a current API
 
 ## Active work
 
 - Work item: `P2A-MEMORY-001`
-- Branch: `feat/mission-control-cards`
+- Branch: `fix/stale-bundle-detection`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `6905f6cb84a304285e4a69b742759c56cbf97f10`
+- Head commit: `1e6cc54307856b7e90518228c13c414229d07262`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Added deployment and memory cards to status.mission_control with UI renderers, and threaded the build fingerprint through PipelineDeps
+- The OS bundle now carries its build commit and warns when the server publishes a different one
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-27-feat-playbooks-author.md`
+- `?? docs/control/handoffs/archived/2026-07-27-feat-mission-control-cards.md`
 
 ## Verification evidence
 
-- 8 new card tests, 58/58 API tests, 27/27 OS tests, 14/14 workspace test tasks, uncached 8/8 builds; a mutation treating an unreadable ledger as agreement failed 2 tests
+- 11 staleness tests, 38/38 OS tests, 14/14 workspace test tasks, uncached 8/8 builds; a build with ATLAS_GIT_SHA set proved the commit is baked into the emitted bundle
 
 ## Database actions
 
@@ -44,11 +44,11 @@
 
 ## Blockers
 
-- Not supplied.
+- index.html is served without Cache-Control by Railway's static SPA serving; this detects the symptom rather than fixing the header
 
 ## Next exact action
 
-Merge after review; remaining build-now item is agent audit views, whose candidate promotion is gated on evidence
+Merge, then hard-refresh the OS once to land on the current build and retry operator sign-in
 
 ## Definition of done
 
