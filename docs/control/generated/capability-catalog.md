@@ -252,3 +252,19 @@ ledgers is not executable and does not appear here.
 - Approval required: yes
 - Scopes: none
 - Description: Promote a demo site to live hosting\. Deploys are governed\.
+
+### `factory.preview` — Preview built site
+- Stage: candidate
+- Phase: P2B
+- Monetization: acquisition
+- Autonomy: manual
+- Implementation: build
+- Regions: `global`
+- Entitlements: `website-factory`
+- Evidence: none
+- Specification: `docs/specs/p2/website-factory.md`
+- Method: GET
+- Task class: quick
+- Approval required: no
+- Scopes: `factory:write`
+- Description: Re\-render a stored descriptor and return the immutable build\. Access\-controlled, expiring, noindex — never public\.

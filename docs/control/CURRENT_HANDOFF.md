@@ -1,32 +1,32 @@
 # Current Handoff
 
-**Handoff ID:** `feat-factory-renderer`
+**Handoff ID:** `feat-factory-preview`
 **Status:** active
-**Started:** 2026-07-27T06:10:18.098Z
-**Updated:** 2026-07-27T06:10:18.098Z
+**Started:** 2026-07-27T06:23:21.537Z
+**Updated:** 2026-07-27T06:23:21.537Z
 **Actor:** Codex
-**Objective:** Add the Website Factory template library and deterministic renderer (P2B-FACTORY-001)
+**Objective:** Add access-controlled expiring preview builds for the Website Factory (P2B-FACTORY-001)
 
 ## Active work
 
 - Work item: `P2A-MEMORY-001`
-- Branch: `feat/factory-renderer`
+- Branch: `feat/factory-preview`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `3af09963769fb0b1d7347e96ac15d609f6f09904`
+- Head commit: `766a6dc4bc6f612e82055a246209364359f55d13`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Templates validate component/region combinations before build; the renderer produces deterministic escaped HTML with a sha256 build hash
+- Added the factory.preview capability, its lifecycle metadata, and moved the pinned executable capability count from 15 to 16
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-27-feat-factory-dossier.md`
+- `?? docs/control/handoffs/archived/2026-07-27-feat-factory-renderer.md`
 
 ## Verification evidence
 
-- 16 render tests plus 4 new route tests, 98/98 API tests, 14/14 workspace test tasks, uncached 8/8 builds; mutations removing HTML escaping and the region gate each failed tests
+- 10 preview tests, 108/108 API tests, 20/20 registry tests, 14/14 workspace test tasks, uncached 8/8 builds; a mutation disabling the expiry gate failed a test
 
 ## Database actions
 
@@ -44,11 +44,11 @@
 
 ## Blockers
 
-- Not supplied.
+- No evidence record names factory.preview, so it claims none; it derives from the owning specification
 
 ## Next exact action
 
-Merge after review, then add preview hosting so a build hash becomes a reachable URL
+Merge after review, then add the preview viewer in Atlas OS using a sandboxed iframe so the build never runs in the authenticated origin
 
 ## Definition of done
 

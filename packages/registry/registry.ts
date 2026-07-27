@@ -97,6 +97,14 @@ export const registry = [
     taskClass: 'do', requiresApproval: false, scopes: ['factory:write'], method: 'POST',
   },
   {
+    id: 'factory.preview',
+    name: 'Preview built site',
+    description: 'Re-render a stored descriptor and return the immutable build. Access-controlled, expiring, noindex — never public.',
+    input: { type: 'object', required: ['siteId'], properties: { siteId: { type: 'string' } } },
+    output: { type: 'object', properties: { html: { type: 'string' }, hash: { type: 'string' }, expiresAt: { type: 'string' }, expired: { type: 'boolean' }, issues: { type: 'array' } } },
+    taskClass: 'quick', requiresApproval: false, scopes: ['factory:write'], method: 'GET',
+  },
+  {
     id: 'factory.deploy_site',
     name: 'Deploy site live',
     description: 'Promote a demo site to live hosting. Deploys are governed.',
@@ -165,7 +173,7 @@ export const registry = [
 ] satisfies Capability[];
 
 export type CapabilityId = (typeof registry)[number]['id'];
-export const REGISTRY_VERSION = 2;
+export const REGISTRY_VERSION = 3;
 
 /** Codegen contract (implemented in Codex lane, P1):
  *  - route path = '/v1/' + id.replace('.', '/')   e.g. POST /v1/memory/answer
