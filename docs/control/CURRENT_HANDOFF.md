@@ -1,32 +1,32 @@
 # Current Handoff
 
-**Handoff ID:** `feat-playbooks-author`
+**Handoff ID:** `feat-mission-control-cards`
 **Status:** active
-**Started:** 2026-07-27T04:46:33.935Z
-**Updated:** 2026-07-27T04:46:33.935Z
+**Started:** 2026-07-27T04:57:16.512Z
+**Updated:** 2026-07-27T04:57:16.512Z
 **Actor:** Codex
-**Objective:** Implement playbooks.author execution under approval for P2A-MEMORY-001
+**Objective:** Expose deployment drift and memory freshness in Mission Control for P2A-MEMORY-001
 
 ## Active work
 
 - Work item: `P2A-MEMORY-001`
-- Branch: `feat/playbooks-author`
+- Branch: `feat/mission-control-cards`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `ae30959470622a36e7a0bdb18b0539ffb67ec697`
+- Head commit: `6905f6cb84a304285e4a69b742759c56cbf97f10`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- playbooks.author now inserts an immutable versioned playbook on approval and audits it; the frontier session remains unimplemented because no model credential is configured
+- Added deployment and memory cards to status.mission_control with UI renderers, and threaded the build fingerprint through PipelineDeps
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-27-feat-memory-enrichment.md`
+- `?? docs/control/handoffs/archived/2026-07-27-feat-playbooks-author.md`
 
 ## Verification evidence
 
-- 11 new tests, 50/50 API tests, 14/14 workspace test tasks, uncached 8/8 builds; a mutation removing the no-brief guard failed a test, confirming it is enforced
+- 8 new card tests, 58/58 API tests, 27/27 OS tests, 14/14 workspace test tasks, uncached 8/8 builds; a mutation treating an unreadable ledger as agreement failed 2 tests
 
 ## Database actions
 
@@ -48,7 +48,7 @@
 
 ## Next exact action
 
-Merge after review, then build Mission Control drift and memory-freshness cards from observed state
+Merge after review; remaining build-now item is agent audit views, whose candidate promotion is gated on evidence
 
 ## Definition of done
 
