@@ -1,55 +1,52 @@
 # Current Handoff
 
-**Handoff ID:** `fix-auth-failure-observability`
+**Handoff ID:** `unassigned-2026-07-27`
 **Status:** active
-**Started:** 2026-07-27T07:10:06.877Z
-**Updated:** 2026-07-27T07:10:06.877Z
-**Actor:** Codex
-**Objective:** Make operator token rejections diagnosable instead of silent
+**Started:** 2026-07-27T07:49:20.388Z
+**Updated:** 2026-07-27T07:49:20.388Z
+**Actor:** Unassigned
+**Objective:** Preserve a safe takeover point while no model is assigned.
 
 ## Active work
 
 - Work item: `P2A-MEMORY-001`
 - Branch: `fix/auth-failure-observability`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `0bf88be0be157949571e73d0feadf39aef9592d6`
+- Head commit: `2673cfd4cd7e9b1b45c1de5c69282418f7d4118c`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- verifyOperatorJwt and verifyJwksSignature now report a specific failure reason, logged at warn level by the pipeline
+- The prior current handoff was archived byte-for-byte.
 
 ## Current working tree
 
-- ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-27-feat-factory-preview.md`
+- Clean.
 
 ## Verification evidence
 
-- 7 new failure-reason tests, 115/115 API tests, 14/14 workspace test tasks, uncached 8/8 builds
+- The prior handoff was archived without altering its contents.
 
 ## Database actions
 
 - No external action reported.
-- Observed Supabase status: ok (live-read-only at 2026-07-27T01:04:56.531Z).
 
 ## Hosting actions
 
 - No external action reported.
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-07-27T01:04:56.531Z).
 
 ## External side effects
 
-- No external action reported.
+- Created an immutable repository-local handoff archive.
 
 ## Blockers
 
-- The production 401 cause is still unknown; this change is what will reveal it
+- Not supplied.
 
 ## Next exact action
 
-Merge, deploy, then read the API log to learn the exact reason the operator JWT is refused
+select a ready work item from WORK_QUEUE.yaml.
 
 ## Definition of done
 
-The active task acceptance checks pass and the handoff is updated.
+A model claims the active work item and creates a new handoff.
