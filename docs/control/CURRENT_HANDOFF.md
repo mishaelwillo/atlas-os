@@ -12,7 +12,7 @@
 - Work item: `P2B-FACTORY-001`
 - Branch: `feat/publish-core`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `bd5459f7d6fd0664576383786459fd37cd10ee95`
+- Head commit: `9f4138143bba2a70f6a2527111ae8c94edd78b81`
 - Review status: pending independent review
 
 ## Task change evidence
