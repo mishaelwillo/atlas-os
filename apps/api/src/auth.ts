@@ -8,7 +8,7 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import type { Db } from './db.js';
 import type { Env } from './env.js';
-import { verifyJwksSignature, type Fetcher } from './jwks.js';
+import { verifyJwksSignature, type Fetcher, type JwksFailure } from './jwks.js';
 
 export type AuthContext =
   | { kind: 'operator'; actor: string; spaceId: string | null; scopes: ['*'] }
@@ -42,13 +42,35 @@ function b64urlDecode(part: string): Buffer {
  *    harness mints. Requires `supabaseJwtSecret`.
  * `fetcher` is injectable for tests; production uses global fetch.
  */
+export type OperatorJwtFailure =
+  | 'not_a_jwt'
+  | 'undecodable'
+  | 'unsupported_alg'
+  | 'missing_kid'
+  | 'no_hs256_secret'
+  | 'hs256_signature_invalid'
+  | 'expired'
+  | 'no_email_claim'
+  | JwksFailure;
+
 export async function verifyOperatorJwt(
   token: string,
   env: Env,
   fetcher?: Fetcher,
+  /**
+   * Called with the specific reason when a bearer that looks like a JWT is
+   * rejected. Without this, an operator token failing verification is
+   * indistinguishable from an unknown API token, which makes a
+   * misconfiguration extremely hard to diagnose from outside.
+   */
+  onFailure?: (reason: OperatorJwtFailure) => void,
 ): Promise<{ email: string } | null> {
+  const fail = (reason: OperatorJwtFailure): null => {
+    onFailure?.(reason);
+    return null;
+  };
   const parts = token.split('.');
-  if (parts.length !== 3) return null;
+  if (parts.length !== 3) return fail('not_a_jwt');
   const [headerB64, payloadB64, sigB64] = parts;
   let header: { alg?: string; kid?: string };
   let payload: { email?: string; exp?: number };
@@ -56,18 +78,20 @@ export async function verifyOperatorJwt(
     header = JSON.parse(b64urlDecode(headerB64).toString('utf8')) as { alg?: string; kid?: string };
     payload = JSON.parse(b64urlDecode(payloadB64).toString('utf8')) as { email?: string; exp?: number };
   } catch {
-    return null;
+    return fail('undecodable');
   }
 
   const signingInput = `${headerB64}.${payloadB64}`;
   const signature = b64urlDecode(sigB64);
 
   if (header.alg === 'HS256') {
-    if (!env.supabaseJwtSecret) return null;
+    if (!env.supabaseJwtSecret) return fail('no_hs256_secret');
     const expected = createHmac('sha256', env.supabaseJwtSecret).update(signingInput).digest();
-    if (expected.length !== signature.length || !timingSafeEqual(expected, signature)) return null;
+    if (expected.length !== signature.length || !timingSafeEqual(expected, signature)) {
+      return fail('hs256_signature_invalid');
+    }
   } else if (header.alg === 'ES256' || header.alg === 'RS256') {
-    if (!header.kid) return null;
+    if (!header.kid) return fail('missing_kid');
     const ok = await verifyJwksSignature({
       supabaseUrl: env.supabaseUrl,
       alg: header.alg,
@@ -75,20 +99,24 @@ export async function verifyOperatorJwt(
       signingInput,
       signature,
       fetcher,
+      onFailure: (reason) => onFailure?.(reason),
     });
-    if (!ok) return null;
+    if (!ok) return null; // onFailure already reported the specific reason
   } else {
-    return null; // unsupported alg (incl. 'none' — never trust an unsigned token)
+    // unsupported alg (incl. 'none' — never trust an unsigned token)
+    return fail('unsupported_alg');
   }
 
-  if (typeof payload.exp === 'number' && payload.exp * 1000 < Date.now()) return null;
-  if (typeof payload.email !== 'string') return null;
+  if (typeof payload.exp === 'number' && payload.exp * 1000 < Date.now()) return fail('expired');
+  if (typeof payload.email !== 'string') return fail('no_email_claim');
   return { email: payload.email };
 }
 
 export interface AuthDeps {
   db: Db;
   env: Env;
+  /** Optional so tests may omit it; the pipeline always supplies one. */
+  log?: { warn: (obj: unknown, msg?: string) => void };
 }
 
 export async function authenticate(
@@ -103,7 +131,10 @@ export async function authenticate(
 
   // Operator path: JWTs have exactly two dots and a JSON header.
   if (bearer.split('.').length === 3) {
-    const jwt = await verifyOperatorJwt(bearer, deps.env);
+    const jwt = await verifyOperatorJwt(bearer, deps.env, undefined, (reason) => {
+      // Never log the bearer itself — only why it was refused.
+      deps.log?.warn({ reason, alg: 'jwt' }, 'operator token rejected');
+    });
     if (jwt) {
       if (jwt.email !== deps.env.operatorEmail) throw new AuthError(403, 'not the pinned operator');
       return { kind: 'operator', actor: jwt.email, spaceId: spaceHeader ?? null, scopes: ['*'] };
