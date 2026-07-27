@@ -1,32 +1,31 @@
 # Current Handoff
 
-**Handoff ID:** `fix-auth-failure-observability`
+**Handoff ID:** `fix-override-token-autofill`
 **Status:** active
-**Started:** 2026-07-27T07:10:06.877Z
-**Updated:** 2026-07-27T07:10:06.877Z
+**Started:** 2026-07-27T07:50:04.242Z
+**Updated:** 2026-07-27T07:50:04.242Z
 **Actor:** Codex
-**Objective:** Make operator token rejections diagnosable instead of silent
+**Objective:** Stop the diagnostic override field capturing and transmitting the operator password
 
 ## Active work
 
 - Work item: `P2A-MEMORY-001`
-- Branch: `fix/auth-failure-observability`
+- Branch: `fix/override-token-autofill`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `0bf88be0be157949571e73d0feadf39aef9592d6`
+- Head commit: `18c06597fb6a2d46be38e1b521387ac5f2214a71`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- verifyOperatorJwt and verifyJwksSignature now report a specific failure reason, logged at warn level by the pipeline
+- The scoped-token override is now opt-in and guarded against credential autofill
 
 ## Current working tree
 
-- ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-27-feat-factory-preview.md`
+- Clean.
 
 ## Verification evidence
 
-- 7 new failure-reason tests, 115/115 API tests, 14/14 workspace test tasks, uncached 8/8 builds
+- 6 regression tests, 44/44 OS tests, 14/14 workspace test tasks, uncached 8/8 builds; verified the credential is never logged and a failed authentication writes no row
 
 ## Database actions
 
@@ -44,11 +43,11 @@
 
 ## Blockers
 
-- The production 401 cause is still unknown; this change is what will reveal it
+- The operator credential was transmitted in an authorization header on roughly 1000 requests before this fix, so rotation is advisable
 
 ## Next exact action
 
-Merge, deploy, then read the API log to learn the exact reason the operator JWT is refused
+Merge and deploy, then confirm Mission Control authenticates with the session token; rotating the Supabase credential is advisable
 
 ## Definition of done
 

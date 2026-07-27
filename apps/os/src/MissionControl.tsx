@@ -368,9 +368,16 @@ export function MissionControlLive() {
   const [spaces, setSpaces] = useState<SpaceOption[]>([]);
   const [spaceId, setSpaceIdState] = useState<string | null>(() => readStoredSpace(localStorage));
   const [spaceError, setSpaceError] = useState<string | null>(null);
-  // Optional agent-scoped override, used to reproduce what a scoped API token
-  // can do. Deliberately not persisted: it is a diagnostic, not a session.
+  /*
+   * Optional agent-scoped override for reproducing what a scoped API token can
+   * do. It must be switched on deliberately: a masked field that silently
+   * replaces the operator session is dangerous, because anything that lands in
+   * it — including a password manager autofilling the operator's password —
+   * would be transmitted as the bearer. That happened.
+   */
+  const [overrideEnabled, setOverrideEnabled] = useState(false);
   const [overrideToken, setOverrideToken] = useState('');
+  const activeOverride = overrideEnabled ? overrideToken.trim() : '';
 
   const setSpaceId = useCallback((next: string | null) => {
     writeStoredSpace(localStorage, next);
@@ -383,10 +390,10 @@ export function MissionControlLive() {
     () =>
       createGeneratedClient({
         baseUrl: apiUrl,
-        token: overrideToken.trim() || session.accessToken || undefined,
+        token: activeOverride || session.accessToken || undefined,
         spaceId: spaceId ?? undefined,
       }),
-    [apiUrl, session.accessToken, spaceId, overrideToken],
+    [apiUrl, session.accessToken, spaceId, activeOverride],
   );
   const [payload, setPayload] = useState<MissionControlPayload | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -478,18 +485,39 @@ export function MissionControlLive() {
       <details className={styles.advanced}>
         <summary>Advanced: act as a scoped API token</summary>
         <p className={styles.when}>
-          Overrides the operator session for every call below, so you can observe
-          exactly what an agent-scoped credential is allowed to do. Not saved.
+          Replaces the operator session for every call below, so you can observe
+          exactly what an agent-scoped credential is allowed to do. Never saved,
+          and off until switched on.
         </p>
-        <input
-          className={styles.tokenInput}
-          type="password"
-          data-testid="override-token"
-          placeholder="api token (diagnostic only)"
-          value={overrideToken}
-          onChange={(e) => setOverrideToken(e.target.value)}
-        />
-        {overrideToken.trim() !== '' && (
+        <label className={styles.field}>
+          <span>
+            <input
+              type="checkbox"
+              data-testid="override-enabled"
+              checked={overrideEnabled}
+              onChange={(e) => {
+                setOverrideEnabled(e.target.checked);
+                if (!e.target.checked) setOverrideToken('');
+              }}
+            />{' '}
+            Use a scoped API token instead of my operator session
+          </span>
+        </label>
+        {overrideEnabled && (
+          <input
+            className={styles.tokenInput}
+            type="password"
+            data-testid="override-token"
+            // Never the operator's password: 'new-password' stops a password
+            // manager offering the saved credential for this field.
+            autoComplete="new-password"
+            name="atlas-diagnostic-token"
+            placeholder="api token (diagnostic only)"
+            value={overrideToken}
+            onChange={(e) => setOverrideToken(e.target.value)}
+          />
+        )}
+        {activeOverride !== '' && (
           <p className={styles.error} role="alert">
             Acting as a scoped API token, not as the operator.
           </p>
