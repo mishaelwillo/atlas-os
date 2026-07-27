@@ -1,42 +1,42 @@
 # Current Handoff
 
-**Handoff ID:** `docs-current-state-refresh`
+**Handoff ID:** `p2c-revenue-pilot-next`
 **Status:** active
-**Started:** 2026-07-27T18:20:45.620Z
-**Updated:** 2026-07-27T18:20:45.620Z
+**Started:** 2026-07-27T18:24:54.145Z
+**Updated:** 2026-07-27T18:24:54.145Z
 **Actor:** Codex
-**Objective:** Bring CURRENT_STATE.md back in line with reality after nineteen merges
+**Objective:** Continue the revenue pilot after outreach drafting and policy enforcement shipped
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `docs/current-state-refresh`
+- Branch: `main`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `6a1e3ea96a508a0ecbc8d546422950cc18392da9`
+- Head commit: `a622447e36ea6ae69b4edcb9d9919b854139a895`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Rewrote CURRENT_STATE.md from observed evidence: production state, phase progress, acceptance results, defects fixed, tooling, and the decisions awaiting the operator
+- Autonomous session shipped outreach drafting, pre-approval policy enforcement, a fingerprint drift check, and a corrected control-plane state
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-27-feat-fingerprint-drift-check.md`
+- `?? docs/control/handoffs/archived/2026-07-27-docs-current-state-refresh.md`
 
 ## Verification evidence
 
-- Facts checked against live services, the drift report, and the merge history rather than restated from the prior document
+- Four pull requests merged with CI green on each exact main SHA; drift shows every authority ok
 
 ## Database actions
 
 - No external action reported.
-- Observed Supabase status: ok (live-read-only at 2026-07-27T18:13:14.737Z).
+- Observed Supabase status: ok (live-read-only at 2026-07-27T18:24:11.480Z).
 
 ## Hosting actions
 
 - No external action reported.
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-07-27T18:13:14.737Z).
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-07-27T18:24:11.480Z).
 
 ## External side effects
 
@@ -44,11 +44,11 @@
 
 ## Blockers
 
-- Not supplied.
+- Lead sourcing, publishing, the frontier session, and agent audit views each await an operator decision rather than code
 
 ## Next exact action
 
-Run the operator half of P1 acceptance through Mission Control, then continue revenue-pilot build-now scope
+Run the operator half of P1 acceptance through Mission Control, then build prospect qualification or the demo queue
 
 ## Definition of done
 
