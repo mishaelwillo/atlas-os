@@ -1,33 +1,32 @@
 # Current Handoff
 
-**Handoff ID:** `feat-outreach-drafts`
+**Handoff ID:** `feat-outreach-policy`
 **Status:** active
-**Started:** 2026-07-27T17:39:57.413Z
-**Updated:** 2026-07-27T17:39:57.413Z
+**Started:** 2026-07-27T18:05:09.544Z
+**Updated:** 2026-07-27T18:05:09.544Z
 **Actor:** Codex
-**Objective:** Build outreach drafting so a governed action can be initiated from the product (P2C-REVENUE-001)
+**Objective:** Enforce outreach suppression and the daily cap the registry already claimed (P2C-REVENUE-001)
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `feat/outreach-drafts`
+- Branch: `feat/outreach-policy`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `672a04d4de2c394c084ab1042afdf6385d01dbe8`
+- Head commit: `4edeecb75067365709de08ca814d8ee35a900ea7`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Corrected WORK_QUEUE.yaml to reflect reality: P1 deployment closure is in review, the Intelligence Bank build-now scope is done, the Website Factory is blocked on a hosting decision, and the revenue pilot is now active
+- Added a pre-approval policy gate for outreach, audited refusals, and corrected the registry description to match behaviour
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- ` M docs/control/WORK_QUEUE.yaml`
-- `?? docs/control/handoffs/archived/2026-07-27-chore-no-mistakes-config.md`
+- `?? docs/control/handoffs/archived/2026-07-27-feat-outreach-drafts.md`
 
 ## Verification evidence
 
-- Statuses checked against shipped work and live verification rather than assumed
+- 23 policy unit tests plus 10 route tests, 148/148 API tests, lint 0, uncached 8/8 builds; mutations removing suppression and the cap failed 8 and 5 tests respectively
 
 ## Database actions
 
@@ -49,7 +48,7 @@
 
 ## Next exact action
 
-Implement the outreach draft card, then run the P1 operator acceptance leg entirely through the UI
+Continue revenue-pilot build-now scope: prospect qualification state and the demo queue
 
 ## Definition of done
 
