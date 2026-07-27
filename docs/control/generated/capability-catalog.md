@@ -184,7 +184,7 @@ ledgers is not executable and does not appear here.
 - Task class: quick
 - Approval required: yes
 - Scopes: none
-- Description: One outreach touch \(email/SMS/WhatsApp draft\)\. ALWAYS approval\-gated; daily cap enforced\.
+- Description: One outreach touch \(email/SMS/WhatsApp draft\)\. ALWAYS approval\-gated\. Suppressed leads and a per\-space daily cap are refused before an approval is created\.
 
 ## Prospecting
 ### `leads.find` — Find leads

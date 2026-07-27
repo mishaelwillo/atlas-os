@@ -123,7 +123,7 @@ export const registry = [
   {
     id: 'outreach.send',
     name: 'Send outreach message',
-    description: 'One outreach touch (email/SMS/WhatsApp draft). ALWAYS approval-gated; daily cap enforced.',
+    description: 'One outreach touch (email/SMS/WhatsApp draft). ALWAYS approval-gated. Suppressed leads and a per-space daily cap are refused before an approval is created.',
     input: { type: 'object', required: ['leadId', 'channel', 'body'], properties: { leadId: { type: 'string' }, channel: { type: 'string' }, body: { type: 'string' } } },
     output: { type: 'object', properties: { approvalId: { type: 'string' } } },
     taskClass: 'quick', requiresApproval: true, scopes: [], method: 'POST',

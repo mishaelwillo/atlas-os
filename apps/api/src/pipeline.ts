@@ -11,6 +11,7 @@ import type { AtlasRouter } from '@atlas/router';
 import { AuthError, authenticate, checkScopes, type AuthContext } from './auth.js';
 import type { BuildInfo } from './build-info.js';
 import type { Db, Queryable } from './db.js';
+import { checkOutreachPolicy, type PolicyRefusal } from './policy.js';
 import type { Env } from './env.js';
 import { validateAgainstSchema } from './validate.js';
 
@@ -62,6 +63,53 @@ export interface PipelineDeps {
   log: { info: (obj: unknown, msg?: string) => void; warn: (obj: unknown, msg?: string) => void; error: (obj: unknown, msg?: string) => void };
 }
 
+/**
+ * Capability-specific policy gates evaluated before an approval is created.
+ * Returns null when the request may proceed.
+ */
+async function checkPreApprovalPolicy(
+  q: Queryable,
+  capabilityId: string,
+  spaceId: string | null,
+  input: Record<string, unknown>,
+  deps: PipelineDeps,
+): Promise<PolicyRefusal | null> {
+  if (capabilityId !== 'outreach.send') return null;
+
+  const leadId = typeof input.leadId === 'string' ? input.leadId.trim() : '';
+  // Only a uuid can match a lead row; a hand-entered reference cannot, and is
+  // handled as an unknown lead rather than a lookup error.
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(leadId);
+
+  let leadStatus: string | null = null;
+  if (isUuid) {
+    const lead = await q.query(`select status from leads where lead_id = $1`, [leadId]);
+    const row = lead.rows[0];
+    if (row && typeof row.status === 'string') leadStatus = row.status;
+  }
+
+  /*
+   * A pending draft counts toward the cap. Otherwise the queue could be filled
+   * with touches that all become sendable the moment they are approved.
+   * Rejected drafts do not count: refusing one should not consume the budget.
+   */
+  const counted = await q.query(
+    `select count(*)::int as n from approvals
+      where kind = 'outreach.send'
+        and status <> 'rejected'
+        and created_at >= date_trunc('day', now())
+        and ($1::uuid is null or space_id = $1::uuid)`,
+    [spaceId],
+  );
+  const touchesToday = Number(counted.rows[0]?.n ?? 0);
+
+  return checkOutreachPolicy({
+    leadStatus,
+    touchesToday,
+    dailyCap: deps.env.outreachDailyCap,
+  });
+}
+
 export async function insertAudit(
   q: Queryable,
   spaceId: string | null,
@@ -104,6 +152,19 @@ export async function executeCapability(
     });
 
     if (meta.requiresApproval) {
+      /*
+       * Policy runs before the approval exists. A suppressed lead or an
+       * exhausted cap must not reach the queue at all: putting it there would
+       * invite an operator to approve what policy already forbids.
+       */
+      const refusal = await checkPreApprovalPolicy(q, meta.id, spaceId, input, deps);
+      if (refusal) {
+        await insertAudit(q, spaceId, auth.actor, `${meta.id}.refused`, null, {
+          code: refusal.code,
+        });
+        return { statusCode: 409, body: { error: refusal.message, code: refusal.code } };
+      }
+
       const res = await q.query(
         `insert into approvals (space_id, kind, reason, payload, status)
          values ($1, $2, $3, $4, 'pending')
