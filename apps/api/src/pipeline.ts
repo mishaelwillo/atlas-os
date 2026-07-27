@@ -9,6 +9,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { AtlasRouter } from '@atlas/router';
 import { AuthError, authenticate, checkScopes, type AuthContext } from './auth.js';
+import type { BuildInfo } from './build-info.js';
 import type { Db, Queryable } from './db.js';
 import type { Env } from './env.js';
 import { validateAgainstSchema, type SchemaNode } from './validate.js';
@@ -51,6 +52,8 @@ export class CapabilityError extends Error {
 export interface PipelineDeps {
   db: Db;
   env: Env;
+  /** This deployment's fingerprint, so status can compare it against reality. */
+  buildInfo: BuildInfo;
   router: AtlasRouter;
   /** registry meta keyed by capability id — runs.execute routes through this */
   capabilities: Record<string, CapabilityRouteMeta>;

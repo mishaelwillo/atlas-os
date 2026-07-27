@@ -3,12 +3,81 @@
  * no bespoke fetches (brief §5). Real queries: pending approvals, last runs,
  * schedules due, cache-hit rate from runs.answered_by, model-chain health.
  */
+import type { Queryable } from '../db.js';
 import type { CapabilityHandler } from '../pipeline.js';
+
+/** The migration identity the drift collector reads, asked of the live database. */
+const MIGRATION_QUERY = `select version || '_' || name as migration_identity
+from supabase_migrations.schema_migrations
+order by version desc
+limit 1`;
+
+/**
+ * Read the applied migration identity, or null when it cannot be observed.
+ * Unreadable is reported as unknown — never as agreement — because a card that
+ * silently claims a match is worse than one that admits it does not know.
+ */
+async function observedMigration(q: Queryable): Promise<string | null> {
+  try {
+    const res = await q.query(MIGRATION_QUERY);
+    const row = res.rows[0];
+    const value = row?.migration_identity;
+    return typeof value === 'string' && value.trim() !== '' ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+interface DeploymentFinding {
+  code: string;
+  severity: 'blocking' | 'unknown';
+  message: string;
+}
+
+/**
+ * Compare what this deployment claims about the schema against what the
+ * database actually reports. Nothing else cross-checks these two, so a service
+ * publishing a stale-but-well-formed schema version would otherwise pass every
+ * gate.
+ */
+export function deploymentFindings(
+  claimedSchema: string,
+  observed: string | null,
+): DeploymentFinding[] {
+  if (observed === null) {
+    return [
+      {
+        code: 'database.migration_unknown',
+        severity: 'unknown',
+        message: 'Applied migration identity could not be read from the database.',
+      },
+    ];
+  }
+  if (claimedSchema === 'unknown') {
+    return [
+      {
+        code: 'service.schema_unknown',
+        severity: 'unknown',
+        message: `This deployment does not declare a schema version; the database reports ${observed}.`,
+      },
+    ];
+  }
+  if (claimedSchema !== observed) {
+    return [
+      {
+        code: 'deployment.schema_mismatch',
+        severity: 'blocking',
+        message: `This deployment reports schema ${claimedSchema} but the database has ${observed}.`,
+      },
+    ];
+  }
+  return [];
+}
 
 export const statusMissionControl: CapabilityHandler = async (ctx) => {
   const space = ctx.spaceId; // null → operator, all spaces
 
-  const [approvals, runs, schedules, ladder, failures] = await Promise.all([
+  const [approvals, runs, schedules, ladder, failures, memory, nodes, migration] = await Promise.all([
     ctx.q.query(
       `select approval_id, kind, reason, payload, created_at from approvals
         where status = 'pending' and ($1::uuid is null or space_id = $1::uuid)
@@ -40,6 +109,20 @@ export const statusMissionControl: CapabilityHandler = async (ctx) => {
         group by 1 order by 2 desc limit 5`,
       [space],
     ),
+    ctx.q.query(
+      `select count(*)::int as cards,
+              count(*) filter (where quarantined_at is not null)::int as quarantined,
+              max(created_at) as newest
+         from memory_cards where ($1::uuid is null or space_id = $1::uuid)`,
+      [space],
+    ),
+    ctx.q.query(
+      `select truth_status, count(*)::int as n
+         from memory_nodes where ($1::uuid is null or space_id = $1::uuid)
+        group by truth_status`,
+      [space],
+    ),
+    observedMigration(ctx.q),
   ]);
 
   const rungCounts: Record<string, number> = {};
@@ -59,6 +142,14 @@ export const statusMissionControl: CapabilityHandler = async (ctx) => {
   const cacheHitRate = answeredTotal > 0 ? cacheHits / answeredTotal : 0;
   const avgModelCost = modelRuns > 0 ? modelCost / modelRuns : 0;
   const dollarsSavedUsd = Number((cacheHits * avgModelCost).toFixed(4));
+
+  const memoryRow = memory.rows[0] ?? {};
+  const newestCardAt = memoryRow.newest === null || memoryRow.newest === undefined ? null : String(memoryRow.newest);
+  const truthCounts: Record<string, number> = {};
+  for (const row of nodes.rows) truthCounts[String(row.truth_status)] = Number(row.n);
+
+  const build = ctx.deps.buildInfo;
+  const findings = deploymentFindings(build.schemaVersion, migration);
 
   const env = ctx.deps.env;
   return {
@@ -111,6 +202,34 @@ export const statusMissionControl: CapabilityHandler = async (ctx) => {
         kind: 'cache',
         title: 'Token ladder',
         data: { cacheHitRate, rungCounts, dollarsSavedUsd, modelCostUsd: Number(modelCost.toFixed(4)) },
+      },
+      {
+        id: 'memory',
+        kind: 'memory',
+        title: 'Memory freshness',
+        data: {
+          cards: Number(memoryRow.cards ?? 0),
+          quarantined: Number(memoryRow.quarantined ?? 0),
+          // Null means no card has ever been ingested, not "fresh".
+          newestCardAt,
+          nodesByTruthStatus: truthCounts,
+        },
+      },
+      {
+        id: 'deployment',
+        kind: 'deployment',
+        title: 'Deployment',
+        data: {
+          service: {
+            gitSha: build.gitSha,
+            buildTime: build.buildTime,
+            schemaVersion: build.schemaVersion,
+            registryVersion: build.registryVersion,
+          },
+          // Null is an admitted unknown, never treated as agreement.
+          observedMigration: migration,
+          findings,
+        },
       },
       {
         id: 'schedules',
