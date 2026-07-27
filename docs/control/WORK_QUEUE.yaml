@@ -3,7 +3,7 @@ items:
   - id: P1-DEPLOY-001
     phase: P1 deployment closure
     title: Close the P1 production API deployment gap
-    status: review
+    status: done
     priority: critical
     dependencies:
       - P2A-CONTROL-001
@@ -12,7 +12,7 @@ items:
       - Railway API fingerprint matches the selected P1 commit
       - Required P1 routes exist
       - P1 live acceptance passes
-    next_action: Run the operator half of live acceptance through the UI once outreach drafting exists; the fingerprint and required routes are already verified
+    next_action: Preserve the verified deployment path; both services deploy from main and report the merged commit
   - id: P2A-CONTROL-001
     phase: P2A
     title: Establish the Atlas continuity control plane
