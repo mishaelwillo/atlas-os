@@ -83,3 +83,93 @@ describe('verifyOperatorJwt — ES256 via JWKS', () => {
     expect(res).toEqual({ email: 'op@test.local' });
   });
 });
+
+/**
+ * Auth rejections used to be silent, which made a misconfiguration
+ * indistinguishable from an unknown API token from outside the process.
+ */
+describe('operator token failure reporting', () => {
+  beforeEach(() => _clearJwksCache());
+
+  const live = () => ({ email: 'op@test.local', exp: Math.floor(Date.now() / 1000) + 3600 });
+
+  it('names a kid the published JWKS does not contain', async () => {
+    const { token } = mintEs256(randomUUID(), live());
+    const other = mintEs256(randomUUID(), live());
+    const reasons: string[] = [];
+
+    await verifyOperatorJwt(token, makeEnv(), fetcherFor([other.publicJwk]), (r) => reasons.push(r));
+
+    expect(reasons).toEqual(['key_not_found']);
+  });
+
+  it('distinguishes an invalid signature from a missing key', async () => {
+    const { token, publicJwk } = mintEs256(randomUUID(), live());
+    const [h, p] = token.split('.');
+    const forged = `${h}.${p}.${'A'.repeat(86)}`;
+    const reasons: string[] = [];
+
+    await verifyOperatorJwt(forged, makeEnv(), fetcherFor([publicJwk]), (r) => reasons.push(r));
+
+    expect(reasons).toEqual(['signature_invalid']);
+  });
+
+  it('names an unreachable JWKS', async () => {
+    const { token } = mintEs256(randomUUID(), live());
+    const reasons: string[] = [];
+    const dead: Fetcher = async () => {
+      throw new Error('network unreachable');
+    };
+
+    await verifyOperatorJwt(token, makeEnv(), dead, (r) => reasons.push(r));
+
+    expect(reasons).toEqual(['key_not_found']);
+  });
+
+  /** Fails before any network call, which is what a fast uniform 401 looks like. */
+  it('names a missing SUPABASE_URL', async () => {
+    const { token } = mintEs256(randomUUID(), live());
+    const reasons: string[] = [];
+
+    await verifyOperatorJwt(token, { ...makeEnv(), supabaseUrl: '' }, fetcherFor([]), (r) =>
+      reasons.push(r),
+    );
+
+    expect(reasons).toEqual(['no_supabase_url']);
+  });
+
+  it('names an expired token separately from a bad signature', async () => {
+    const { token, publicJwk } = mintEs256(randomUUID(), {
+      email: 'op@test.local',
+      exp: Math.floor(Date.now() / 1000) - 60,
+    });
+    const reasons: string[] = [];
+
+    await verifyOperatorJwt(token, makeEnv(), fetcherFor([publicJwk]), (r) => reasons.push(r));
+
+    expect(reasons).toEqual(['expired']);
+  });
+
+  it('names a token carrying no email claim', async () => {
+    const { token, publicJwk } = mintEs256(randomUUID(), {
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+    const reasons: string[] = [];
+
+    await verifyOperatorJwt(token, makeEnv(), fetcherFor([publicJwk]), (r) => reasons.push(r));
+
+    expect(reasons).toEqual(['no_email_claim']);
+  });
+
+  it('reports nothing when the token is accepted', async () => {
+    const { token, publicJwk } = mintEs256(randomUUID(), live());
+    const reasons: string[] = [];
+
+    const res = await verifyOperatorJwt(token, makeEnv(), fetcherFor([publicJwk]), (r) =>
+      reasons.push(r),
+    );
+
+    expect(res?.email).toBe('op@test.local');
+    expect(reasons).toEqual([]);
+  });
+});
