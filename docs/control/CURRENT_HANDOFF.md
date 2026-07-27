@@ -1,42 +1,42 @@
 # Current Handoff
 
-**Handoff ID:** `p2a-memory-code-enrichment`
+**Handoff ID:** `fix-build-info-unknown-schema`
 **Status:** active
-**Started:** 2026-07-26T21:07:15.474Z
-**Updated:** 2026-07-26T21:07:15.474Z
+**Started:** 2026-07-27T00:01:36.994Z
+**Updated:** 2026-07-27T00:01:36.994Z
 **Actor:** Codex
-**Objective:** Implement the code side of Intelligence Bank enrichment for P2A-MEMORY-001 behind the unchanged P1 routes
+**Objective:** Stop the OS build from asserting a migration identity it cannot observe
 
 ## Active work
 
 - Work item: `P2A-MEMORY-001`
-- Branch: `main`
+- Branch: `fix/build-info-unknown-schema`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `d56684d8c7b0f7f77f02f5d5dd95b5c52aae2bbe`
+- Head commit: `3f0c2eee54fc365656967c4926f83524c6666f25`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Merged PR #4; the staged 0002 migration is now in main but remains unapplied
+- write-build-info.cjs now resolves an absent ATLAS_SCHEMA_VERSION to 'unknown' instead of a hardcoded '0001_init', with a regression test that deletes the ambient variable
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-26-p2a-memory-enrichment-schema.md`
+- `?? docs/control/handoffs/archived/2026-07-27-p2a-memory-code-enrichment.md`
 
 ## Verification evidence
 
-- CI success on exact main SHA 7f7af94; api and os fingerprints both report 7f7af94; P1 routes 401 auth-gated
+- RED reproduced the stale '0001_init' claim; GREEN 6/6 build-info tests, 14/14 workspace test tasks, 8/8 builds, control:verify exit 0
 
 ## Database actions
 
-- None. 0002_intelligence_enrichment.sql is present in main but has NOT been executed against any database
-- Observed Supabase status: unknown (live-read-only at 2026-07-26T21:06:30.301Z).
+- No external action reported.
+- Observed Supabase status: ok (live-read-only at 2026-07-26T23:13:08.478Z).
 
 ## Hosting actions
 
-- Railway api connected to GitHub; both services auto-deployed to main 7f7af94 with no manual step
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-07-26T21:06:30.301Z).
+- No external action reported.
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-07-26T23:13:08.478Z).
 
 ## External side effects
 
@@ -44,11 +44,11 @@
 
 ## Blockers
 
-- Supabase has no supabase_migrations schema, so exact migration identity cannot be proven until a ledger is baselined
+- Not supplied.
 
 ## Next exact action
 
-Establish the Supabase migration ledger (baseline 0001_init as applied) so exact migration identity can be proven, then implement card/node/run enrichment against the staged 0002 columns
+Merge after review; no production change is expected because ATLAS_SCHEMA_VERSION is set explicitly on both Railway services
 
 ## Definition of done
 
