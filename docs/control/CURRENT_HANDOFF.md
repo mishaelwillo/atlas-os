@@ -1,32 +1,33 @@
 # Current Handoff
 
-**Handoff ID:** `chore-no-mistakes-config`
+**Handoff ID:** `feat-outreach-drafts`
 **Status:** active
-**Started:** 2026-07-27T17:19:02.890Z
-**Updated:** 2026-07-27T17:19:02.890Z
+**Started:** 2026-07-27T17:39:57.413Z
+**Updated:** 2026-07-27T17:39:57.413Z
 **Actor:** Codex
-**Objective:** Configure the no-mistakes gate to use claude and respect this workspace's control plane
+**Objective:** Build outreach drafting so a governed action can be initiated from the product (P2C-REVENUE-001)
 
 ## Active work
 
-- Work item: `P2A-MEMORY-001`
-- Branch: `chore/no-mistakes-config`
+- Work item: `P2C-REVENUE-001`
+- Branch: `feat/outreach-drafts`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `cc8606c7d30d3d984cccbc63d652dd63bd054a8a`
+- Head commit: `4c57f626467d4f1a66e7e81ea13aca703cb0db3e`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Pinned the agent to claude globally and per-repo, wired lint and test to the real commands, and encoded the control-plane invariants in the document instructions
+- Corrected WORK_QUEUE.yaml to reflect reality: P1 deployment closure is in review, the Intelligence Bank build-now scope is done, the Website Factory is blocked on a hosting decision, and the revenue pilot is now active
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-27-p2b-preview-hosting-next.md`
+- ` M docs/control/WORK_QUEUE.yaml`
+- `?? docs/control/handoffs/archived/2026-07-27-chore-no-mistakes-config.md`
 
 ## Verification evidence
 
-- YAML validated by parser, gate validation reports claude runnable, lint/test/control:verify all exit 0
+- Statuses checked against shipped work and live verification rather than assumed
 
 ## Database actions
 
@@ -48,7 +49,7 @@
 
 ## Next exact action
 
-Merge, then trial the gate on a low-stakes branch to observe its auto-fix behaviour before relying on it
+Implement the outreach draft card, then run the P1 operator acceptance leg entirely through the UI
 
 ## Definition of done
 

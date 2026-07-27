@@ -47,7 +47,7 @@ interface RunItem {
 }
 interface StatusCard {
   id: string;
-  kind: 'approvals' | 'runs' | 'model_chain' | 'cache' | 'schedules' | 'memory' | 'deployment' | 'sites';
+  kind: 'approvals' | 'runs' | 'model_chain' | 'cache' | 'schedules' | 'memory' | 'deployment' | 'sites' | 'leads';
   title: string;
   data: Record<string, unknown>;
 }
@@ -285,6 +285,162 @@ function SchedulesCard({ card }: { card: StatusCard }) {
           {s.lastRunAt ? ` · last ${new Date(s.lastRunAt).toLocaleTimeString()}` : ''}
         </p>
       ))}
+    </div>
+  );
+}
+
+interface LeadItem {
+  leadId: string;
+  businessName: string;
+  status: string;
+  phone: string | null;
+  score: number;
+}
+
+const CHANNELS = ['email', 'sms', 'whatsapp'] as const;
+
+/**
+ * Outreach drafting.
+ *
+ * Submitting does not send anything: outreach.send is approval-gated, so this
+ * creates an approval and stops. The wording says so, because a button that
+ * reads "Send" while queuing a review would train the operator to expect the
+ * wrong thing.
+ *
+ * The lead list comes from the leads card. It is empty until leads.find has a
+ * directory adapter, so a lead reference can also be entered directly — an
+ * operator sourcing a prospect by hand is the real workflow before that
+ * adapter exists.
+ */
+function OutreachDraftCard({
+  card,
+  client,
+  hasSpace,
+  onQueued,
+}: {
+  card: StatusCard;
+  client: AtlasGeneratedClient;
+  hasSpace: boolean;
+  onQueued: () => void;
+}) {
+  const leads = (card.data.items ?? []) as LeadItem[];
+  const [leadId, setLeadId] = useState('');
+  const [channel, setChannel] = useState<string>(CHANNELS[0]);
+  const [body, setBody] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [queued, setQueued] = useState<string | null>(null);
+
+  const submit = useCallback(async () => {
+    setError(null);
+    setQueued(null);
+    if (!hasSpace) {
+      setError('Select a Space before drafting outreach.');
+      return;
+    }
+    if (leadId.trim() === '' || body.trim() === '') {
+      setError('A lead reference and a message body are both required.');
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = (await client.outreachSend({
+        leadId: leadId.trim(),
+        channel,
+        body: body.trim(),
+      })) as unknown as { approvalId?: string; status?: string };
+      if (res.approvalId) {
+        setQueued(res.approvalId);
+        setBody('');
+        onQueued();
+      } else {
+        setError('No approval was created; nothing was queued.');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }, [client, hasSpace, leadId, channel, body, onQueued]);
+
+  return (
+    <div className={styles.card} data-testid="card-outreach">
+      <h3>Draft outreach</h3>
+      <p className={styles.when}>
+        Drafting queues an approval for review. Nothing is sent until you approve it.
+      </p>
+
+      <label className={styles.field}>
+        <span>Lead</span>
+        {leads.length > 0 ? (
+          <select
+            data-testid="lead-select"
+            value={leadId}
+            onChange={(e) => setLeadId(e.target.value)}
+          >
+            <option value="">— select a lead —</option>
+            {leads.map((l) => (
+              <option key={l.leadId} value={l.leadId}>
+                {l.businessName} ({l.status})
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            data-testid="lead-id"
+            type="text"
+            placeholder="lead reference"
+            value={leadId}
+            onChange={(e) => setLeadId(e.target.value)}
+          />
+        )}
+      </label>
+      {leads.length === 0 && (
+        <p className={styles.when}>
+          No leads yet — lead sourcing needs a directory adapter. Enter a reference directly.
+        </p>
+      )}
+
+      <label className={styles.field}>
+        <span>Channel</span>
+        <select
+          data-testid="channel-select"
+          value={channel}
+          onChange={(e) => setChannel(e.target.value)}
+        >
+          {CHANNELS.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className={styles.field}>
+        <span>Message</span>
+        <textarea
+          data-testid="outreach-body"
+          rows={4}
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+        />
+      </label>
+
+      <button type="button" data-testid="queue-approval" disabled={busy} onClick={() => void submit()}>
+        {busy ? 'Queueing…' : 'Queue for approval'}
+      </button>
+
+      {error && (
+        <p className={styles.error} role="alert">
+          {error}
+        </p>
+      )}
+      {queued && (
+        <p className={styles.when} data-testid="queued-notice">
+          Queued for approval as <code>{queued.slice(0, 8)}</code> — nothing sent. Approve it in
+          Pending approvals.
+        </p>
+      )}
     </div>
   );
 }
@@ -652,6 +808,16 @@ export function MissionControlLive() {
               return <DeploymentCard key={card.id} card={card} />;
             case 'sites':
               return <SitesCard key={card.id} card={card} client={client} />;
+            case 'leads':
+              return (
+                <OutreachDraftCard
+                  key={card.id}
+                  card={card}
+                  client={client}
+                  hasSpace={spaceId !== null}
+                  onQueued={() => void refresh()}
+                />
+              );
             default:
               return (
                 <div key={card.id} className={styles.card}>
