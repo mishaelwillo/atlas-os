@@ -1,42 +1,42 @@
 # Current Handoff
 
-**Handoff ID:** `p2a-memory-code-next`
+**Handoff ID:** `feat-memory-enrichment`
 **Status:** active
-**Started:** 2026-07-27T01:03:36.718Z
-**Updated:** 2026-07-27T01:03:36.718Z
+**Started:** 2026-07-27T04:30:02.687Z
+**Updated:** 2026-07-27T04:30:02.687Z
 **Actor:** Codex
-**Objective:** Continue P2A Intelligence Bank implementation now that operator sign-in ships
+**Objective:** Implement Intelligence Bank card enrichment and the source-free quarantine path for P2A-MEMORY-001
 
 ## Active work
 
 - Work item: `P2A-MEMORY-001`
-- Branch: `main`
+- Branch: `feat/memory-enrichment`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `1fad9caeb1e831f032276203a6675f55d6b88b90`
+- Head commit: `74da994a168168c6a02cabf117b2425657c9afb6`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Merged PR #7 (sign-in specification) and PR #8 (implementation); both live in production
+- memory.ingest now persists locale, region, retention class, and correlation id, and quarantines source-free cards; the additive 'quarantined' counter was declared in the registry and regenerated
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-27-feat-operator-sign-in.md`
+- `?? docs/control/handoffs/archived/2026-07-27-p2a-memory-code-next.md`
 
 ## Verification evidence
 
-- CI success on exact main SHA 1fad9ca; OS deployed at that SHA and the served bundle contains the sign-in view, Space selector, and x-atlas-space header
+- 11 new ingest tests, 39/39 API tests, 14/14 workspace test tasks, uncached 8/8 builds; a mutation removing the source-free check failed 3 tests, confirming they catch regressions
 
 ## Database actions
 
 - No external action reported.
-- Observed Supabase status: ok (live-read-only at 2026-07-27T00:17:09.417Z).
+- Observed Supabase status: ok (live-read-only at 2026-07-27T01:04:56.531Z).
 
 ## Hosting actions
 
 - No external action reported.
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-07-27T00:17:09.417Z).
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-07-27T01:04:56.531Z).
 
 ## External side effects
 
@@ -44,11 +44,11 @@
 
 ## Blockers
 
-- auth.users is still empty, so sign-in cannot succeed until the operator account is created in the Supabase dashboard
+- Not supplied.
 
 ## Next exact action
 
-Create the operator account in Supabase Auth, run the outreach approval round trip through Mission Control, then implement card/node/run enrichment behind the unchanged P1 routes
+Merge after review, then continue with playbooks.author execution under approval and Mission Control drift cards
 
 ## Definition of done
 

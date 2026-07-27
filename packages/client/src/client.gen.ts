@@ -44,6 +44,7 @@ export type MemoryIngestInput = {
 export type MemoryIngestOutput = {
   admitted?: number;
   skipped?: number;
+  quarantined?: number;
 };
 
 export type MemoryDistillInput = {
