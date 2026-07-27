@@ -101,6 +101,9 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
         },
         "skipped": {
           "type": "number"
+        },
+        "quarantined": {
+          "type": "number"
         }
       }
     }

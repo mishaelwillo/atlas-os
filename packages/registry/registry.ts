@@ -45,7 +45,9 @@ export const registry = [
     name: 'Ingest cards',
     description: 'Local ingest agent pushes relevance-filtered cards (hash-deduped).',
     input: { type: 'object', required: ['cards'], properties: { cards: { type: 'array' } } },
-    output: { type: 'object', properties: { admitted: { type: 'number' }, skipped: { type: 'number' } } },
+    // `quarantined` counts source-free cards held for review (P2A); it is
+    // additive and absent from pre-P2A responses.
+    output: { type: 'object', properties: { admitted: { type: 'number' }, skipped: { type: 'number' }, quarantined: { type: 'number' } } },
     taskClass: 'quick', requiresApproval: false, scopes: ['memory:write'], method: 'POST',
   },
   {
