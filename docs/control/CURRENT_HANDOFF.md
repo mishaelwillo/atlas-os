@@ -1,32 +1,32 @@
 # Current Handoff
 
-**Handoff ID:** `feat-fingerprint-drift-check`
+**Handoff ID:** `docs-current-state-refresh`
 **Status:** active
-**Started:** 2026-07-27T18:14:13.487Z
-**Updated:** 2026-07-27T18:14:13.487Z
+**Started:** 2026-07-27T18:20:45.620Z
+**Updated:** 2026-07-27T18:20:45.620Z
 **Actor:** Codex
-**Objective:** Close the drift gap that let a service publish a stale schema version unnoticed
+**Objective:** Bring CURRENT_STATE.md back in line with reality after nineteen merges
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `feat/fingerprint-drift-check`
+- Branch: `docs/current-state-refresh`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `d33eea1ee940fdf9c91a5e390afc2c03de3328aa`
+- Head commit: `6a1e3ea96a508a0ecbc8d546422950cc18392da9`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Added a drift check comparing each service's claimed schemaVersion against expected_migration, treating an admitted unknown as honest
+- Rewrote CURRENT_STATE.md from observed evidence: production state, phase progress, acceptance results, defects fixed, tooling, and the decisions awaiting the operator
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-27-feat-outreach-policy.md`
+- `?? docs/control/handoffs/archived/2026-07-27-feat-fingerprint-drift-check.md`
 
 ## Verification evidence
 
-- 3 new drift tests, 241/241 control-schema tests, lint 0, uncached 8/8 builds; a mutation treating unknown as a claim failed a test; verified silent against live production
+- Facts checked against live services, the drift report, and the merge history rather than restated from the prior document
 
 ## Database actions
 
@@ -48,7 +48,7 @@
 
 ## Next exact action
 
-Continue revenue-pilot build-now scope, or await the hosting and evidence decisions that block the remaining phases
+Run the operator half of P1 acceptance through Mission Control, then continue revenue-pilot build-now scope
 
 ## Definition of done
 
