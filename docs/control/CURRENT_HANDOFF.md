@@ -1,32 +1,32 @@
 # Current Handoff
 
-**Handoff ID:** `spec-operator-sign-in`
+**Handoff ID:** `feat-operator-sign-in`
 **Status:** active
-**Started:** 2026-07-27T00:31:59.626Z
-**Updated:** 2026-07-27T00:31:59.626Z
+**Started:** 2026-07-27T00:54:48.838Z
+**Updated:** 2026-07-27T00:54:48.838Z
 **Actor:** Codex
-**Objective:** Specify operator sign-in and Space selection so governed capabilities can be exercised from Atlas OS
+**Objective:** Implement operator sign-in and Space selection in Atlas OS per its owning specification
 
 ## Active work
 
 - Work item: `P2A-MEMORY-001`
-- Branch: `spec/operator-sign-in`
+- Branch: `feat/operator-sign-in`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `bcda380c5e2bd7f4e59b7c7df580d3c6ab419286`
+- Head commit: `776514386796a373f64d1de3f9f7b62e3903b2da`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Added docs/specs/p2/operator-sign-in.md and indexed it in the P2 spec index and control index
+- Added a Supabase Auth session module, sign-in view, and Space selector; the generated client now sends x-atlas-space, and the pre-session atlas.token key is cleared on mount
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-27-p2a-memory-code-start.md`
+- `?? docs/control/handoffs/archived/2026-07-27-spec-operator-sign-in.md`
 
 ## Verification evidence
 
-- Both defects verified in code: MissionControl.tsx builds the client without spaceId, and pipeline.ts rejects approval-gated calls when spaceId is null; auth.users observed empty by read-only query
+- 11 session tests, 6 sign-in view tests, 27/27 OS tests, 14/14 workspace test tasks, uncached 8/8 builds, tsc --noEmit clean
 
 ## Database actions
 
@@ -44,11 +44,11 @@
 
 ## Blockers
 
-- The operator account does not exist in Supabase Auth; it must be created before any sign-in can succeed
+- The operator account still does not exist in Supabase Auth; sign-in cannot succeed until it is created
 
 ## Next exact action
 
-On approval, implement the sign-in view, session refresh, and Space selector in apps/os per docs/specs/p2/operator-sign-in.md
+Merge after review, then create the operator account in Supabase Auth and run the outreach approval round trip through the UI
 
 ## Definition of done
 
