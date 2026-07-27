@@ -1,32 +1,32 @@
 # Current Handoff
 
-**Handoff ID:** `feat-memory-enrichment`
+**Handoff ID:** `feat-playbooks-author`
 **Status:** active
-**Started:** 2026-07-27T04:30:02.687Z
-**Updated:** 2026-07-27T04:30:02.687Z
+**Started:** 2026-07-27T04:46:33.935Z
+**Updated:** 2026-07-27T04:46:33.935Z
 **Actor:** Codex
-**Objective:** Implement Intelligence Bank card enrichment and the source-free quarantine path for P2A-MEMORY-001
+**Objective:** Implement playbooks.author execution under approval for P2A-MEMORY-001
 
 ## Active work
 
 - Work item: `P2A-MEMORY-001`
-- Branch: `feat/memory-enrichment`
+- Branch: `feat/playbooks-author`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `74da994a168168c6a02cabf117b2425657c9afb6`
+- Head commit: `ae30959470622a36e7a0bdb18b0539ffb67ec697`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- memory.ingest now persists locale, region, retention class, and correlation id, and quarantines source-free cards; the additive 'quarantined' counter was declared in the registry and regenerated
+- playbooks.author now inserts an immutable versioned playbook on approval and audits it; the frontier session remains unimplemented because no model credential is configured
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-27-p2a-memory-code-next.md`
+- `?? docs/control/handoffs/archived/2026-07-27-feat-memory-enrichment.md`
 
 ## Verification evidence
 
-- 11 new ingest tests, 39/39 API tests, 14/14 workspace test tasks, uncached 8/8 builds; a mutation removing the source-free check failed 3 tests, confirming they catch regressions
+- 11 new tests, 50/50 API tests, 14/14 workspace test tasks, uncached 8/8 builds; a mutation removing the no-brief guard failed a test, confirming it is enforced
 
 ## Database actions
 
@@ -48,7 +48,7 @@
 
 ## Next exact action
 
-Merge after review, then continue with playbooks.author execution under approval and Mission Control drift cards
+Merge after review, then build Mission Control drift and memory-freshness cards from observed state
 
 ## Definition of done
 
