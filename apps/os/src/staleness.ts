@@ -35,7 +35,7 @@ type FetchLike = (input: string, init?: { cache?: RequestCache }) => Promise<{
  * point is defeated if this response is itself served from cache.
  */
 export async function fetchLiveSha(
-  fetchImpl: FetchLike = ((input, init) => fetch(input, init)) as FetchLike,
+  fetchImpl: FetchLike = ((input, init) => fetch(input, init)),
   now: () => number = Date.now,
 ): Promise<string | null> {
   try {

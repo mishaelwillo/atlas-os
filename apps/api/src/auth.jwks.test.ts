@@ -1,6 +1,6 @@
 /** ES256 operator-token verification via JWKS (Supabase JWT Signing Keys). */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { generateKeyPairSync, createSign, randomUUID, type KeyObject } from 'node:crypto';
+import { generateKeyPairSync, createSign, randomUUID } from 'node:crypto';
 import { verifyOperatorJwt } from './auth.js';
 import { _clearJwksCache, type Fetcher } from './jwks.js';
 import { loadEnv, type Env } from './env.js';
@@ -13,7 +13,7 @@ function makeEnv(): Env {
     SUPABASE_URL: 'https://proj.supabase.co',
     OPERATOR_EMAIL: 'op@test.local',
     DATABASE_URL: 'postgres://unused',
-  } as NodeJS.ProcessEnv);
+  });
 }
 
 /** Sign an ES256 JWT and return { token, jwk } for a published JWKS. */
@@ -24,7 +24,7 @@ function mintEs256(kid: string, payload: Record<string, unknown>): { token: stri
   const signer = createSign('sha256').update(`${header}.${body}`);
   signer.end();
   // JWT wants raw r||s, not DER:
-  const sig = signer.sign({ key: privateKey as KeyObject, dsaEncoding: 'ieee-p1363' });
+  const sig = signer.sign({ key: privateKey, dsaEncoding: 'ieee-p1363' });
   const publicJwk = publicKey.export({ format: 'jwk' }) as JsonWebKey;
   (publicJwk as Record<string, unknown>).kid = kid;
   (publicJwk as Record<string, unknown>).alg = 'ES256';
@@ -74,7 +74,7 @@ describe('verifyOperatorJwt — ES256 via JWKS', () => {
       SUPABASE_JWT_SECRET: 'legacy-secret',
       OPERATOR_EMAIL: 'op@test.local',
       DATABASE_URL: 'postgres://unused',
-    } as NodeJS.ProcessEnv);
+    });
     const { createHmac } = await import('node:crypto');
     const header = b64url(Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));
     const body = b64url(Buffer.from(JSON.stringify({ email: 'op@test.local', exp: Math.floor(Date.now() / 1000) + 3600 })));

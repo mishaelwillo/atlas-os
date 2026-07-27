@@ -18,8 +18,8 @@ const fixedEnvironment = {
   ATLAS_SCHEMA_VERSION: 'verify_0001',
 };
 
-const runTurbo = (arguments, environment) => {
-  const pnpmArguments = ['exec', 'turbo', ...arguments];
+const runTurbo = (turboArguments, environment) => {
+  const pnpmArguments = ['exec', 'turbo', ...turboArguments];
   const command = pnpmCli
     ? process.execPath
     : process.platform === 'win32'

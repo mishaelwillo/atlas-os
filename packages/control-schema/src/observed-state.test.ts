@@ -17,7 +17,6 @@ import {
 } from './drift.js';
 import {
   redactSecrets,
-  type ObservedState,
   writeObservedState,
 } from './observed-state.js';
 

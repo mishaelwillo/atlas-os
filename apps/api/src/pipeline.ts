@@ -12,7 +12,7 @@ import { AuthError, authenticate, checkScopes, type AuthContext } from './auth.j
 import type { BuildInfo } from './build-info.js';
 import type { Db, Queryable } from './db.js';
 import type { Env } from './env.js';
-import { validateAgainstSchema, type SchemaNode } from './validate.js';
+import { validateAgainstSchema } from './validate.js';
 
 export interface CapabilityRouteMeta {
   id: string;
@@ -85,7 +85,7 @@ export async function executeCapability(
 ): Promise<{ statusCode: number; body: Record<string, unknown> }> {
   checkScopes(auth, [...meta.scopes]);
 
-  const issues = validateAgainstSchema(meta.input as SchemaNode, input, { coerce: meta.method === 'GET' });
+  const issues = validateAgainstSchema(meta.input, input, { coerce: meta.method === 'GET' });
   if (issues.length > 0) {
     return { statusCode: 400, body: { error: 'invalid input', issues } };
   }
@@ -125,7 +125,7 @@ export async function executeCapability(
       throw err;
     }
 
-    const outIssues = validateAgainstSchema(meta.output as SchemaNode, output);
+    const outIssues = validateAgainstSchema(meta.output, output);
     if (outIssues.length > 0) {
       deps.log.error({ capability: meta.id, outIssues }, 'output failed schema validation');
       return { statusCode: 500, body: { error: 'handler output failed validation', issues: outIssues } };

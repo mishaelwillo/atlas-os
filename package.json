@@ -10,14 +10,18 @@
     "build": "turbo run build",
     "dev": "turbo run dev --parallel",
     "test": "turbo run test",
-    "lint": "turbo run lint",
+    "lint": "eslint .",
     "control:verify": "pnpm --filter @atlas/control-schema verify",
     "control:status": "pnpm --filter @atlas/control-schema status",
     "control:handoff": "pnpm --filter @atlas/control-schema handoff",
     "control:archive-handoff": "pnpm --filter @atlas/control-schema archive-handoff"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.8.0",
+    "globals": "^17.7.0",
     "turbo": "^2.0.4",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^8.65.0"
   }
 }

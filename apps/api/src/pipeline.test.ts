@@ -170,7 +170,7 @@ describe('approval gate (SECURITY.md inv. 1/4)', () => {
       payload: { approvalId: 'ap-42', decision: 'approved', notes: 'lgtm' },
     });
     expect(res.statusCode).toBe(200);
-    const body = res.json() as { dispatched: { stub: boolean } };
+    const body = res.json();
     expect(body.dispatched.stub).toBe(true);
     // dispatcher audit fired, and still no outbound message row
     expect(db.calls.some((c) => c.sql.includes('insert into audit_log') && c.params?.includes('outreach.dispatched'))).toBe(true);

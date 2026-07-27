@@ -34,7 +34,7 @@ export function createDb(connectionString: string): Db {
         await client.query("select set_config('request.space_id', $1, true)", [spaceId ?? '']);
         const result = await fn({
           query: async (text, params) => {
-            const r = await client.query(text, params as unknown[] | undefined);
+            const r = await client.query(text, params);
             return { rows: r.rows as Record<string, unknown>[], rowCount: r.rowCount };
           },
         });
@@ -49,7 +49,7 @@ export function createDb(connectionString: string): Db {
     },
 
     async query(text, params) {
-      const r = await pool.query(text, params as unknown[] | undefined);
+      const r = await pool.query(text, params);
       return { rows: r.rows as Record<string, unknown>[], rowCount: r.rowCount };
     },
 
