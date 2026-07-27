@@ -12,7 +12,7 @@
 - Work item: `P2A-MEMORY-001`
 - Branch: `feat/factory-dossier`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `49321f1c87931c9ab0da48d832ac9638379d77f3`
+- Head commit: `308a3f37a61bc232a0fad998d2d26cb866072d08`
 - Review status: pending independent review
 
 ## Task change evidence
