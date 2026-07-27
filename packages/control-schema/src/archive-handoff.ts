@@ -65,7 +65,7 @@ export async function archiveCurrentHandoff(
   const date = now.toISOString().slice(0, 10);
   const archiveDirectory = join(controlRoot, 'handoffs', 'archived');
   const archivePath = join(archiveDirectory, `${date}-${id}.md`);
-  const activeWorkItem = activeItems[0]!;
+  const activeWorkItem = activeItems[0];
   const replacement = createHandoff(
     {
       id: `unassigned-${date}`,
@@ -109,6 +109,7 @@ export async function archiveCurrentHandoff(
     if (existing !== current) {
       throw new Error(
         `refusing to overwrite existing archive ${relative(root, archivePath).replaceAll('\\', '/')}`,
+        { cause: error },
       );
     }
   }
@@ -124,9 +125,13 @@ export async function archiveCurrentHandoff(
       try {
         await removeArchive(archivePath, { force: true });
       } catch (rollbackError) {
+        // Both failures stay in `errors`; `cause` is the rollback failure
+        // this block caught, with the original replacement failure first in
+        // the list so neither is lost.
         throw new AggregateError(
           [replacementError, rollbackError],
           'current handoff replacement failed and the identical archive rollback failed; retry is safe',
+          { cause: rollbackError },
         );
       }
     }

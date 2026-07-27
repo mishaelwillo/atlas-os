@@ -22,7 +22,7 @@ export function ApiStatusCard() {
   const [status, setStatus] = useState<'loading' | 'ok' | 'fail'>('loading');
   const [version, setVersion] = useState<string>('');
   
-  const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const apiUrl = ((import.meta.env.VITE_API_URL as string | undefined) || 'http://localhost:3000').replace(/\/$/, '');
 
   useEffect(() => {
     let active = true;
@@ -30,19 +30,19 @@ export function ApiStatusCard() {
       try {
         const res = await fetch(`${apiUrl}/healthz`);
         if (!res.ok) throw new Error('Not ok');
-        const data = await res.json();
+        const data = (await res.json()) as { appVersion?: string };
         if (active) {
           setStatus('ok');
-          setVersion(data.appVersion || 'unknown');
+          setVersion(data.appVersion ?? 'unknown');
         }
-      } catch (err) {
+      } catch {
         if (active) {
           setStatus('fail');
         }
       }
     }
-    checkStatus();
-    const interval = setInterval(checkStatus, 10000);
+    void checkStatus();
+    const interval = setInterval(() => void checkStatus(), 10000);
     return () => {
       active = false;
       clearInterval(interval);

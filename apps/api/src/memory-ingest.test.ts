@@ -50,7 +50,7 @@ async function ingest(db: FakeDb, cards: unknown[]) {
     headers: { authorization: `Bearer ${TOKEN_PLAINTEXT}` },
     payload: { cards },
   });
-  return { status: res.statusCode, body: res.json() as Record<string, number> };
+  return { status: res.statusCode, body: res.json() };
 }
 
 function cardInsert(db: FakeDb) {

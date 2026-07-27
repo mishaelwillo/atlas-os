@@ -62,6 +62,13 @@ export function jwksUrlFor(supabaseUrl: string): string {
  * `signingInput` is `${headerB64}.${payloadB64}`; `signature` is the raw
  * (base64url-decoded) JWT signature bytes.
  */
+export type JwksFailure =
+  | 'no_supabase_url'
+  | 'unsupported_alg'
+  | 'key_not_found'
+  | 'key_unusable'
+  | 'signature_invalid';
+
 export async function verifyJwksSignature(args: {
   supabaseUrl: string;
   alg: string;
@@ -69,31 +76,39 @@ export async function verifyJwksSignature(args: {
   signingInput: string;
   signature: Buffer;
   fetcher?: Fetcher;
+  /** Called with the specific reason when verification fails. */
+  onFailure?: (reason: JwksFailure) => void;
 }): Promise<boolean> {
   const { supabaseUrl, alg, kid, signingInput, signature } = args;
-  if (!supabaseUrl || !kid) return false;
-  if (alg !== 'ES256' && alg !== 'RS256') return false;
+  const fail = (reason: JwksFailure): false => {
+    args.onFailure?.(reason);
+    return false;
+  };
+  if (!supabaseUrl || !kid) return fail('no_supabase_url');
+  if (alg !== 'ES256' && alg !== 'RS256') return fail('unsupported_alg');
 
   const fetcher: Fetcher = args.fetcher ?? ((url) => fetch(url));
   const jwk = await getSigningKey(jwksUrlFor(supabaseUrl), kid, fetcher);
-  if (!jwk) return false;
+  // Covers both an unreachable JWKS and a kid the published set does not have.
+  if (!jwk) return fail('key_not_found');
 
   let keyObject;
   try {
     keyObject = createPublicKey({ key: jwk, format: 'jwk' });
   } catch {
-    return false;
+    return fail('key_unusable');
   }
 
   const data = Buffer.from(signingInput);
   try {
-    if (alg === 'ES256') {
-      // JWT ECDSA signatures are raw r||s (IEEE P1363), not DER.
-      return verify('sha256', data, { key: keyObject, dsaEncoding: 'ieee-p1363' }, signature);
-    }
-    return verify('sha256', data, keyObject, signature); // RS256
+    const ok =
+      alg === 'ES256'
+        ? // JWT ECDSA signatures are raw r||s (IEEE P1363), not DER.
+          verify('sha256', data, { key: keyObject, dsaEncoding: 'ieee-p1363' }, signature)
+        : verify('sha256', data, keyObject, signature); // RS256
+    return ok ? true : fail('signature_invalid');
   } catch {
-    return false;
+    return fail('signature_invalid');
   }
 }
 

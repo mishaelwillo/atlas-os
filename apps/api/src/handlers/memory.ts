@@ -69,7 +69,7 @@ export const memoryIngest: CapabilityHandler = async (ctx, input) => {
      * it is admitted for review rather than trusted — the spec's rule that
      * source-free claims are quarantined.
      */
-    const sourceFree = (card.source as string).trim() === '';
+    const sourceFree = (card.source).trim() === '';
     const quarantineReason = sourceFree ? 'source-free: no traceable origin' : null;
 
     const inserted = await ctx.q.query(

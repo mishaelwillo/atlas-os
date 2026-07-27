@@ -53,10 +53,7 @@ let cached: SupabaseClient | null = null;
 
 /** Null when the build has no Supabase identity configured. */
 export function getSupabase(
-  env: Record<string, string | undefined> = import.meta.env as unknown as Record<
-    string,
-    string | undefined
-  >,
+  env: Record<string, string | undefined> = import.meta.env,
 ): SupabaseClient | null {
   if (cached) return cached;
   const config = readSupabaseConfig(env);

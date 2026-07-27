@@ -49,6 +49,10 @@ jobs:
       - name: Build Workspace
         run: pnpm run build
 
+      # After Build: type-aware rules need the workspace declaration files.
+      - name: Lint
+        run: pnpm run lint
+
       - name: Verify capability catalog
         run: |
           pnpm --filter @atlas/registry catalog

@@ -56,7 +56,7 @@ async function preview(db: FakeDb, siteId = SITE) {
     url: `/v1/factory/preview?siteId=${encodeURIComponent(siteId)}`,
     headers: { authorization: `Bearer ${TOKEN_PLAINTEXT}` },
   });
-  return { status: res.statusCode, body: res.json() as Record<string, unknown> };
+  return { status: res.statusCode, body: res.json() };
 }
 
 describe('preview access', () => {

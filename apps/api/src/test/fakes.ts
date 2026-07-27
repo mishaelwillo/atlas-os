@@ -13,7 +13,7 @@ export interface RecordedQuery {
   sql: string;
   params: unknown[] | undefined;
   /** space the surrounding withSpace tx was scoped to; 'pool' = un-scoped */
-  space: string | null | 'pool';
+  space: string | null;
 }
 
 type Rows = Record<string, unknown>[];
@@ -29,7 +29,7 @@ export class FakeDb implements Db {
     return this;
   }
 
-  private exec(sql: string, params: unknown[] | undefined, space: string | null | 'pool'): QueryResultLike {
+  private exec(sql: string, params: unknown[] | undefined, space: string | null): QueryResultLike {
     this.calls.push({ sql, params, space });
     for (const r of this.responders) {
       if (r.re.test(sql)) {
@@ -69,7 +69,7 @@ export function testEnv(): Env {
     OPERATOR_EMAIL: 'operator@test.local',
     SUPABASE_JWT_SECRET: 'test-jwt-secret',
     DATABASE_URL: 'postgres://unused',
-  } as NodeJS.ProcessEnv);
+  });
 }
 
 export function buildTestDeps(db: FakeDb, env: Env = testEnv()): PipelineDeps {

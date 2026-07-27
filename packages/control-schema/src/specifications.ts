@@ -126,7 +126,7 @@ function executableOwners(catalog: string): Map<string, string> {
   const owners = new Map<string, string>();
   const headings = [...catalog.matchAll(/^### `([^`]+)`[^\r\n]*$/gm)];
   for (const [index, heading] of headings.entries()) {
-    const start = heading.index! + heading[0].length;
+    const start = heading.index + heading[0].length;
     const end = headings[index + 1]?.index ?? catalog.length;
     const block = catalog.slice(start, end);
     const owner = /^- Specification: `([^`]+)`$/m.exec(block)?.[1];

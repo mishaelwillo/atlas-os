@@ -1,6 +1,6 @@
 /** ES256 operator-token verification via JWKS (Supabase JWT Signing Keys). */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { generateKeyPairSync, createSign, randomUUID, type KeyObject } from 'node:crypto';
+import { generateKeyPairSync, createSign, randomUUID } from 'node:crypto';
 import { verifyOperatorJwt } from './auth.js';
 import { _clearJwksCache, type Fetcher } from './jwks.js';
 import { loadEnv, type Env } from './env.js';
@@ -13,7 +13,7 @@ function makeEnv(): Env {
     SUPABASE_URL: 'https://proj.supabase.co',
     OPERATOR_EMAIL: 'op@test.local',
     DATABASE_URL: 'postgres://unused',
-  } as NodeJS.ProcessEnv);
+  });
 }
 
 /** Sign an ES256 JWT and return { token, jwk } for a published JWKS. */
@@ -24,7 +24,7 @@ function mintEs256(kid: string, payload: Record<string, unknown>): { token: stri
   const signer = createSign('sha256').update(`${header}.${body}`);
   signer.end();
   // JWT wants raw r||s, not DER:
-  const sig = signer.sign({ key: privateKey as KeyObject, dsaEncoding: 'ieee-p1363' });
+  const sig = signer.sign({ key: privateKey, dsaEncoding: 'ieee-p1363' });
   const publicJwk = publicKey.export({ format: 'jwk' }) as JsonWebKey;
   (publicJwk as Record<string, unknown>).kid = kid;
   (publicJwk as Record<string, unknown>).alg = 'ES256';
@@ -74,12 +74,102 @@ describe('verifyOperatorJwt — ES256 via JWKS', () => {
       SUPABASE_JWT_SECRET: 'legacy-secret',
       OPERATOR_EMAIL: 'op@test.local',
       DATABASE_URL: 'postgres://unused',
-    } as NodeJS.ProcessEnv);
+    });
     const { createHmac } = await import('node:crypto');
     const header = b64url(Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));
     const body = b64url(Buffer.from(JSON.stringify({ email: 'op@test.local', exp: Math.floor(Date.now() / 1000) + 3600 })));
     const sig = b64url(createHmac('sha256', 'legacy-secret').update(`${header}.${body}`).digest());
     const res = await verifyOperatorJwt(`${header}.${body}.${sig}`, env);
     expect(res).toEqual({ email: 'op@test.local' });
+  });
+});
+
+/**
+ * Auth rejections used to be silent, which made a misconfiguration
+ * indistinguishable from an unknown API token from outside the process.
+ */
+describe('operator token failure reporting', () => {
+  beforeEach(() => _clearJwksCache());
+
+  const live = () => ({ email: 'op@test.local', exp: Math.floor(Date.now() / 1000) + 3600 });
+
+  it('names a kid the published JWKS does not contain', async () => {
+    const { token } = mintEs256(randomUUID(), live());
+    const other = mintEs256(randomUUID(), live());
+    const reasons: string[] = [];
+
+    await verifyOperatorJwt(token, makeEnv(), fetcherFor([other.publicJwk]), (r) => reasons.push(r));
+
+    expect(reasons).toEqual(['key_not_found']);
+  });
+
+  it('distinguishes an invalid signature from a missing key', async () => {
+    const { token, publicJwk } = mintEs256(randomUUID(), live());
+    const [h, p] = token.split('.');
+    const forged = `${h}.${p}.${'A'.repeat(86)}`;
+    const reasons: string[] = [];
+
+    await verifyOperatorJwt(forged, makeEnv(), fetcherFor([publicJwk]), (r) => reasons.push(r));
+
+    expect(reasons).toEqual(['signature_invalid']);
+  });
+
+  it('names an unreachable JWKS', async () => {
+    const { token } = mintEs256(randomUUID(), live());
+    const reasons: string[] = [];
+    const dead: Fetcher = async () => {
+      throw new Error('network unreachable');
+    };
+
+    await verifyOperatorJwt(token, makeEnv(), dead, (r) => reasons.push(r));
+
+    expect(reasons).toEqual(['key_not_found']);
+  });
+
+  /** Fails before any network call, which is what a fast uniform 401 looks like. */
+  it('names a missing SUPABASE_URL', async () => {
+    const { token } = mintEs256(randomUUID(), live());
+    const reasons: string[] = [];
+
+    await verifyOperatorJwt(token, { ...makeEnv(), supabaseUrl: '' }, fetcherFor([]), (r) =>
+      reasons.push(r),
+    );
+
+    expect(reasons).toEqual(['no_supabase_url']);
+  });
+
+  it('names an expired token separately from a bad signature', async () => {
+    const { token, publicJwk } = mintEs256(randomUUID(), {
+      email: 'op@test.local',
+      exp: Math.floor(Date.now() / 1000) - 60,
+    });
+    const reasons: string[] = [];
+
+    await verifyOperatorJwt(token, makeEnv(), fetcherFor([publicJwk]), (r) => reasons.push(r));
+
+    expect(reasons).toEqual(['expired']);
+  });
+
+  it('names a token carrying no email claim', async () => {
+    const { token, publicJwk } = mintEs256(randomUUID(), {
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+    const reasons: string[] = [];
+
+    await verifyOperatorJwt(token, makeEnv(), fetcherFor([publicJwk]), (r) => reasons.push(r));
+
+    expect(reasons).toEqual(['no_email_claim']);
+  });
+
+  it('reports nothing when the token is accepted', async () => {
+    const { token, publicJwk } = mintEs256(randomUUID(), live());
+    const reasons: string[] = [];
+
+    const res = await verifyOperatorJwt(token, makeEnv(), fetcherFor([publicJwk]), (r) =>
+      reasons.push(r),
+    );
+
+    expect(res?.email).toBe('op@test.local');
+    expect(reasons).toEqual([]);
   });
 });
