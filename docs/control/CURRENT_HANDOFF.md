@@ -12,7 +12,7 @@
 - Work item: `P2A-MEMORY-001`
 - Branch: `fix/build-info-unknown-schema`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `3f0c2eee54fc365656967c4926f83524c6666f25`
+- Head commit: `37f5e3a4ec25fe281465f2b907fc55247727f0a1`
 - Review status: pending independent review
 
 ## Task change evidence
