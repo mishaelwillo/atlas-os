@@ -47,7 +47,7 @@ interface RunItem {
 }
 interface StatusCard {
   id: string;
-  kind: 'approvals' | 'runs' | 'model_chain' | 'cache' | 'schedules' | 'memory' | 'deployment';
+  kind: 'approvals' | 'runs' | 'model_chain' | 'cache' | 'schedules' | 'memory' | 'deployment' | 'sites';
   title: string;
   data: Record<string, unknown>;
 }
@@ -289,6 +289,106 @@ function SchedulesCard({ card }: { card: StatusCard }) {
   );
 }
 
+interface SiteItem {
+  siteId: string;
+  businessName: string;
+  status: string;
+  template: string | null;
+  updatedAt: string;
+}
+
+/**
+ * Site list with an inline preview.
+ *
+ * The preview is rendered in a fully sandboxed iframe (`sandbox=""`, so no
+ * scripts and an opaque origin). Generated markup is built from third-party
+ * listing facts, and this page holds an operator session with full scopes —
+ * so the build is never allowed to execute here, regardless of the escaping
+ * already applied when it was rendered.
+ */
+function SitesCard({ card, client }: { card: StatusCard; client: AtlasGeneratedClient }) {
+  const items = (card.data.items ?? []) as SiteItem[];
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [html, setHtml] = useState<string | null>(null);
+  const [meta, setMeta] = useState<{ hash?: string; expiresAt?: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const open = useCallback(
+    async (siteId: string) => {
+      setBusy(true);
+      setError(null);
+      setHtml(null);
+      setOpenId(siteId);
+      try {
+        const res = (await client.factoryPreview({ siteId })) as unknown as {
+          html?: string;
+          hash?: string;
+          expiresAt?: string;
+          expired?: boolean;
+          issues?: Array<{ detail: string }>;
+        };
+        if (res.expired) {
+          setError(`Preview expired ${res.expiresAt ? new Date(res.expiresAt).toLocaleString() : ''}.`);
+        } else if (res.issues && res.issues.length > 0) {
+          setError(`Template unsatisfied: ${res.issues.map((i) => i.detail).join('; ')}`);
+        } else if (typeof res.html === 'string') {
+          setHtml(res.html);
+          setMeta({ hash: res.hash, expiresAt: res.expiresAt });
+        } else {
+          setError('Preview returned no build.');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setBusy(false);
+      }
+    },
+    [client],
+  );
+
+  return (
+    <div className={styles.card} data-testid="card-sites">
+      <h3>
+        {card.title} <span className={styles.count}>{items.length}</span>
+      </h3>
+      {items.length === 0 && <p className={styles.empty}>No sites built yet.</p>}
+      <table className={styles.table}>
+        <tbody>
+          {items.map((s) => (
+            <tr key={s.siteId}>
+              <td>{s.businessName}</td>
+              <td>{s.status}</td>
+              <td>{s.template ?? '—'}</td>
+              <td>
+                <button type="button" disabled={busy} onClick={() => void open(s.siteId)}>
+                  {busy && openId === s.siteId ? '…' : 'Preview'}
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {error && <p className={styles.error} role="alert">{error}</p>}
+      {html && (
+        <div className={styles.preview}>
+          <p className={styles.when}>
+            build <code>{meta?.hash?.slice(0, 12)}</code>
+            {meta?.expiresAt && <> · expires {new Date(meta.expiresAt).toLocaleString()}</>}
+          </p>
+          <iframe
+            title="Site preview"
+            data-testid="preview-frame"
+            className={styles.previewFrame}
+            sandbox=""
+            srcDoc={html}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface DeploymentFinding {
   code: string;
   severity: 'blocking' | 'unknown';
@@ -522,6 +622,8 @@ export function MissionControlLive() {
               return <MemoryCard key={card.id} card={card} />;
             case 'deployment':
               return <DeploymentCard key={card.id} card={card} />;
+            case 'sites':
+              return <SitesCard key={card.id} card={card} client={client} />;
             default:
               return (
                 <div key={card.id} className={styles.card}>
