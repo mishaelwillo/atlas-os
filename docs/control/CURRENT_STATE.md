@@ -100,12 +100,55 @@ Each was found in production or by a gate, not in review:
   the trusted default branch, so a pushed branch cannot change what executes.
   `origin` is untouched; pushing through the gate is opt-in per push.
 
+## Site hosting
+
+Published customer sites are hosted separately from Atlas itself. Atlas (the API
+and operator dashboard) runs on Railway; generated business sites do not, and
+that distinction is the whole reason a hosting adapter exists.
+
+Provider is **Cloudflare Pages**, chosen because the domain already lives on
+Cloudflare, static serving costs nothing there, and its deploy API is the seam
+the publish core was built against.
+
+- Pages project: `atlas-sites`, account `fd486ea72e20f31937e059f3d14ff0c2`.
+- Default address: `https://atlas-sites-2np.pages.dev` — live, serving a
+  `noindex` placeholder that lists nothing.
+- Intended address: `https://sites.andtronai.com`, attached to the project and
+  **pending** validation.
+- Zone `andtronai.com` is active in the same Cloudflare account
+  (`9613c75aac8b84c6af05c19d9edc4aab`).
+- Layout is path-based: each site publishes under `/<slug>`, where the slug
+  carries a site-id suffix so two businesses sharing a name cannot collide.
+  Switching to per-site subdomains changes one function, `publicUrl`.
+
+### Outstanding hosting steps
+
+1. A `CNAME` record `sites` → `atlas-sites-2np.pages.dev`, **proxied**, must
+   exist in the `andtronai.com` zone. It does not yet, which is why the custom
+   domain is pending. Note that proxied is correct for Pages because it is a
+   Cloudflare-native service; the opposite advice applies to a Railway origin.
+   The `wrangler login` OAuth credential is rejected by the DNS records API, so
+   this record has to be created by an operator or by a credential with DNS
+   write scope.
+2. The deployed API cannot use a local `wrangler login` credential. Publishing
+   from Atlas requires a scoped Cloudflare API token with Pages edit rights,
+   set as `CLOUDFLARE_API_TOKEN` on the Railway `api` service.
+
+Until both exist, an approved publish is verified, versioned and recorded as
+`queued`, and the unconfigured adapter refuses rather than reporting an address
+that does not serve.
+
+### Recorded but not yet schema-backed
+
+`ENVIRONMENTS.yaml` is a strict schema with no hosting section, so the values
+above are prose rather than validated configuration. Extending the schema so
+the collector can observe the Pages deployment is a genuine follow-up; until
+then hosting drift is not detected.
+
 ## Awaiting a decision
 
 None of these is blocked on code:
 
-- **Hosting and domain proof** for publishing, which is where P2B stops being
-  an engineering question.
 - **A model credential**, without which `playbooks.author` records the
   operator's brief rather than running a frontier session.
 - **Promoting `agents.logs`** from candidate, which carries a recorded evidence
