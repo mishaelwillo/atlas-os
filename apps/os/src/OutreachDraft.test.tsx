@@ -12,7 +12,6 @@ import React from 'react';
 import { MissionControlLive } from './MissionControl.js';
 
 declare global {
-  // eslint-disable-next-line no-var
   var __atlasOutreachCalls: Array<Record<string, unknown>>;
 }
 

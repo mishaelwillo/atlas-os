@@ -113,8 +113,9 @@ the publish core was built against.
 - Pages project: `atlas-sites`, account `fd486ea72e20f31937e059f3d14ff0c2`.
 - Default address: `https://atlas-sites-2np.pages.dev` — live, serving a
   `noindex` placeholder that lists nothing.
-- Intended address: `https://sites.andtronai.com`, attached to the project and
-  **pending** validation.
+- Public address: `https://sites.andtronai.com` — serving. The Pages custom
+  domain still reports `pending` while its certificate provisions, but the
+  record is proxied so Cloudflare's edge terminates TLS and the address works.
 - Zone `andtronai.com` is active in the same Cloudflare account
   (`9613c75aac8b84c6af05c19d9edc4aab`).
 - Layout is path-based: each site publishes under `/<slug>`, where the slug
@@ -123,19 +124,19 @@ the publish core was built against.
 
 ### Outstanding hosting steps
 
-1. A `CNAME` record `sites` → `atlas-sites-2np.pages.dev`, **proxied**, must
-   exist in the `andtronai.com` zone. It does not yet, which is why the custom
-   domain is pending. Note that proxied is correct for Pages because it is a
-   Cloudflare-native service; the opposite advice applies to a Railway origin.
-   The `wrangler login` OAuth credential is rejected by the DNS records API, so
-   this record has to be created by an operator or by a credential with DNS
-   write scope.
-2. The deployed API cannot use a local `wrangler login` credential. Publishing
-   from Atlas requires a scoped Cloudflare API token with Pages edit rights,
-   set as `CLOUDFLARE_API_TOKEN` on the Railway `api` service.
+1. **Done.** The `CNAME` `sites` → `atlas-sites-2np.pages.dev`, proxied, exists
+   in the `andtronai.com` zone (record `443f05ad`). Proxied is correct for Pages
+   because it is Cloudflare-native; the opposite applies to a Railway origin.
+   The `wrangler login` credential is rejected by the DNS records API, so this
+   was created through the authorised Cloudflare MCP server instead.
+2. **Outstanding.** The deployed API cannot use a local `wrangler login`
+   credential. Publishing from Atlas requires a scoped Cloudflare API token with
+   Pages edit rights, set as `CLOUDFLARE_API_TOKEN` on the Railway `api`
+   service, alongside `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_PAGES_PROJECT` and
+   `ATLAS_SITES_BASE_URL`.
 
-Until both exist, an approved publish is verified, versioned and recorded as
-`queued`, and the unconfigured adapter refuses rather than reporting an address
+Until the credential exists, an approved publish is verified, versioned and
+recorded as `queued`, and the adapter refuses rather than reporting an address
 that does not serve.
 
 ### Recorded but not yet schema-backed
