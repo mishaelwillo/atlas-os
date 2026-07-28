@@ -1,32 +1,33 @@
 # Current Handoff
 
-**Handoff ID:** `feat-publish-adapter`
+**Handoff ID:** `p2b-cloudflare-pages-adapter`
 **Status:** active
-**Started:** 2026-07-28T08:10:43.501Z
-**Updated:** 2026-07-28T08:10:43.501Z
+**Started:** 2026-07-28T09:02:42.161Z
+**Updated:** 2026-07-28T09:02:42.161Z
 **Actor:** Codex
-**Objective:** Add the provider-agnostic hosting adapter boundary for publishing (P2B-FACTORY-001)
+**Objective:** Implement the Cloudflare Pages hosting adapter so a verified deployment serves publicly (P2B-FACTORY-001)
 
 ## Active work
 
 - Work item: `P2B-FACTORY-001`
-- Branch: `feat/publish-adapter`
+- Branch: `docs/session-handoff`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `530bcb818776991a1c4feaa530ea2362a3147708`
+- Head commit: `4e2e14c3c8cad0e1fa58ea21898692236dcd9ff6`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Added the hosting adapter interface, slug and URL derivation, and an unconfigured adapter that refuses rather than reporting an unreachable address
+- Created the atlas-sites Pages project, deployed a noindex placeholder, attached sites.andtronai.com pending validation, and recorded the whole hosting setup in CURRENT_STATE.md
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-28-p2b-hosting-target.md`
+- ` M docs/control/CURRENT_STATE.md`
+- `?? docs/control/handoffs/archived/2026-07-28-feat-publish-adapter.md`
 
 ## Verification evidence
 
-- 10 hosting tests, 181/181 API tests, lint 0, uncached 8/8 builds
+- atlas-sites-2np.pages.dev returns 200; the custom domain reports pending because its DNS record does not exist; wrangler is authenticated locally but its OAuth credential is rejected by the DNS records API
 
 ## Database actions
 
@@ -35,7 +36,7 @@
 
 ## Hosting actions
 
-- No external action reported.
+- Created a Cloudflare Pages project and one placeholder deployment; no Atlas site content is published
 - Observed Railway API status: ok; OS status: ok (live-read-only at 2026-07-28T07:19:32.431Z).
 
 ## External side effects
@@ -44,11 +45,11 @@
 
 ## Blockers
 
-- Cloudflare authentication is required before a Pages project can be created; wrangler is installed but not authenticated
+- The sites CNAME does not exist, and the deployed API has no Cloudflare credential, so publishing stays verified-and-queued rather than live
 
 ## Next exact action
 
-Authenticate wrangler, create the Cloudflare Pages project, then implement the Pages adapter behind this boundary
+Create the CNAME sites to atlas-sites-2np.pages.dev proxied in the andtronai.com zone, set a scoped Cloudflare API token on the Railway api service, then implement the Pages adapter behind the hosting boundary and flip deployments from queued to live
 
 ## Definition of done
 
