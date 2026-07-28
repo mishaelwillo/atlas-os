@@ -1,0 +1,169 @@
+/**
+ * Cloudflare Pages hosting adapter (docs/specs/p2/website-factory.md).
+ *
+ * Implements the hosting boundary against the Pages direct-upload API. The
+ * publish core decides *what* to promote; this only decides where it lands, so
+ * swapping providers replaces this file and nothing above it.
+ *
+ * Pages direct upload is a three-step exchange: ask for an upload token, send
+ * the file manifest keyed by content hash, then create a deployment. Files
+ * already known to Pages are skipped, so republishing an unchanged build
+ * uploads nothing.
+ */
+import { createHash } from 'node:crypto';
+import type { HostingAdapter, PublishTarget, PublishedSite } from './hosting.js';
+
+export interface PagesConfig {
+  accountId: string;
+  projectName: string;
+  apiToken: string;
+  /** Public base the project serves from, used to derive the site address. */
+  baseUrl: string;
+  layout: 'path' | 'subdomain';
+}
+
+export type PagesFetch = (
+  url: string,
+  init: { method: string; headers: Record<string, string>; body?: string },
+) => Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }>;
+
+/**
+ * Pages identifies files by an MD5 of content plus extension. That is the
+ * provider's contract, not a security choice — the build's integrity is
+ * established by the sha256 the publish core verified before we got here.
+ */
+export function pagesFileHash(content: string, extension = 'html'): string {
+  return createHash('md5')
+    .update(Buffer.from(content, 'utf8'))
+    .update(extension)
+    .digest('hex')
+    .slice(0, 32);
+}
+
+interface UploadEntry {
+  key: string;
+  value: string;
+  metadata: { contentType: string };
+  base64: true;
+}
+
+/** Read a JSON envelope, surfacing Cloudflare's own error text when it fails. */
+async function cfJson(
+  res: { ok: boolean; status: number; json: () => Promise<unknown> },
+  context: string,
+): Promise<Record<string, unknown>> {
+  let body: unknown;
+  try {
+    body = await res.json();
+  } catch {
+    throw new Error(`${context}: Cloudflare returned status ${res.status} with an unreadable body`);
+  }
+  const envelope = (body ?? {}) as { success?: boolean; result?: unknown; errors?: unknown[] };
+  if (!res.ok || envelope.success === false) {
+    const detail = Array.isArray(envelope.errors)
+      ? envelope.errors
+          .map((e) => {
+            const err = (e ?? {}) as { code?: unknown; message?: unknown };
+            return `${String(err.code ?? '?')}: ${String(err.message ?? 'unknown')}`;
+          })
+          .join('; ')
+      : `status ${res.status}`;
+    throw new Error(`${context}: ${detail}`);
+  }
+  return (envelope.result ?? {}) as Record<string, unknown>;
+}
+
+export class CloudflarePagesHosting implements HostingAdapter {
+  readonly name = 'cloudflare-pages';
+
+  constructor(
+    private readonly config: PagesConfig,
+    private readonly fetchImpl: PagesFetch = (url, init) => fetch(url, init),
+  ) {}
+
+  private get base(): string {
+    return `https://api.cloudflare.com/client/v4/accounts/${this.config.accountId}/pages/projects/${this.config.projectName}`;
+  }
+
+  private headers(): Record<string, string> {
+    return {
+      Authorization: `Bearer ${this.config.apiToken}`,
+      'Content-Type': 'application/json',
+    };
+  }
+
+  async publish(target: PublishTarget): Promise<PublishedSite> {
+    // The site lives at its own path so one project can host many businesses.
+    const path = `/${target.slug}/index.html`;
+    const key = pagesFileHash(target.html);
+    const entry: UploadEntry = {
+      key,
+      value: Buffer.from(target.html, 'utf8').toString('base64'),
+      metadata: { contentType: 'text/html' },
+      base64: true,
+    };
+
+    const tokenResult = await cfJson(
+      await this.fetchImpl(`${this.base}/upload-token`, {
+        method: 'GET',
+        headers: this.headers(),
+      }),
+      'requesting a Pages upload token',
+    );
+    const jwt = String(tokenResult.jwt ?? '');
+    if (jwt === '') throw new Error('Pages upload token response contained no token');
+
+    await cfJson(
+      await this.fetchImpl('https://api.cloudflare.com/client/v4/pages/assets/upload', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify([entry]),
+      }),
+      'uploading the build',
+    );
+
+    const deployment = await cfJson(
+      await this.fetchImpl(`${this.base}/deployments`, {
+        method: 'POST',
+        headers: this.headers(),
+        body: JSON.stringify({ manifest: { [path]: key } }),
+      }),
+      'creating the Pages deployment',
+    );
+
+    return {
+      url: siteAddress(this.config.baseUrl, target.slug, this.config.layout),
+      providerRef: deployment.id === undefined ? null : String(deployment.id),
+    };
+  }
+}
+
+/** Kept local so the adapter has no import cycle with the boundary module. */
+function siteAddress(baseUrl: string, slug: string, layout: 'path' | 'subdomain'): string {
+  const trimmed = baseUrl.replace(/\/+$/, '');
+  if (layout === 'subdomain') {
+    return `https://${slug}.${trimmed.replace(/^https?:\/\//, '')}`;
+  }
+  return `${trimmed}/${slug}`;
+}
+
+/**
+ * Build the adapter when the environment supplies a credential.
+ *
+ * Returns null rather than a half-configured adapter: a partially configured
+ * publisher that failed at upload time would already have recorded a
+ * deployment, and the history would then claim something is public that never
+ * was.
+ */
+export function pagesHostingFromEnv(
+  source: Record<string, string | undefined>,
+): CloudflarePagesHosting | null {
+  const apiToken = source.CLOUDFLARE_API_TOKEN?.trim();
+  const accountId = source.CLOUDFLARE_ACCOUNT_ID?.trim();
+  const projectName = source.CLOUDFLARE_PAGES_PROJECT?.trim();
+  const baseUrl = source.ATLAS_SITES_BASE_URL?.trim();
+  if (!apiToken || !accountId || !projectName || !baseUrl) return null;
+
+  const layout = source.ATLAS_SITES_LAYOUT?.trim() === 'subdomain' ? 'subdomain' : 'path';
+  return new CloudflarePagesHosting({ accountId, projectName, apiToken, baseUrl, layout });
+}

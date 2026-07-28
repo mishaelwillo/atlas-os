@@ -13,7 +13,6 @@ import React from 'react';
 import { MissionControlLive } from './MissionControl.js';
 
 declare global {
-   
   var __atlasClientOptions: { token?: string } | undefined;
 }
 
