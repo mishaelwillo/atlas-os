@@ -12,7 +12,7 @@
 - Work item: `P2B-FACTORY-001`
 - Branch: `feat/expect-0003`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `40481d1b7a562c72ccf1fe2ae47cc4006353ce49`
+- Head commit: `9f47cd141901067aea24237dfc65e9604f002424`
 - Review status: pending independent review
 
 ## Task change evidence
