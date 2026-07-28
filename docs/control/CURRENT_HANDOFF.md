@@ -1,37 +1,36 @@
 # Current Handoff
 
-**Handoff ID:** `feat-expect-0003`
+**Handoff ID:** `p2b-hosting-target`
 **Status:** active
-**Started:** 2026-07-28T07:13:24.638Z
-**Updated:** 2026-07-28T07:13:24.638Z
+**Started:** 2026-07-28T07:18:09.801Z
+**Updated:** 2026-07-28T07:18:09.801Z
 **Actor:** Codex
-**Objective:** Advance expected schema to 0003 now that the migration and ledger agree
+**Objective:** Wire a hosting target so a verified deployment can serve publicly (P2B-FACTORY-001)
 
 ## Active work
 
 - Work item: `P2B-FACTORY-001`
-- Branch: `feat/expect-0003`
+- Branch: `main`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `9f47cd141901067aea24237dfc65e9604f002424`
+- Head commit: `0df6741ff33d96f4be98648c2467bce4e963d8f7`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Bumped expected_migration to 0003_site_deployments, added site_deployments to the required table set, and updated both service schema fingerprints
+- Schema 0003 is applied, recorded in the ledger, expected in the environment, and reported by both services
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- ` M docs/control/ENVIRONMENTS.yaml`
-- `?? docs/control/handoffs/archived/2026-07-28-docs-migration-self-record.md`
+- `?? docs/control/handoffs/archived/2026-07-28-feat-expect-0003.md`
 
 ## Verification evidence
 
-- 0003 verified applied with all columns, indexes and policies; ledger reports 0003_site_deployments; the schema-claim drift check caught both services before their fingerprints were updated
+- Both services report 0df6741 with schema 0003_site_deployments; drift clean with every authority ok
 
 ## Database actions
 
-- None. The migration and its ledger row were applied by the operator
+- No external action reported.
 - Observed Supabase status: ok (live-read-only at 2026-07-28T07:12:14.950Z).
 
 ## Hosting actions
@@ -45,11 +44,11 @@
 
 ## Blockers
 
-- Not supplied.
+- No hosting target exists, so verified deployments remain queued and nothing serves publicly
 
 ## Next exact action
 
-Create the sites service and point sites.andtronai.com at it, then wire the hosting target
+Create the sites Railway service, point sites.andtronai.com at it DNS-only, then serve published builds and flip deployments from queued to live
 
 ## Definition of done
 
