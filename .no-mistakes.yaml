@@ -65,7 +65,11 @@ document:
     anything under `docs/control/`, including prose. Phrase audit actors and
     similar text so no key-colon-value pattern appears.
 
-    Database migrations. `supabase/migrations/0001_init.sql` is immutable.
+    Database migrations. Every migration must record itself in the ledger as
+    its final statement, inserting its version and name into
+    `supabase_migrations.schema_migrations`. Without that the schema runs ahead
+    of the ledger and the drift check reads clean while being wrong.
+    `supabase/migrations/0001_init.sql` is immutable.
     Applying a new migration requires bumping `expected_migration` in
     `docs/control/ENVIRONMENTS.yaml` in the same change, or drift becomes
     blocking. Do not apply migrations from the pipeline.
