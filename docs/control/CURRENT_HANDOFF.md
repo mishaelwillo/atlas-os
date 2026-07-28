@@ -1,42 +1,42 @@
 # Current Handoff
 
-**Handoff ID:** `p2b-hosting-target`
+**Handoff ID:** `feat-publish-adapter`
 **Status:** active
-**Started:** 2026-07-28T07:18:09.801Z
-**Updated:** 2026-07-28T07:18:09.801Z
+**Started:** 2026-07-28T08:10:43.501Z
+**Updated:** 2026-07-28T08:10:43.501Z
 **Actor:** Codex
-**Objective:** Wire a hosting target so a verified deployment can serve publicly (P2B-FACTORY-001)
+**Objective:** Add the provider-agnostic hosting adapter boundary for publishing (P2B-FACTORY-001)
 
 ## Active work
 
 - Work item: `P2B-FACTORY-001`
-- Branch: `main`
+- Branch: `feat/publish-adapter`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `0df6741ff33d96f4be98648c2467bce4e963d8f7`
+- Head commit: `530bcb818776991a1c4feaa530ea2362a3147708`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Schema 0003 is applied, recorded in the ledger, expected in the environment, and reported by both services
+- Added the hosting adapter interface, slug and URL derivation, and an unconfigured adapter that refuses rather than reporting an unreachable address
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-28-feat-expect-0003.md`
+- `?? docs/control/handoffs/archived/2026-07-28-p2b-hosting-target.md`
 
 ## Verification evidence
 
-- Both services report 0df6741 with schema 0003_site_deployments; drift clean with every authority ok
+- 10 hosting tests, 181/181 API tests, lint 0, uncached 8/8 builds
 
 ## Database actions
 
 - No external action reported.
-- Observed Supabase status: ok (live-read-only at 2026-07-28T07:12:14.950Z).
+- Observed Supabase status: ok (live-read-only at 2026-07-28T07:19:32.431Z).
 
 ## Hosting actions
 
 - No external action reported.
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-07-28T07:12:14.950Z).
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-07-28T07:19:32.431Z).
 
 ## External side effects
 
@@ -44,11 +44,11 @@
 
 ## Blockers
 
-- No hosting target exists, so verified deployments remain queued and nothing serves publicly
+- Cloudflare authentication is required before a Pages project can be created; wrangler is installed but not authenticated
 
 ## Next exact action
 
-Create the sites Railway service, point sites.andtronai.com at it DNS-only, then serve published builds and flip deployments from queued to live
+Authenticate wrangler, create the Cloudflare Pages project, then implement the Pages adapter behind this boundary
 
 ## Definition of done
 
