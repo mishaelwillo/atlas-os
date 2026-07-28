@@ -1,42 +1,41 @@
 # Current Handoff
 
-**Handoff ID:** `p2b-cloudflare-pages-adapter`
+**Handoff ID:** `feat-pages-adapter`
 **Status:** active
-**Started:** 2026-07-28T09:06:26.090Z
-**Updated:** 2026-07-28T09:06:26.090Z
+**Started:** 2026-07-28T18:42:18.136Z
+**Updated:** 2026-07-28T18:42:18.136Z
 **Actor:** Codex
-**Objective:** Implement the Cloudflare Pages hosting adapter so a verified deployment serves publicly (P2B-FACTORY-001)
+**Objective:** Implement the Cloudflare Pages hosting adapter and complete site DNS (P2B-FACTORY-001)
 
 ## Active work
 
 - Work item: `P2B-FACTORY-001`
-- Branch: `main`
+- Branch: `feat/pages-adapter`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `ea794ea6938ea831f07e7aa75b647904398224c3`
+- Head commit: `0a5cbf170b36275a4d58c75e16e326c6a12f20db`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Cloudflare Pages project atlas-sites created with a placeholder deployment; the hosting setup, its identifiers and its two outstanding steps are recorded in CURRENT_STATE.md
+- Created the sites CNAME through the authorised Cloudflare MCP server, confirmed sites.andtronai.com serves, and implemented the Pages adapter behind the hosting boundary
 
 ## Current working tree
 
-- ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-28-p2b-cloudflare-pages-adapter.md`
+- Clean.
 
 ## Verification evidence
 
-- P1 complete with both acceptance halves verified; thirty pull requests merged with CI green on each exact main SHA; drift clean with every authority ok
+- 18 adapter tests, 199/199 API tests, 62/62 OS tests, lint 0, uncached 8/8 builds; sites.andtronai.com returns 200 with the expected noindex placeholder
 
 ## Database actions
 
 - No external action reported.
-- Observed Supabase status: ok (live-read-only at 2026-07-28T09:05:53.028Z).
+- Observed Supabase status: ok (live-read-only at 2026-07-28T09:07:53.146Z).
 
 ## Hosting actions
 
-- No external action reported.
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-07-28T09:05:53.028Z).
+- Created DNS record 443f05ad in the andtronai.com zone: CNAME sites to atlas-sites-2np.pages.dev, proxied
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-07-28T09:07:53.146Z).
 
 ## External side effects
 
@@ -44,11 +43,11 @@
 
 ## Blockers
 
-- The sites CNAME does not exist and the deployed API has no Cloudflare credential, so an approved publish stays verified-and-queued rather than serving
+- The deployed API still has no Cloudflare credential, so publishing remains verified-and-queued
 
 ## Next exact action
 
-First create the CNAME sites to atlas-sites-2np.pages.dev proxied in the andtronai.com zone and set a scoped Cloudflare API token on the Railway api service; then implement the Pages adapter behind the hosting boundary in apps/api/src/factory/hosting.ts and flip deployments from queued to live
+Set the Cloudflare credential and its three companion variables on the Railway api service, then wire the adapter into the deploy dispatcher so a queued deployment goes live
 
 ## Definition of done
 
