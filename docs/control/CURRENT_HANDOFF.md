@@ -1,44 +1,43 @@
 # Current Handoff
 
-**Handoff ID:** `docs-migration-self-record`
+**Handoff ID:** `feat-expect-0003`
 **Status:** active
-**Started:** 2026-07-28T07:09:22.130Z
-**Updated:** 2026-07-28T07:09:22.130Z
+**Started:** 2026-07-28T07:13:24.638Z
+**Updated:** 2026-07-28T07:13:24.638Z
 **Actor:** Codex
-**Objective:** Require migrations to record themselves so the schema cannot silently outrun the ledger
+**Objective:** Advance expected schema to 0003 now that the migration and ledger agree
 
 ## Active work
 
 - Work item: `P2B-FACTORY-001`
-- Branch: `docs/migration-self-record`
+- Branch: `feat/expect-0003`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `4ff3b8bdc9661dfa781d493abab2b642f252f81a`
+- Head commit: `9f47cd141901067aea24237dfc65e9604f002424`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Documented the self-record requirement in the deployment runbook and the no-mistakes document instructions
+- Bumped expected_migration to 0003_site_deployments, added site_deployments to the required table set, and updated both service schema fingerprints
 
 ## Current working tree
 
-- ` M .no-mistakes.yaml`
 - ` M docs/control/CURRENT_HANDOFF.md`
-- ` M docs/control/DEPLOYMENT_RUNBOOK.md`
-- `?? docs/control/handoffs/archived/2026-07-28-feat-publish-core.md`
+- ` M docs/control/ENVIRONMENTS.yaml`
+- `?? docs/control/handoffs/archived/2026-07-28-docs-migration-self-record.md`
 
 ## Verification evidence
 
-- 0003 applied correctly with all columns, indexes and policies, but left the ledger reporting 0002 because the file did not self-record
+- 0003 verified applied with all columns, indexes and policies; ledger reports 0003_site_deployments; the schema-claim drift check caught both services before their fingerprints were updated
 
 ## Database actions
 
-- No external action reported.
-- Observed Supabase status: ok (live-read-only at 2026-07-27T20:44:46.799Z).
+- None. The migration and its ledger row were applied by the operator
+- Observed Supabase status: ok (live-read-only at 2026-07-28T07:12:14.950Z).
 
 ## Hosting actions
 
 - No external action reported.
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-07-27T20:44:46.799Z).
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-07-28T07:12:14.950Z).
 
 ## External side effects
 
@@ -50,7 +49,7 @@
 
 ## Next exact action
 
-Bump expected_migration to 0003 and update both service fingerprints once the ledger records it
+Create the sites service and point sites.andtronai.com at it, then wire the hosting target
 
 ## Definition of done
 

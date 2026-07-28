@@ -6,7 +6,7 @@ environments:
       branch: main
     supabase:
       project_ref: yyyspvralawnvhtmuyvg
-      expected_migration: 0002_intelligence_enrichment
+      expected_migration: 0003_site_deployments
       required_tables:
         - spaces
         - api_tokens
@@ -26,6 +26,7 @@ environments:
         - conversations
         - messages
         - bench_results
+        - site_deployments
     railway:
       api:
         public_url: https://api-production-78a5.up.railway.app
