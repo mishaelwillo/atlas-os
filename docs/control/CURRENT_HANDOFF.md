@@ -1,35 +1,38 @@
 # Current Handoff
 
-**Handoff ID:** `feat-publish-core`
+**Handoff ID:** `docs-migration-self-record`
 **Status:** active
-**Started:** 2026-07-27T23:37:55.183Z
-**Updated:** 2026-07-27T23:39:00.769Z
+**Started:** 2026-07-28T07:09:22.130Z
+**Updated:** 2026-07-28T07:09:22.130Z
 **Actor:** Codex
-**Objective:** Build the routing-independent publish and rollback core for the Website Factory (P2B-FACTORY-001)
+**Objective:** Require migrations to record themselves so the schema cannot silently outrun the ledger
 
 ## Active work
 
 - Work item: `P2B-FACTORY-001`
-- Branch: `feat/publish-core`
+- Branch: `docs/migration-self-record`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `9f4138143bba2a70f6a2527111ae8c94edd78b81`
+- Head commit: `4ff3b8bdc9661dfa781d493abab2b642f252f81a`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Added publish verification, deployment history with rollback planning, a review-only migration, and corrected the queue now that routing is decided
+- Documented the self-record requirement in the deployment runbook and the no-mistakes document instructions
 
 ## Current working tree
 
-- ` M docs/control/WORK_QUEUE.yaml`
+- ` M .no-mistakes.yaml`
+- ` M docs/control/CURRENT_HANDOFF.md`
+- ` M docs/control/DEPLOYMENT_RUNBOOK.md`
+- `?? docs/control/handoffs/archived/2026-07-28-feat-publish-core.md`
 
 ## Verification evidence
 
-- 13 publish unit tests plus 10 through approval, 171/171 API tests, lint 0, uncached 8/8 builds; mutations trusting the approved hash and allowing rollback to a never-live build failed 3 tests each
+- 0003 applied correctly with all columns, indexes and policies, but left the ledger reporting 0002 because the file did not self-record
 
 ## Database actions
 
-- None. 0003_site_deployments.sql is written for review and has NOT been executed
+- No external action reported.
 - Observed Supabase status: ok (live-read-only at 2026-07-27T20:44:46.799Z).
 
 ## Hosting actions
@@ -43,11 +46,11 @@
 
 ## Blockers
 
-- No hosting target exists, so deployments are recorded as queued and nothing serves publicly
+- Not supplied.
 
 ## Next exact action
 
-Create the sites service and point sites.andtronai.com at it, then wire the hosting target so a queued deployment can serve
+Bump expected_migration to 0003 and update both service fingerprints once the ledger records it
 
 ## Definition of done
 
