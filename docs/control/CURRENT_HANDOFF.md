@@ -12,7 +12,7 @@
 - Work item: `P2B-FACTORY-001`
 - Branch: `docs/migration-self-record`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `becfb15b81d76f44fa032af3595d5b982b85531a`
+- Head commit: `4ff3b8bdc9661dfa781d493abab2b642f252f81a`
 - Review status: pending independent review
 
 ## Task change evidence
