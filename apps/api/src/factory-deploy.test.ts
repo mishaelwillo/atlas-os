@@ -4,11 +4,11 @@
  * approved build or refuse.
  */
 import { describe, expect, it } from 'vitest';
-import type { FastifyInstance } from 'fastify';
 import { buildApp } from './app.js';
 import { buildDescriptor, buildDossier } from './factory/dossier.js';
 import { renderSite } from './factory/render.js';
 import { FakeDb, buildTestDeps, operatorJwt, testEnv } from './test/fakes.js';
+import type { PipelineDeps } from './pipeline.js';
 
 const SPACE = '11111111-2222-3333-4444-555555555555';
 const SITE = '99999999-8888-7777-6666-555555555555';
@@ -38,10 +38,6 @@ function liveHash(phone?: string): string {
   return r.hash;
 }
 
-function appWith(db: FakeDb): FastifyInstance {
-  return buildApp({ deps: buildTestDeps(db) });
-}
-
 function dbFor(options: {
   stored?: unknown;
   approvedHash?: string;
@@ -59,7 +55,7 @@ function dbFor(options: {
     },
   ]);
   db.when(/from sites where site_id/i, [
-    { site_id: SITE, descriptor: options.stored ?? descriptor() },
+    { site_id: SITE, business_name: 'Acme Plumbing', descriptor: options.stored ?? descriptor() },
   ]);
   db.when(/from site_deployments where site_id/i, [{ version: options.latestVersion ?? 0 }]);
   db.when(
@@ -72,8 +68,24 @@ function dbFor(options: {
   return db;
 }
 
-async function approve(db: FakeDb) {
-  const res = await appWith(db).inject({
+/** A hosting adapter that accepts, recording what it was handed. */
+function publishingHost() {
+  const published: Array<{ slug: string; html: string; buildHash: string; version: number }> = [];
+  return {
+    name: 'test-host',
+    published,
+    publish: async (target: { slug: string; html: string; buildHash: string; version: number }) => {
+      published.push(target);
+      return { url: `https://sites.example.com/${target.slug}`, providerRef: 'cf-dep-1' };
+    },
+  };
+}
+
+async function approve(db: FakeDb, hosting?: { name: string; publish: (t: never) => Promise<{ url: string; providerRef: string | null }> }) {
+  const deps = hosting
+    ? { ...buildTestDeps(db), hosting: hosting as unknown as PipelineDeps['hosting'] }
+    : buildTestDeps(db);
+  const res = await buildApp({ deps }).inject({
     method: 'POST',
     url: '/v1/approvals/decide',
     headers: { authorization: `Bearer ${operatorJwt(testEnv())}` },
@@ -98,15 +110,21 @@ describe('deploy on approval', () => {
     expect(deployInsert(db)).toBeDefined();
   });
 
-  /** Not serving yet, and the record must not pretend otherwise. */
-  it('records the deployment as queued, not live, with no hosting target', async () => {
+  /**
+   * Test deps use the refusing adapter, so this is the unconfigured path: the
+   * attempt is recorded as queued with the provider's reason, and no address
+   * is claimed.
+   */
+  it('records a queued deployment carrying the reason when publishing fails', async () => {
     const db = dbFor({ approvedHash: liveHash() });
     const dispatched = await approve(db);
 
     expect(dispatched.status).toBe('queued');
-    expect(String(dispatched.note)).toMatch(/not yet serving/i);
-    expect((deployInsert(db)?.params ?? []).includes('queued')).toBe(false);
-    expect(deployInsert(db)?.sql).toMatch(/'queued'/);
+    expect(dispatched.url).toBeNull();
+    expect(String(dispatched.note)).toMatch(/not serving/i);
+    expect((deployInsert(db)?.params ?? []).includes('queued')).toBe(true);
+    // The address column stays null rather than holding a guess.
+    expect((deployInsert(db)?.params ?? []).includes(null)).toBe(true);
   });
 
   /**
@@ -183,6 +201,61 @@ describe('deploy on approval', () => {
     const db = dbFor({ approvedHash: liveHash() });
     await approve(db);
     expect((deployInsert(db)?.params ?? []).includes('abc1234')).toBe(true);
+  });
+
+  it('records a live deployment with its address when the provider accepts it', async () => {
+    const db = dbFor({ approvedHash: liveHash() });
+    const dispatched = await approve(db, publishingHost());
+
+    expect(dispatched.status).toBe('live');
+    expect(dispatched.url).toBe('https://sites.example.com/acme-plumbing-99999999');
+    expect(dispatched.providerRef).toBe('cf-dep-1');
+    expect((deployInsert(db)?.params ?? []).includes('live')).toBe(true);
+  });
+
+  it('hands the provider the exact verified build', async () => {
+    const db = dbFor({ approvedHash: liveHash() });
+    const host = publishingHost();
+    await approve(db, host);
+
+    expect(host.published).toHaveLength(1);
+    expect(host.published[0].buildHash).toBe(liveHash());
+    const expected = renderSite(descriptor());
+    if (!expected.rendered) throw new Error('fixture must render');
+    expect(host.published[0].html).toBe(expected.html);
+  });
+
+  /** A partial unique index allows one live deployment per site. */
+  it('steps the previous deployment down when a new one goes live', async () => {
+    const db = dbFor({
+      approvedHash: liveHash(),
+      latestVersion: 1,
+      live: { id: 'dep-1', version: 1, hash: 'b'.repeat(64) },
+    });
+    await approve(db, publishingHost());
+
+    const supersede = db.calls.find((c) => /set status = 'superseded'/i.test(c.sql));
+    expect(supersede).toBeDefined();
+    expect((supersede?.params ?? []).includes('dep-1')).toBe(true);
+  });
+
+  it('does not step anything down when the publish failed', async () => {
+    const db = dbFor({
+      approvedHash: liveHash(),
+      latestVersion: 1,
+      live: { id: 'dep-1', version: 1, hash: 'b'.repeat(64) },
+    });
+    await approve(db);
+
+    expect(db.calls.some((c) => /set status = 'superseded'/i.test(c.sql))).toBe(false);
+  });
+
+  it('audits the outcome that actually happened', async () => {
+    const db = dbFor({ approvedHash: liveHash() });
+    await approve(db, publishingHost());
+    expect(
+      db.auditInserts().some((a) => (a.params ?? []).includes('factory.deploy_live')),
+    ).toBe(true);
   });
 
   it('reports a missing site rather than recording a deployment', async () => {

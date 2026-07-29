@@ -1,31 +1,32 @@
 # Current Handoff
 
-**Handoff ID:** `feat-pages-adapter`
+**Handoff ID:** `feat-publish-live`
 **Status:** active
-**Started:** 2026-07-28T18:42:18.136Z
-**Updated:** 2026-07-28T18:42:18.136Z
+**Started:** 2026-07-29T00:24:37.270Z
+**Updated:** 2026-07-29T00:24:37.270Z
 **Actor:** Codex
-**Objective:** Implement the Cloudflare Pages hosting adapter and complete site DNS (P2B-FACTORY-001)
+**Objective:** Publish approved builds to Cloudflare Pages and record the real outcome (P2B-FACTORY-001)
 
 ## Active work
 
 - Work item: `P2B-FACTORY-001`
-- Branch: `feat/pages-adapter`
+- Branch: `feat/publish-live`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `0a5cbf170b36275a4d58c75e16e326c6a12f20db`
+- Head commit: `6d884822a483edb8a7ee9992a58289330830cf26`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Created the sites CNAME through the authorised Cloudflare MCP server, confirmed sites.andtronai.com serves, and implemented the Pages adapter behind the hosting boundary
+- Wired the hosting adapter through deps into the deploy dispatcher, recording live with an address or queued with the provider's reason
 
 ## Current working tree
 
-- Clean.
+- ` M docs/control/CURRENT_HANDOFF.md`
+- `?? docs/control/handoffs/archived/2026-07-29-feat-pages-adapter.md`
 
 ## Verification evidence
 
-- 18 adapter tests, 199/199 API tests, 62/62 OS tests, lint 0, uncached 8/8 builds; sites.andtronai.com returns 200 with the expected noindex placeholder
+- 15 deploy tests including the live path, 204/204 API tests, lint 0, uncached 8/8 builds; a mutation claiming live after a failed publish failed 2 tests
 
 ## Database actions
 
@@ -34,7 +35,7 @@
 
 ## Hosting actions
 
-- Created DNS record 443f05ad in the andtronai.com zone: CNAME sites to atlas-sites-2np.pages.dev, proxied
+- No external action reported.
 - Observed Railway API status: ok; OS status: ok (live-read-only at 2026-07-28T09:07:53.146Z).
 
 ## External side effects
@@ -43,11 +44,11 @@
 
 ## Blockers
 
-- The deployed API still has no Cloudflare credential, so publishing remains verified-and-queued
+- Nothing outstanding: all four Cloudflare variables are set on the Railway api service
 
 ## Next exact action
 
-Set the Cloudflare credential and its three companion variables on the Railway api service, then wire the adapter into the deploy dispatcher so a queued deployment goes live
+Merge and deploy, then build a site through the UI and approve its publish to confirm it serves on sites.andtronai.com
 
 ## Definition of done
 

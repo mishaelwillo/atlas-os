@@ -10,6 +10,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { AtlasRouter } from '@atlas/router';
 import { AuthError, authenticate, checkScopes, type AuthContext } from './auth.js';
 import type { BuildInfo } from './build-info.js';
+import type { HostingAdapter } from './factory/hosting.js';
 import type { Db, Queryable } from './db.js';
 import { checkOutreachPolicy, type PolicyRefusal } from './policy.js';
 import type { Env } from './env.js';
@@ -55,6 +56,8 @@ export interface PipelineDeps {
   env: Env;
   /** This deployment's fingerprint, so status can compare it against reality. */
   buildInfo: BuildInfo;
+  /** Where published sites land; refuses when no provider is configured. */
+  hosting: HostingAdapter;
   router: AtlasRouter;
   /** registry meta keyed by capability id — runs.execute routes through this */
   capabilities: Record<string, CapabilityRouteMeta>;

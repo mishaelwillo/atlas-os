@@ -5,6 +5,8 @@ import { createDb, type Db } from './db.js';
 import { dispatchers } from './dispatch.js';
 import { loadEnv, type Env } from './env.js';
 import { loadBuildInfo, type BuildInfo } from './build-info.js';
+import { UnconfiguredHosting, type HostingAdapter } from './factory/hosting.js';
+import { pagesHostingFromEnv } from './factory/cloudflare-pages.js';
 import { handlers } from './handlers/index.js';
 import type { CapabilityRouteMeta, PipelineDeps } from './pipeline.js';
 
@@ -31,6 +33,7 @@ export interface BuildDepsOptions {
   db?: Db;
   router?: AtlasRouter;
   buildInfo?: BuildInfo;
+  hosting?: HostingAdapter;
   log?: PipelineDeps['log'];
 }
 
@@ -52,6 +55,10 @@ export function buildDeps(opts: BuildDepsOptions = {}): PipelineDeps {
     db,
     env,
     buildInfo: opts.buildInfo ?? loadBuildInfo(),
+    // Falls back to the refusing adapter, so an unconfigured deployment
+    // records a queued build rather than claiming an address that does not
+    // serve.
+    hosting: opts.hosting ?? pagesHostingFromEnv(process.env) ?? new UnconfiguredHosting(),
     router,
     capabilities: capabilityMetaMap(),
     handlers,
