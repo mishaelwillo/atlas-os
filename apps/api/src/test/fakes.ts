@@ -6,6 +6,7 @@ import { capabilityMetaMap } from '../deps.js';
 import { dispatchers } from '../dispatch.js';
 import { loadEnv, type Env } from '../env.js';
 import { handlers } from '../handlers/index.js';
+import { UnconfiguredHosting } from '../factory/hosting.js';
 import { REGISTRY_VERSION } from '@atlas/registry';
 import type { PipelineDeps } from '../pipeline.js';
 
@@ -84,6 +85,7 @@ export function buildTestDeps(db: FakeDb, env: Env = testEnv()): PipelineDeps {
       schemaVersion: '0002_intelligence_enrichment',
       registryVersion: REGISTRY_VERSION,
     },
+    hosting: new UnconfiguredHosting(),
     router: stubRouter,
     capabilities: capabilityMetaMap(),
     handlers,

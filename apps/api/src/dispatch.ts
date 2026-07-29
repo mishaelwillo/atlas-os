@@ -7,6 +7,7 @@ import { insertAudit, type ApprovalDispatcher } from './pipeline.js';
 import type { Descriptor } from './factory/dossier.js';
 import { renderSite } from './factory/render.js';
 import { planPublish } from './factory/publish.js';
+import { siteSlug } from './factory/hosting.js';
 
 /**
  * outreach.send — LOG-ONLY sender stub (P1 acceptance: "dispatcher fires
@@ -44,9 +45,11 @@ const memoryAdjudicate: ApprovalDispatcher = async (ctx, payload) => {
  * changed between approval and publish, which is precisely the case where
  * publishing would put something live that nobody approved.
  *
- * Serving is not wired: no hosting target exists yet. The deployment is
- * recorded as 'queued' rather than 'live', because claiming live without a
- * reachable address would make the history lie about what is public.
+ * The build is handed to the hosting adapter before anything is recorded, and
+ * the row then states what actually happened: 'live' with its address when the
+ * provider accepted it, 'queued' with the reason when it did not. A record
+ * written before the outcome is known would make the history claim something
+ * is public that may never have been.
  */
 const factoryDeploySite: ApprovalDispatcher = async (ctx, payload) => {
   const input = (payload.input ?? {}) as Record<string, unknown>;
@@ -56,7 +59,7 @@ const factoryDeploySite: ApprovalDispatcher = async (ctx, payload) => {
   }
 
   const found = await ctx.q.query(
-    `select site_id, descriptor from sites where site_id = $1`,
+    `select site_id, business_name, descriptor from sites where site_id = $1`,
     [siteId],
   );
   const row = found.rows[0];
@@ -107,26 +110,59 @@ const factoryDeploySite: ApprovalDispatcher = async (ctx, payload) => {
     return { executed: false, note: plan.message, code: plan.code };
   }
 
+  /*
+   * Attempt the publish first, then record the outcome. A failure is kept as a
+   * queued row carrying the provider's reason rather than being discarded: the
+   * operator approved this, so the attempt belongs in history either way.
+   */
+  const slug = siteSlug(String(row.business_name ?? ''), siteId);
+  let published: { url: string; providerRef: string | null } | null = null;
+  let publishError: string | null = null;
+  try {
+    published = await ctx.deps.hosting.publish({
+      slug,
+      html: render.rendered ? render.html : '',
+      buildHash: plan.buildHash,
+      version: plan.version,
+    });
+  } catch (err) {
+    publishError = err instanceof Error ? err.message : String(err);
+  }
+
+  const status = published ? 'live' : 'queued';
   const inserted = await ctx.q.query(
     `insert into site_deployments
-       (space_id, site_id, version, environment, build_hash, renderer_sha, status, approved_by)
-     values ($1, $2, $3, 'production', $4, $5, 'queued', $6)
+       (space_id, site_id, version, environment, domain, build_hash, renderer_sha, status, approved_by, went_live_at)
+     values ($1, $2, $3, 'production', $4, $5, $6, $7, $8, case when $7 = 'live' then now() else null end)
      returning deployment_id`,
     [
       ctx.spaceId,
       siteId,
       plan.version,
+      published?.url ?? null,
       plan.buildHash,
       ctx.deps.buildInfo.gitSha,
+      status,
       ctx.auth.actor,
     ],
   );
   const deploymentId = String(inserted.rows[0]?.deployment_id ?? '');
 
-  await insertAudit(ctx.q, ctx.spaceId, ctx.auth.actor, 'factory.deploy_queued', deploymentId, {
+  // Exactly one live production deployment per site is enforced by a partial
+  // unique index, so the previous one must step down as this one arrives.
+  if (published && plan.supersedes) {
+    await ctx.q.query(
+      `update site_deployments set status = 'superseded', superseded_at = now()
+        where deployment_id = $1 and status = 'live'`,
+      [plan.supersedes],
+    );
+  }
+
+  await insertAudit(ctx.q, ctx.spaceId, ctx.auth.actor, `factory.deploy_${status}`, deploymentId, {
     siteId,
     version: plan.version,
     buildHash: plan.buildHash,
+    provider: ctx.deps.hosting.name,
   });
 
   return {
@@ -135,8 +171,12 @@ const factoryDeploySite: ApprovalDispatcher = async (ctx, payload) => {
     version: plan.version,
     buildHash: plan.buildHash,
     supersedes: plan.supersedes,
-    status: 'queued',
-    note: 'build verified and recorded; no hosting target is configured, so it is not yet serving',
+    status,
+    url: published?.url ?? null,
+    providerRef: published?.providerRef ?? null,
+    note: published
+      ? `published to ${published.url}`
+      : `build verified and recorded, but not serving: ${publishError ?? 'no hosting target is configured'}`,
   };
 };
 
