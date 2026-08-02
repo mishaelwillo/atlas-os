@@ -1,32 +1,34 @@
 # Current Handoff
 
-**Handoff ID:** `feat-site-builder-card`
+**Handoff ID:** `fix-site-builder-usability`
 **Status:** active
-**Started:** 2026-08-02T20:00:10.419Z
-**Updated:** 2026-08-02T20:00:10.419Z
-**Actor:** Codex
-**Objective:** Let an operator build a site from the product rather than an API call (P2B-FACTORY-001)
+**Started:** 2026-08-02T21:03:23.084Z
+**Updated:** 2026-08-02T21:03:23.084Z
+**Actor:** Claude
+**Objective:** Make the site builder card readable and its fields self-explanatory
 
 ## Active work
 
 - Work item: `P2B-FACTORY-001`
-- Branch: `feat/site-builder-card`
+- Branch: `fix/site-builder-usability`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `7ff38574255eaf5e5521e1031e349e39e0ad0d8a`
+- Head commit: `a058cdd9272fd2ad1cbd055387b9b2f00bcb6ef1`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Added a site builder card with per-fact sourcing, template requirements surfaced from the server, and blocked-gap reporting
+- Stacked fact rows vertically so the source input and owner checkbox no longer overflow behind the next card
+- Replaced the free-text field box with a picker of template-declared fields, since renderSection only emits those
+- Seeded one row per required field and required a value before counting a field as supplied
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-08-02-feat-publish-live.md`
+- `?? docs/control/handoffs/archived/2026-08-02-feat-site-builder-card.md`
 
 ## Verification evidence
 
-- 13 builder tests, 204/204 API tests, 75/75 OS tests, lint 0, uncached 8/8 builds; a mutation sending both a source and the owner marker failed 2 tests
+- 19 builder tests, 81/81 OS tests, lint 0, 8/8 builds; mutation reverting supplied-requires-value failed 3 tests
 
 ## Database actions
 
@@ -48,8 +50,8 @@
 
 ## Next exact action
 
-Merge and deploy, then build a site and approve its publish to confirm it serves on sites.andtronai.com
+Merge, deploy, and confirm the card renders inside its column with the source input visible
 
 ## Definition of done
 
-The active task acceptance checks pass and the handoff is updated.
+The builder fits its grid column, field names are chosen from the template, and the sourcing requirement is visible while entering.

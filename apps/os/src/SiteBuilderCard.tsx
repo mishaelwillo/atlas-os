@@ -5,8 +5,12 @@
  * The form shows that per row rather than hiding it: an unsourced fact is not
  * rejected here — the API records it as a blocked gap and says which — but the
  * operator should see the requirement while entering, not discover it after.
+ *
+ * Field names are chosen, not typed. renderSection only emits fields the
+ * template declares, so a free-text field box can only produce facts that are
+ * stored and never displayed — a silent no-op the operator cannot see.
  */
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import type { AtlasGeneratedClient } from '@atlas/client';
 import styles from './MissionControl.module.css';
 
@@ -27,6 +31,22 @@ interface FactRow {
 
 const BLANK_FACT: FactRow = { field: '', value: '', sourceUrl: '', ownerProvided: false };
 
+/** Shown as placeholders so the expected shape of each value is obvious. */
+const EXAMPLES: Record<string, string> = {
+  businessName: 'Acme Plumbing',
+  phone: '(555) 010-0199',
+  hours: 'Mon–Fri 8am–6pm',
+  email: 'hello@acme.example',
+  address: '12 Main St, Springfield',
+  tagline: 'Same-day repairs, fixed pricing',
+  services: 'Drain cleaning, water heaters',
+  serviceArea: 'Springfield and surrounding areas',
+};
+
+function exampleFor(field: string): string {
+  return EXAMPLES[field] ?? 'value shown on the page';
+}
+
 export interface SiteBuilderCardProps {
   templates: TemplateOption[];
   client: AtlasGeneratedClient;
@@ -42,14 +62,41 @@ export function SiteBuilderCard({
 }: SiteBuilderCardProps): React.ReactElement {
   const [profileUrl, setProfileUrl] = useState('');
   const [template, setTemplate] = useState(templates[0]?.id ?? '');
-  const [facts, setFacts] = useState<FactRow[]>([{ ...BLANK_FACT, field: 'businessName' }]);
+  const [facts, setFacts] = useState<FactRow[]>([{ ...BLANK_FACT }]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
 
   const chosen = templates.find((t) => t.id === template) ?? null;
-  const supplied = new Set(facts.filter((f) => f.field.trim() !== '').map((f) => f.field.trim()));
+
+  // Arrive with one row per required field. Filling in known blanks beats
+  // making the operator discover the field names and add the rows by hand.
+  useEffect(() => {
+    const required = templates.find((t) => t.id === template)?.requires ?? [];
+    setFacts((rows) => {
+      const kept = rows.filter((r) => r.value.trim() !== '');
+      const have = new Set(kept.map((r) => r.field));
+      const seeded = required
+        .filter((f) => !have.has(f))
+        .map((f) => ({ ...BLANK_FACT, field: f }));
+      const next = [...kept, ...seeded];
+      return next.length > 0 ? next : [{ ...BLANK_FACT }];
+    });
+  }, [template, templates]);
+
+  // A field with no value is not sent, so it is not supplied — matching what
+  // the build request will actually carry.
+  const supplied = new Set(
+    facts.filter((f) => f.field.trim() !== '' && f.value.trim() !== '').map((f) => f.field.trim()),
+  );
   const missing = (chosen?.requires ?? []).filter((r) => !supplied.has(r));
+  const unsourced = facts.filter(
+    (f) =>
+      f.field.trim() !== '' &&
+      f.value.trim() !== '' &&
+      !f.ownerProvided &&
+      f.sourceUrl.trim() === '',
+  );
 
   const update = useCallback((index: number, patch: Partial<FactRow>) => {
     setFacts((rows) => rows.map((r, i) => (i === index ? { ...r, ...patch } : r)));
@@ -95,6 +142,8 @@ export function SiteBuilderCard({
     ? (result.blocked as Array<{ field: string; reason: string }>)
     : [];
 
+  const fieldChoices = chosen ? [...chosen.requires, ...chosen.optional] : [];
+
   return (
     <div className={styles.card} data-testid="card-site-builder">
       <h3>Build a site</h3>
@@ -104,14 +153,18 @@ export function SiteBuilderCard({
       </p>
 
       <label className={styles.field}>
-        <span>Profile URL</span>
+        <span>Profile URL — where you found this business</span>
         <input
           data-testid="profile-url"
           type="text"
-          placeholder="https://maps.google.com/..."
+          placeholder="https://maps.google.com/?cid=..."
           value={profileUrl}
           onChange={(e) => setProfileUrl(e.target.value)}
         />
+        <span className={styles.when}>
+          Their Google Maps, Yelp, or existing site. Identifies the business; not shown
+          on the page.
+        </span>
       </label>
 
       <label className={styles.field}>
@@ -136,73 +189,116 @@ export function SiteBuilderCard({
           {chosen.optional.length > 0 ? ` · optional: ${chosen.optional.join(', ')}` : ''}
         </p>
       )}
+
+      <div className={styles.factList}>
+        {facts.map((f, i) => (
+          <div className={styles.factRow} key={i}>
+            <div className={styles.factHead}>
+              <span className={styles.factNum}>Fact {i + 1}</span>
+              {facts.length > 1 && (
+                <button
+                  type="button"
+                  className={styles.linkButton}
+                  aria-label={`remove fact ${i + 1}`}
+                  onClick={() => setFacts((rows) => rows.filter((_, j) => j !== i))}
+                >
+                  remove
+                </button>
+              )}
+            </div>
+
+            <label className={styles.field}>
+              <span>Which field</span>
+              {chosen ? (
+                <select
+                  aria-label={`fact ${i + 1} field`}
+                  value={f.field}
+                  onChange={(e) => update(i, { field: e.target.value })}
+                >
+                  <option value="">choose a field…</option>
+                  {fieldChoices.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                      {chosen.requires.includes(name) ? ' (required)' : ' (optional)'}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  aria-label={`fact ${i + 1} field`}
+                  type="text"
+                  placeholder="businessName"
+                  value={f.field}
+                  onChange={(e) => update(i, { field: e.target.value })}
+                />
+              )}
+            </label>
+
+            <label className={styles.field}>
+              <span>What it says on the page</span>
+              <input
+                aria-label={`fact ${i + 1} value`}
+                type="text"
+                placeholder={exampleFor(f.field)}
+                value={f.value}
+                onChange={(e) => update(i, { value: e.target.value })}
+              />
+            </label>
+
+            {f.ownerProvided ? (
+              <p className={styles.when}>
+                Owner-provided — attributed to the business owner, no public source.
+              </p>
+            ) : (
+              <label className={styles.field}>
+                <span>Source URL — the page you read this on</span>
+                <input
+                  aria-label={`fact ${i + 1} source`}
+                  type="text"
+                  placeholder="https://maps.google.com/?cid=..."
+                  value={f.sourceUrl}
+                  onChange={(e) => update(i, { sourceUrl: e.target.value })}
+                />
+              </label>
+            )}
+
+            <label className={styles.checkLine}>
+              <input
+                type="checkbox"
+                aria-label={`fact ${i + 1} owner provided`}
+                checked={f.ownerProvided}
+                onChange={(e) => update(i, { ownerProvided: e.target.checked })}
+              />
+              <span>The owner told us this (no public source)</span>
+            </label>
+          </div>
+        ))}
+      </div>
+
       {chosen && missing.length > 0 && (
         <p className={styles.error} data-testid="missing-facts">
           still needed: {missing.join(', ')}
         </p>
       )}
+      {unsourced.length > 0 && (
+        <p className={styles.error} data-testid="unsourced-facts">
+          no source yet: {unsourced.map((f) => f.field).join(', ')} — these will be
+          recorded as gaps, not rendered.
+        </p>
+      )}
 
-      <table className={styles.table}>
-        <tbody>
-          {facts.map((f, i) => (
-            <tr key={i}>
-              <td>
-                <input
-                  aria-label={`fact ${i + 1} field`}
-                  type="text"
-                  placeholder="field"
-                  value={f.field}
-                  onChange={(e) => update(i, { field: e.target.value })}
-                />
-              </td>
-              <td>
-                <input
-                  aria-label={`fact ${i + 1} value`}
-                  type="text"
-                  placeholder="value"
-                  value={f.value}
-                  onChange={(e) => update(i, { value: e.target.value })}
-                />
-              </td>
-              <td>
-                {f.ownerProvided ? (
-                  <span className={styles.when}>owner-provided</span>
-                ) : (
-                  <input
-                    aria-label={`fact ${i + 1} source`}
-                    type="text"
-                    placeholder="source URL"
-                    value={f.sourceUrl}
-                    onChange={(e) => update(i, { sourceUrl: e.target.value })}
-                  />
-                )}
-              </td>
-              <td>
-                <label className={styles.when}>
-                  <input
-                    type="checkbox"
-                    aria-label={`fact ${i + 1} owner provided`}
-                    checked={f.ownerProvided}
-                    onChange={(e) => update(i, { ownerProvided: e.target.checked })}
-                  />
-                  {' owner'}
-                </label>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <button
-        type="button"
-        data-testid="add-fact"
-        onClick={() => setFacts((r) => [...r, { ...BLANK_FACT }])}
-      >
-        Add fact
-      </button>
-      <button type="button" data-testid="build-site" disabled={busy} onClick={() => void build()}>
-        {busy ? 'Building…' : 'Build site'}
-      </button>
+      <div className={styles.buttonRow}>
+        <button
+          type="button"
+          data-testid="add-fact"
+          onClick={() => setFacts((r) => [...r, { ...BLANK_FACT }])}
+        >
+          Add fact
+        </button>
+        <button type="button" data-testid="build-site" disabled={busy} onClick={() => void build()}>
+          {busy ? 'Building…' : 'Build site'}
+        </button>
+      </div>
 
       {error && (
         <p className={styles.error} role="alert">
