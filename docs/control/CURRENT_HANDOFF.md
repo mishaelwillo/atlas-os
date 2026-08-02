@@ -1,34 +1,32 @@
 # Current Handoff
 
-**Handoff ID:** `fix-site-builder-usability`
+**Handoff ID:** `p2b-factory-qa-gate`
 **Status:** active
-**Started:** 2026-08-02T21:03:23.084Z
-**Updated:** 2026-08-02T21:03:23.084Z
+**Started:** 2026-08-02T21:10:37.116Z
+**Updated:** 2026-08-02T21:10:37.116Z
 **Actor:** Claude
-**Objective:** Make the site builder card readable and its fields self-explanatory
+**Objective:** Add the pre-approval QA gate the website factory spec requires
 
 ## Active work
 
 - Work item: `P2B-FACTORY-001`
-- Branch: `fix/site-builder-usability`
+- Branch: `chore/rotate-handoff-post-squash`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `a058cdd9272fd2ad1cbd055387b9b2f00bcb6ef1`
+- Head commit: `104117f7ee595bce1eb64729c65cc08a3cb981b3`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Stacked fact rows vertically so the source input and owner checkbox no longer overflow behind the next card
-- Replaced the free-text field box with a picker of template-declared fields, since renderSection only emits those
-- Seeded one row per required field and required a value before counting a field as supplied
+- Rotated the handoff after a squash merge replaced the recorded boundary commit
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-08-02-feat-site-builder-card.md`
+- `?? docs/control/handoffs/archived/2026-08-02-fix-site-builder-usability.md`
 
 ## Verification evidence
 
-- 19 builder tests, 81/81 OS tests, lint 0, 8/8 builds; mutation reverting supplied-requires-value failed 3 tests
+- PR #34 merged as 104117f with Build & Test green on the branch
 
 ## Database actions
 
@@ -50,8 +48,8 @@
 
 ## Next exact action
 
-Merge, deploy, and confirm the card renders inside its column with the source input visible
+Implement accessibility, responsive, link and structured-data checks that must pass before a site can be approved for publish
 
 ## Definition of done
 
-The builder fits its grid column, field names are chosen from the template, and the sourcing requirement is visible while entering.
+A build that fails any QA check cannot reach an approved publish.
