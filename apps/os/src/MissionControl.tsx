@@ -8,6 +8,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { createGeneratedClient, type AtlasGeneratedClient } from '@atlas/client';
 import styles from './MissionControl.module.css';
 import { SignIn } from './SignIn.js';
+import { SiteBuilderCard, type TemplateOption } from './SiteBuilderCard.js';
 import {
   SIGNED_OUT,
   clearLegacyToken,
@@ -851,7 +852,17 @@ export function MissionControlLive() {
             case 'deployment':
               return <DeploymentCard key={card.id} card={card} />;
             case 'sites':
-              return <SitesCard key={card.id} card={card} client={client} />;
+              return (
+                <React.Fragment key={card.id}>
+                  <SiteBuilderCard
+                    templates={(card.data.templates ?? []) as TemplateOption[]}
+                    client={client}
+                    hasSpace={spaceId !== null}
+                    onBuilt={() => void refresh()}
+                  />
+                  <SitesCard card={card} client={client} />
+                </React.Fragment>
+              );
             case 'leads':
               return (
                 <OutreachDraftCard
