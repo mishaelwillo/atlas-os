@@ -1,32 +1,32 @@
 # Current Handoff
 
-**Handoff ID:** `fix-handoff-ancestry`
+**Handoff ID:** `docs-new-session-prompt`
 **Status:** active
-**Started:** 2026-08-02T23:29:50.574Z
-**Updated:** 2026-08-02T23:29:50.574Z
+**Started:** 2026-08-02T23:25:34.576Z
+**Updated:** 2026-08-02T23:25:34.576Z
 **Actor:** Claude
-**Objective:** Restore a handoff boundary that main contains and record the required merge strategy
+**Objective:** Give a new session a single entry point into the control plane
 
 ## Active work
 
 - Work item: `P2B-FACTORY-001`
-- Branch: `fix/restore-handoff-ancestry`
+- Branch: `docs/new-session-prompt`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `9e11b59d8bba7bafacc506d4ec004f96d8cb24df`
+- Head commit: `87fb65aec462753997b43da75e533b215f142ab3`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Documented that PRs must be merged with a merge commit, since squash merges break the boundary-ancestor check
+- Added docs/control/NEW_SESSION_PROMPT.md recording current state, architecture rules, verification discipline and open decisions
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-08-02-docs-new-session-prompt.md`
+- `?? docs/control/handoffs/archived/2026-08-02-p2b-factory-qa-gate.md`
 
 ## Verification evidence
 
-- PRs #28-#33 merged with merge commits and main was green; squashed #34 and #36 turned main red
+- control:verify exit 0 with the boundary at the prompt commit
 
 ## Database actions
 
