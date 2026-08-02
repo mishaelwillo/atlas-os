@@ -113,24 +113,32 @@ Others: `pnpm control:status` (live drift), `pnpm control:handoff -- --id <slug>
 - **Green CI on a PR does not prove main will be green.** Always confirm the run on
   the exact merged main SHA.
 
-### Never delete a merged branch — read this before you merge
+### Merge with a merge commit, never squash — read this before you merge
 
-`control:verify` requires the handoff's recorded code-boundary commit to exist and
-be an ancestor of HEAD. The intended loop puts that boundary on a *branch* commit
-(commit the work, then regenerate the handoff), and a squash merge does not replay
-that commit onto main.
+```bash
+gh pr merge <n> --merge
+```
 
-It works anyway because CI checks out with `fetch-depth: 0` and **this repo keeps
-merged branches** — 30+ are retained on the remote, so the boundary commit stays
-reachable.
+`control:verify` requires the handoff's recorded code-boundary commit to **exist**
+and to be an **ancestor of HEAD**. The intended loop puts that boundary on a branch
+commit: commit the work, then regenerate the handoff.
 
-Deleting the branch removes the only ref holding that commit and main goes red with
-`control.handoff_commit_missing`. This happened on 2026-08-02: `--delete-branch` on
-PR #34 broke main, while PR #33 and everything before it were fine.
+A merge commit keeps those branch commits in main's history, so the boundary stays
+an ancestor. Every PR from #28 to #33 was merged this way and main was green each
+time. A squash merge replays the content as one new commit and leaves the original
+outside main's ancestry, so verify fails on main with
+`control.handoff_commit_not_ancestor` — even though it passed on the branch, and
+even though the commit still exists.
 
-**Merge with `gh pr merge <n> --squash` and do not pass `--delete-branch`.** If a
-branch was already deleted, rotate the handoff on a follow-up branch so the
-boundary points at a commit on main.
+Do not pass `--delete-branch` either; the repo keeps merged branches
+(`delete_branch_on_merge` is false) and a deleted branch turns the same failure
+into `control.handoff_commit_missing`.
+
+This was learned expensively on 2026-08-02: squash-merging PRs #34 and #36 turned
+main red twice.
+
+If main is already red this way, rotate the handoff on a branch off main so the
+boundary is a commit main already contains, then merge that with `--merge`.
 
 ## Live environment
 
