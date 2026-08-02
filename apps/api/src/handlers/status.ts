@@ -5,6 +5,7 @@
  */
 import type { Queryable } from '../db.js';
 import type { CapabilityHandler } from '../pipeline.js';
+import { TEMPLATE_LIBRARY } from '../factory/templates.js';
 
 /** The migration identity the drift collector reads, asked of the live database. */
 const MIGRATION_QUERY = `select version || '_' || name as migration_identity
@@ -247,6 +248,15 @@ export const statusMissionControl: CapabilityHandler = async (ctx) => {
         kind: 'sites',
         title: 'Sites',
         data: {
+          // Server-driven so the builder never guesses which templates exist
+          // or what each one requires.
+          templates: TEMPLATE_LIBRARY.map((t) => ({
+            id: t.id,
+            vertical: t.vertical,
+            regions: [...t.regions],
+            requires: [...new Set(t.sections.flatMap((sec) => sec.requires))],
+            optional: [...new Set(t.sections.flatMap((sec) => sec.optional ?? []))],
+          })),
           items: sites.rows.map((r) => ({
             siteId: String(r.site_id),
             businessName: String(r.business_name),

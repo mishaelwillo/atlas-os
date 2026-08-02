@@ -1,32 +1,32 @@
 # Current Handoff
 
-**Handoff ID:** `feat-publish-live`
+**Handoff ID:** `feat-site-builder-card`
 **Status:** active
-**Started:** 2026-07-29T00:24:37.270Z
-**Updated:** 2026-07-29T00:24:37.270Z
+**Started:** 2026-08-02T20:00:10.419Z
+**Updated:** 2026-08-02T20:00:10.419Z
 **Actor:** Codex
-**Objective:** Publish approved builds to Cloudflare Pages and record the real outcome (P2B-FACTORY-001)
+**Objective:** Let an operator build a site from the product rather than an API call (P2B-FACTORY-001)
 
 ## Active work
 
 - Work item: `P2B-FACTORY-001`
-- Branch: `feat/publish-live`
+- Branch: `feat/site-builder-card`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `6d884822a483edb8a7ee9992a58289330830cf26`
+- Head commit: `7ff38574255eaf5e5521e1031e349e39e0ad0d8a`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Wired the hosting adapter through deps into the deploy dispatcher, recording live with an address or queued with the provider's reason
+- Added a site builder card with per-fact sourcing, template requirements surfaced from the server, and blocked-gap reporting
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-07-29-feat-pages-adapter.md`
+- `?? docs/control/handoffs/archived/2026-08-02-feat-publish-live.md`
 
 ## Verification evidence
 
-- 15 deploy tests including the live path, 204/204 API tests, lint 0, uncached 8/8 builds; a mutation claiming live after a failed publish failed 2 tests
+- 13 builder tests, 204/204 API tests, 75/75 OS tests, lint 0, uncached 8/8 builds; a mutation sending both a source and the owner marker failed 2 tests
 
 ## Database actions
 
@@ -44,11 +44,11 @@
 
 ## Blockers
 
-- Nothing outstanding: all four Cloudflare variables are set on the Railway api service
+- Not supplied.
 
 ## Next exact action
 
-Merge and deploy, then build a site through the UI and approve its publish to confirm it serves on sites.andtronai.com
+Merge and deploy, then build a site and approve its publish to confirm it serves on sites.andtronai.com
 
 ## Definition of done
 
