@@ -1,32 +1,32 @@
 # Current Handoff
 
-**Handoff ID:** `docs-new-session-prompt`
+**Handoff ID:** `p2b-factory-qa-gate`
 **Status:** active
-**Started:** 2026-08-02T23:25:34.576Z
-**Updated:** 2026-08-02T23:25:34.576Z
+**Started:** 2026-08-02T21:10:37.116Z
+**Updated:** 2026-08-02T21:10:37.116Z
 **Actor:** Claude
-**Objective:** Give a new session a single entry point into the control plane
+**Objective:** Add the pre-approval QA gate the website factory spec requires
 
 ## Active work
 
 - Work item: `P2B-FACTORY-001`
-- Branch: `docs/new-session-prompt`
+- Branch: `chore/rotate-handoff-post-squash`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `87fb65aec462753997b43da75e533b215f142ab3`
+- Head commit: `104117f7ee595bce1eb64729c65cc08a3cb981b3`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Added docs/control/NEW_SESSION_PROMPT.md recording current state, architecture rules, verification discipline and open decisions
+- Rotated the handoff after a squash merge replaced the recorded boundary commit
 
 ## Current working tree
 
 - ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-08-02-p2b-factory-qa-gate.md`
+- `?? docs/control/handoffs/archived/2026-08-02-fix-site-builder-usability.md`
 
 ## Verification evidence
 
-- control:verify exit 0 with the boundary at the prompt commit
+- PR #34 merged as 104117f with Build & Test green on the branch
 
 ## Database actions
 
