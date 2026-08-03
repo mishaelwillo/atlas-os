@@ -55,7 +55,7 @@ items:
   - id: P2B-FACTORY-001
     phase: P2B
     title: Build the Website Factory
-    status: in_progress
+    status: review
     priority: high
     dependencies:
       - P2A-CONTROL-001
@@ -67,7 +67,7 @@ items:
   - id: P2C-REVENUE-001
     phase: P2C
     title: Run the minimum complete revenue pilot
-    status: ready
+    status: in_progress
     priority: high
     dependencies:
       - P2B-FACTORY-001
