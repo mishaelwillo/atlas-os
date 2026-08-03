@@ -31,6 +31,7 @@ export const GENERATED_CAPABILITY_IDS = [
   "hosting.cancel",
   "hosting.state",
   "analytics.funnel",
+  "factory.verify_live",
   "events.site",
   "approvals.list",
   "approvals.decide",
@@ -1095,6 +1096,44 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "string"
         },
         "note": {
+          "type": "string"
+        }
+      }
+    }
+  } as const satisfies CapabilityRouteMeta, deps);
+  registerCapabilityRoute(app, {
+    "id": "factory.verify_live",
+    "name": "Verify live sites",
+    "path": "/v1/factory/verify_live",
+    "method": "POST",
+    "taskClass": "quick",
+    "requiresApproval": false,
+    "scopes": [
+      "factory:write"
+    ],
+    "input": {
+      "type": "object",
+      "properties": {}
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "checked": {
+          "type": "number"
+        },
+        "matching": {
+          "type": "number"
+        },
+        "healthy": {
+          "type": "boolean"
+        },
+        "mismatched": {
+          "type": "array"
+        },
+        "unreadable": {
+          "type": "array"
+        },
+        "status": {
           "type": "string"
         }
       }

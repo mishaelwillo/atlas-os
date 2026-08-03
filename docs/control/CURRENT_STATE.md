@@ -489,11 +489,23 @@ not, the publish is **refused** — dropping the site takes a paying customer
 offline, and shipping the new bytes publishes something nobody approved, so a
 refusal that blocks until someone looks is the least-bad of the three.
 
-Still unclosed: nothing re-checks a site after its own publish. The read-back
-proves the deployment being made; a previously-live site going dark stays
-invisible until someone loads it. A sweep comparing every live deployment's
-recorded fingerprint against what its address serves would have caught this
-immediately.
+`factory.verify_live` closes the other half. The post-publish read-back proves
+the deployment being made and says nothing about the ones made before it, which
+is why a site could sit answering 404 for an hour while its row read `live`.
+The sweep walks every live deployment, compares what its address serves against
+the build approved for it, and stamps `fingerprint_checked_at` on each — a
+fingerprint checked ten minutes ago and one checked in March are different
+kinds of evidence, and only the timestamp tells them apart.
+
+It changes no deployment state. A site that has gone wrong is still the site
+that is public, and marking it otherwise would move the record further from
+reality rather than closer. An unreadable address counts as unhealthy, not as
+probably fine: counting it otherwise would reproduce the silence that let the
+original defect last an hour. Only failures are audited, so a clean sweep does
+not bury the trail under evidence that nothing happened.
+
+Nothing schedules it yet. It is a capability an operator or a scheduled run can
+call; wiring it into the scheduler is a small follow-up.
 
 ### What the run left in production
 

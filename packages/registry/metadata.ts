@@ -365,6 +365,22 @@ export const capabilityMetadata: Record<CapabilityId, CapabilityMetadata> = {
     evidenceIds: [],
     specification: P2_REVENUE_SPECIFICATION,
   },
+  'factory.verify_live': {
+    stage: 'candidate',
+    phase: 'P2B',
+    menuGroup: 'Website Factory',
+    regions: ['global'],
+    entitlements: ['website-hosting'],
+    monetization: 'hosting',
+    implementation: 'build',
+    // Reads addresses and records what it saw. It publishes nothing and
+    // changes no deployment state.
+    autonomy: 'full-auto',
+    // Derives from the owning specification's fingerprint acceptance, not from
+    // the video. No evidence is claimed.
+    evidenceIds: [],
+    specification: P2_FACTORY_SPECIFICATION,
+  },
   'events.site': {
     stage: 'candidate',
     phase: 'P2B',

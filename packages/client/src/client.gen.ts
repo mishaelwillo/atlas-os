@@ -308,6 +308,16 @@ export type AnalyticsFunnelOutput = {
   note?: string;
 };
 
+export type FactoryVerifyLiveInput = Record<string, unknown>;
+export type FactoryVerifyLiveOutput = {
+  checked?: number;
+  matching?: number;
+  healthy?: boolean;
+  mismatched?: Array<unknown>;
+  unreadable?: Array<unknown>;
+  status?: string;
+};
+
 export type EventsSiteInput = {
   siteId: string;
   channel: string;
@@ -496,6 +506,11 @@ export class AtlasGeneratedClient {
   /** Revenue pilot funnel — GET /v1/analytics/funnel */
   analyticsFunnel(input: AnalyticsFunnelInput): Promise<AnalyticsFunnelOutput | ApprovalPending> {
     return this.request<AnalyticsFunnelOutput>("GET", "/v1/analytics/funnel", input);
+  }
+
+  /** Verify live sites — POST /v1/factory/verify_live */
+  factoryVerifyLive(input: FactoryVerifyLiveInput): Promise<FactoryVerifyLiveOutput | ApprovalPending> {
+    return this.request<FactoryVerifyLiveOutput>("POST", "/v1/factory/verify_live", input);
   }
 
   /** Site event webhook — POST /v1/events/site */
