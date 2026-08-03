@@ -389,7 +389,7 @@ evidence:
     atlas_interpretation: >-
       Use a capped demo queue with source provenance, quality checks, expiration,
       and explicit review before any prospect receives a link.
-    capability_ids: [factory.build_site, prospecting.workspace]
+    capability_ids: [factory.build_site, prospecting.workspace, demos.enqueue, demos.advance]
     specification: docs/specs/p2/revenue-pilot.md
     artifacts:
       - type: transcript

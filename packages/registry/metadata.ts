@@ -176,6 +176,63 @@ export const capabilityMetadata: Record<CapabilityId, CapabilityMetadata> = {
     evidenceIds: ['video-qy0l1t7x6le-google-maps-prospecting'],
     specification: P2_REVENUE_SPECIFICATION,
   },
+  'prospecting.qualify': {
+    stage: 'candidate',
+    phase: 'P2C',
+    menuGroup: 'Prospecting',
+    regions: ['global'],
+    entitlements: ['revenue-pilot'],
+    monetization: 'acquisition',
+    implementation: 'build',
+    // The rubric does arithmetic on evidence an operator supplied; it decides
+    // nothing on its own and cannot contact anyone.
+    autonomy: 'manual',
+    // The rubric derives from the owning specification, not from the video.
+    // No evidence is claimed for it.
+    evidenceIds: [],
+    specification: P2_REVENUE_SPECIFICATION,
+  },
+  'prospecting.workspace': {
+    stage: 'candidate',
+    phase: 'P2C',
+    menuGroup: 'Prospecting',
+    regions: ['global'],
+    entitlements: ['revenue-pilot'],
+    monetization: 'acquisition',
+    implementation: 'build',
+    // Read-only review surface.
+    autonomy: 'manual',
+    evidenceIds: [
+      'video-qy0l1t7x6le-marketing-navigation',
+      'video-qy0l1t7x6le-google-maps-prospecting',
+      'video-qy0l1t7x6le-prebuild-demos',
+    ],
+    specification: P2_REVENUE_SPECIFICATION,
+  },
+  'demos.enqueue': {
+    stage: 'candidate',
+    phase: 'P2C',
+    menuGroup: 'Prospecting',
+    regions: ['global'],
+    entitlements: ['revenue-pilot'],
+    monetization: 'acquisition',
+    implementation: 'build',
+    autonomy: 'manual',
+    evidenceIds: ['video-qy0l1t7x6le-prebuild-demos'],
+    specification: P2_REVENUE_SPECIFICATION,
+  },
+  'demos.advance': {
+    stage: 'candidate',
+    phase: 'P2C',
+    menuGroup: 'Prospecting',
+    regions: ['global'],
+    entitlements: ['revenue-pilot'],
+    monetization: 'acquisition',
+    implementation: 'build',
+    autonomy: 'manual',
+    evidenceIds: ['video-qy0l1t7x6le-prebuild-demos'],
+    specification: P2_REVENUE_SPECIFICATION,
+  },
   'outreach.send': {
     stage: 'candidate',
     phase: 'P2C',

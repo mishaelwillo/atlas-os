@@ -147,12 +147,12 @@ export function assertTraceabilityIntegrity(
   );
   // Pinned deliberately: adding an executable capability is a governance
   // event, so the count must be changed knowingly rather than drifting.
-  // 16 as of factory.preview (P2B preview builds).
-  if (executable.size !== 16) {
-    throw new Error(`expected exactly 16 executable capabilities, found ${executable.size}`);
+  // 20 as of the P2C prospecting workspace, qualification and demo queue.
+  if (executable.size !== 20) {
+    throw new Error(`expected exactly 20 executable capabilities, found ${executable.size}`);
   }
-  if (candidate.size !== 33) {
-    throw new Error(`expected exactly 33 capability candidates, found ${candidate.size}`);
+  if (candidate.size !== 32) {
+    throw new Error(`expected exactly 32 capability candidates, found ${candidate.size}`);
   }
 
   const expected = new Map<string, { kind: 'executable' | 'candidate'; owner: string }>([

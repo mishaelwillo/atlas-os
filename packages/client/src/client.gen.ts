@@ -127,6 +127,55 @@ export type LeadsFindOutput = {
   leads?: Array<unknown>;
 };
 
+export type ProspectingQualifyInput = {
+  leadId: string;
+  evidence: Record<string, unknown>;
+};
+export type ProspectingQualifyOutput = {
+  assessmentId?: string;
+  verdict?: string;
+  total?: number;
+  scores?: Record<string, unknown>;
+  blockers?: Array<unknown>;
+  unknowns?: Array<unknown>;
+  expiresAt?: string;
+  status?: string;
+};
+
+export type ProspectingWorkspaceInput = {
+  verdict?: string;
+  limit?: number;
+};
+export type ProspectingWorkspaceOutput = {
+  prospects?: Array<unknown>;
+  queue?: Record<string, unknown>;
+  status?: string;
+};
+
+export type DemosEnqueueInput = {
+  leadId: string;
+};
+export type DemosEnqueueOutput = {
+  queueId?: string;
+  state?: string;
+  remaining?: number;
+  belowFloor?: boolean;
+  expiresAt?: string;
+  status?: string;
+};
+
+export type DemosAdvanceInput = {
+  queueId: string;
+  state: string;
+  siteId?: string;
+};
+export type DemosAdvanceOutput = {
+  queueId?: string;
+  from?: string;
+  to?: string;
+  status?: string;
+};
+
 export type OutreachSendInput = {
   leadId: string;
   channel: string;
@@ -254,6 +303,26 @@ export class AtlasGeneratedClient {
   /** Find leads — POST /v1/leads/find */
   leadsFind(input: LeadsFindInput): Promise<LeadsFindOutput | ApprovalPending> {
     return this.request<LeadsFindOutput>("POST", "/v1/leads/find", input);
+  }
+
+  /** Qualify prospect — POST /v1/prospecting/qualify */
+  prospectingQualify(input: ProspectingQualifyInput): Promise<ProspectingQualifyOutput | ApprovalPending> {
+    return this.request<ProspectingQualifyOutput>("POST", "/v1/prospecting/qualify", input);
+  }
+
+  /** Prospecting workspace — GET /v1/prospecting/workspace */
+  prospectingWorkspace(input: ProspectingWorkspaceInput): Promise<ProspectingWorkspaceOutput | ApprovalPending> {
+    return this.request<ProspectingWorkspaceOutput>("GET", "/v1/prospecting/workspace", input);
+  }
+
+  /** Take a demo slot — POST /v1/demos/enqueue */
+  demosEnqueue(input: DemosEnqueueInput): Promise<DemosEnqueueOutput | ApprovalPending> {
+    return this.request<DemosEnqueueOutput>("POST", "/v1/demos/enqueue", input);
+  }
+
+  /** Move a demo along — POST /v1/demos/advance */
+  demosAdvance(input: DemosAdvanceInput): Promise<DemosAdvanceOutput | ApprovalPending> {
+    return this.request<DemosAdvanceOutput>("POST", "/v1/demos/advance", input);
   }
 
   /** Send outreach message — POST /v1/outreach/send (approval-gated: returns {approvalId, status:"review"}) */

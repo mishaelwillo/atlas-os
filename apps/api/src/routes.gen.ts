@@ -17,6 +17,10 @@ export const GENERATED_CAPABILITY_IDS = [
   "factory.preview",
   "factory.deploy_site",
   "leads.find",
+  "prospecting.qualify",
+  "prospecting.workspace",
+  "demos.enqueue",
+  "demos.advance",
   "outreach.send",
   "events.site",
   "approvals.list",
@@ -413,6 +417,188 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
       "properties": {
         "leads": {
           "type": "array"
+        }
+      }
+    }
+  } as const satisfies CapabilityRouteMeta, deps);
+  registerCapabilityRoute(app, {
+    "id": "prospecting.qualify",
+    "name": "Qualify prospect",
+    "path": "/v1/prospecting/qualify",
+    "method": "POST",
+    "taskClass": "do",
+    "requiresApproval": false,
+    "scopes": [
+      "leads:write"
+    ],
+    "input": {
+      "type": "object",
+      "required": [
+        "leadId",
+        "evidence"
+      ],
+      "properties": {
+        "leadId": {
+          "type": "string"
+        },
+        "evidence": {
+          "type": "object"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "assessmentId": {
+          "type": "string"
+        },
+        "verdict": {
+          "type": "string"
+        },
+        "total": {
+          "type": "number"
+        },
+        "scores": {
+          "type": "object"
+        },
+        "blockers": {
+          "type": "array"
+        },
+        "unknowns": {
+          "type": "array"
+        },
+        "expiresAt": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    }
+  } as const satisfies CapabilityRouteMeta, deps);
+  registerCapabilityRoute(app, {
+    "id": "prospecting.workspace",
+    "name": "Prospecting workspace",
+    "path": "/v1/prospecting/workspace",
+    "method": "GET",
+    "taskClass": "quick",
+    "requiresApproval": false,
+    "scopes": [
+      "leads:write"
+    ],
+    "input": {
+      "type": "object",
+      "properties": {
+        "verdict": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "number"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "prospects": {
+          "type": "array"
+        },
+        "queue": {
+          "type": "object"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    }
+  } as const satisfies CapabilityRouteMeta, deps);
+  registerCapabilityRoute(app, {
+    "id": "demos.enqueue",
+    "name": "Take a demo slot",
+    "path": "/v1/demos/enqueue",
+    "method": "POST",
+    "taskClass": "do",
+    "requiresApproval": false,
+    "scopes": [
+      "leads:write"
+    ],
+    "input": {
+      "type": "object",
+      "required": [
+        "leadId"
+      ],
+      "properties": {
+        "leadId": {
+          "type": "string"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "queueId": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "remaining": {
+          "type": "number"
+        },
+        "belowFloor": {
+          "type": "boolean"
+        },
+        "expiresAt": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    }
+  } as const satisfies CapabilityRouteMeta, deps);
+  registerCapabilityRoute(app, {
+    "id": "demos.advance",
+    "name": "Move a demo along",
+    "path": "/v1/demos/advance",
+    "method": "POST",
+    "taskClass": "quick",
+    "requiresApproval": false,
+    "scopes": [
+      "leads:write"
+    ],
+    "input": {
+      "type": "object",
+      "required": [
+        "queueId",
+        "state"
+      ],
+      "properties": {
+        "queueId": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "siteId": {
+          "type": "string"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "queueId": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
         }
       }
     }

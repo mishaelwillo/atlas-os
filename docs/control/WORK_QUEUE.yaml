@@ -74,4 +74,4 @@ items:
     specification: docs/specs/p2/revenue-pilot.md
     acceptance_checks:
       - One real hosting-paying customer completes an approval-gated sequence
-    next_action: Outreach drafting and policy enforcement are live; remaining build-now scope is prospect qualification, the demo queue and sequence state
+    next_action: Apply migration 0004_prospect_qualification and bump expected_migration, then continue the build-now scope — sequence state, offers/terms, hosting activation state and funnel analytics

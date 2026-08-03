@@ -173,13 +173,16 @@ does not replace ownership without an approved registry migration.
 | `events.site` | executable | P2B | build now | `docs/specs/p2/website-factory.md` | — |
 | `leads.find` | executable | P2C | integrate now | `docs/specs/p2/revenue-pilot.md` | — |
 | `outreach.send` | executable | P2C | integrate now/shadow | `docs/specs/p2/revenue-pilot.md` | — |
+| `prospecting.qualify` | executable | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
+| `prospecting.workspace` | executable | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
+| `demos.enqueue` | executable | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
+| `demos.advance` | executable | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
 | `platform.dashboard` | candidate | P2A | build now | `docs/specs/p2/intelligence-foundation.md` | — |
 | `agents.logs` | candidate | P2A | build now | `docs/specs/p2/intelligence-foundation.md` | — |
 | `conversations.inbox` | candidate | P2B | build now | `docs/specs/p2/website-factory.md` | — |
 | `factory.template_library` | candidate | P2B | build now | `docs/specs/p2/website-factory.md` | — |
 | `factory.assisted_editor` | candidate | P2B | build now | `docs/specs/p2/website-factory.md` | — |
 | `automation.sequence` | candidate | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
-| `prospecting.workspace` | candidate | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
 | `billing.manage` | candidate | P3 | integrate now after pilot approval | `docs/specs/p2/revenue-pilot.md` | — |
 | `calendar.manage` | candidate | P3 | integrate later | `docs/specs/p2/upsell-capabilities.md` | — |
 | `contacts.manage` | candidate | P3 | build later | `docs/specs/p2/upsell-capabilities.md` | — |
