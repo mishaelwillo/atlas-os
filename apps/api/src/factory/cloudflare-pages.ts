@@ -9,6 +9,12 @@
  * the file manifest keyed by content hash, then create a deployment. Files
  * already known to Pages are skipped, so republishing an unchanged build
  * uploads nothing.
+ *
+ * The last step is multipart/form-data with the manifest as a form field, NOT
+ * JSON. Sending it as JSON is accepted by the transport and then rejected by
+ * Cloudflare with "a manifest field was expected in the request body but was
+ * not provided" — which is what production did, silently, because the adapter's
+ * own test asserted the same wrong shape the adapter sent.
  */
 import { createHash } from 'node:crypto';
 import type { HostingAdapter, PublishTarget, PublishedSite } from './hosting.js';
@@ -24,7 +30,7 @@ export interface PagesConfig {
 
 export type PagesFetch = (
   url: string,
-  init: { method: string; headers: Record<string, string>; body?: string },
+  init: { method: string; headers: Record<string, string>; body?: string | FormData },
 ) => Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }>;
 
 /**
@@ -122,11 +128,19 @@ export class CloudflarePagesHosting implements HostingAdapter {
       'uploading the build',
     );
 
+    /*
+     * multipart/form-data, and the Content-Type header is deliberately omitted:
+     * fetch generates it with the boundary, and setting it by hand produces a
+     * body Cloudflare's form parser cannot read.
+     */
+    const form = new FormData();
+    form.append('manifest', JSON.stringify({ [path]: key }));
+
     const deployment = await cfJson(
       await this.fetchImpl(`${this.base}/deployments`, {
         method: 'POST',
-        headers: this.headers(),
-        body: JSON.stringify({ manifest: { [path]: key } }),
+        headers: { Authorization: `Bearer ${this.config.apiToken}` },
+        body: form,
       }),
       'creating the Pages deployment',
     );

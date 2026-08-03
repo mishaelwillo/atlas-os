@@ -24,9 +24,21 @@ function cfError(status: number, errors: Array<{ code: number; message: string }
 
 /** Records the exchange so the call sequence itself can be asserted. */
 function recordingFetch(overrides: Partial<Record<string, unknown>> = {}) {
-  const calls: Array<{ url: string; method: string; body?: string; auth?: string }> = [];
+  const calls: Array<{
+    url: string;
+    method: string;
+    body?: string | FormData;
+    auth?: string;
+    contentType?: string;
+  }> = [];
   const impl: PagesFetch = async (url, init) => {
-    calls.push({ url, method: init.method, body: init.body, auth: init.headers.Authorization });
+    calls.push({
+      url,
+      method: init.method,
+      body: init.body,
+      auth: init.headers.Authorization,
+      contentType: init.headers['Content-Type'],
+    });
     if (url.endsWith('/upload-token')) return ok(overrides.token ?? { jwt: 'upload-jwt' });
     if (url.endsWith('/pages/assets/upload')) return ok(overrides.upload ?? {});
     if (url.endsWith('/deployments')) return ok(overrides.deployment ?? { id: 'dep-abc' });
@@ -61,10 +73,31 @@ describe('publishing to Pages', () => {
       'upload',
       'deployments',
     ]);
-    const manifest = JSON.parse(String(calls[2].body)) as { manifest: Record<string, string> };
-    expect(Object.keys(manifest.manifest)).toEqual(['/acme-plumbing-1a2b3c4d/index.html']);
+    /*
+     * The deployment is multipart with the manifest as a form field. This
+     * previously asserted a JSON body — the same wrong shape the adapter sent —
+     * so the suite passed while production was refused with "a manifest field
+     * was expected in the request body but was not provided".
+     */
+    const body = calls[2].body;
+    expect(body).toBeInstanceOf(FormData);
+    const manifest = JSON.parse(String((body as FormData).get('manifest'))) as Record<string, string>;
+    expect(Object.keys(manifest)).toEqual(['/acme-plumbing-1a2b3c4d/index.html']);
     expect(result.url).toBe('https://sites.example.com/acme-plumbing-1a2b3c4d');
     expect(result.providerRef).toBe('dep-abc');
+  });
+
+  /**
+   * fetch generates the multipart boundary. Setting Content-Type by hand
+   * produces a body Cloudflare's form parser cannot read, which is the other
+   * half of the defect this test exists to prevent.
+   */
+  it('lets fetch set the multipart content type on the deployment', async () => {
+    const { impl, calls } = recordingFetch();
+    await new CloudflarePagesHosting(CONFIG, impl).publish(target);
+
+    expect(calls[2].contentType).toBeUndefined();
+    expect(calls[2].auth).toBe('Bearer test-credential');
   });
 
   /** The upload step uses the short-lived token, not the account credential. */

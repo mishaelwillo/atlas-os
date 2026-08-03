@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `migration-banner-authority`
+**Handoff ID:** `pages-manifest-fix`
 **Status:** active
-**Started:** 2026-08-03T04:40:19.809Z
-**Updated:** 2026-08-03T04:40:19.809Z
+**Started:** 2026-08-03T05:36:10.824Z
+**Updated:** 2026-08-03T05:36:10.824Z
 **Actor:** Claude
-**Objective:** Stop migration files claiming whether they have been applied
+**Objective:** Fix the Cloudflare Pages deployment call the benchmark proved broken
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `fix/migration-banner-authority`
+- Branch: `fix/pages-deployment-manifest`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `4e3df8241270bf5a4fffcae2c3024b6588e951fc`
+- Head commit: `97aa6ae899ccf3929f74848ccd3f4302a2e1d548`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Added control.migration_claims_applied_state to verify-static; removed the false banner from migrations 0002 through 0006
+- Not supplied.
 
 ## Current working tree
 
@@ -25,11 +25,11 @@
 
 ## Verification evidence
 
-- pnpm build, pnpm test (845 tests) and pnpm lint exit 0; the gate mutation-tested by reintroducing a banner, which failed verify and one test; non-comment content of all five migrations hashes identically before and after
+- Production run recorded 8000096 manifest-field refusal; the deployments call is now multipart with the manifest as a form field
 
 ## Database actions
 
-- No external action reported.
+- The benchmark run created one site, one approval and one queued deployment in the studio space
 - Observed Supabase status: ok (live-read-only at 2026-08-03T03:24:58.972Z).
 
 ## Hosting actions
@@ -39,7 +39,7 @@
 
 ## External side effects
 
-- No external action reported.
+- Attempted a real Cloudflare Pages deployment, which the provider refused
 
 ## Blockers
 
@@ -47,8 +47,8 @@
 
 ## Next exact action
 
-Decide the directory adapter for lead sourcing; the P2C build-now scope is complete and the pilot's exit criterion blocks on that integration
+Re-run the P2B benchmark against the deployed fix and confirm a site actually serves
 
 ## Definition of done
 
-A migration comment asserting applied state in either direction is a blocking control:verify finding
+An approved publish reaches Cloudflare and the site serves at its public address
