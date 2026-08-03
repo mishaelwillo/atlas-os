@@ -54,9 +54,10 @@ blocking finding.
   suppression plus a per-space daily cap are enforced before an approval is
   created. Prospect qualification and the demo queue are built and live, with
   migrations `0004` and `0005` applied and verified against the ledger, and
-  outreach sequence state live alongside them. Remaining build-now scope is
-  offers/terms, hosting activation state, and funnel analytics. Lead sourcing
-  still needs a directory adapter that does not exist.
+  outreach sequence state live alongside them. Offers, terms and hosting
+  activation are built and await migration `0006`. The remaining build-now
+  scope is funnel analytics and the operator surface. Lead sourcing still needs
+  a directory adapter that does not exist.
 
 ## P1 acceptance
 
@@ -282,6 +283,56 @@ services.
 The `schema_pending` path in the three sequence capabilities is now unreachable
 in production, and the `outreach.send` dispatch records the touch rather than
 reporting that it could not.
+
+## Offers, terms and hosting activation
+
+The acceptance is "hosting cannot activate before approved terms and confirmed
+payment", so that is one gate decided in one place and checked twice: once
+before the approval row is created, so an operator is never shown an approval
+the dispatcher will refuse, and again in the dispatcher, because a deal can be
+withdrawn or a payment reference removed in between. Both read the same facts
+through the same function; if they read different things they could disagree,
+and the approval queue would become where the decision was really made.
+
+Activation requires all four: an accepted deal, on the *same* offer version the
+entitlement is for, whose disclosures were complete, plus a recorded payment
+reference. The offer-version check is not pedantry — a customer who accepted
+last quarter's price must not be activated onto this quarter's, and an offer
+revised after acceptance is a new offer needing a new decision.
+
+Twelve disclosures must carry text before an offer can be published at all:
+site and domain ownership, hosting and security scope, support and edit
+boundary, data portability, renewal, taxes, cancellation and refund,
+suspension, and migration. The specification names them, so they are a
+checklist rather than prose — a refusal has to be able to say which one is
+missing.
+
+### Two things this deliberately will not do
+
+**No default price and no default currency.** The presenter's figures — 100/119
+monthly hosting, 2,000 for a website, 50/100 hourly, and the caption-rendered
+9.97 — are recorded as unvalidated observation, not Atlas price policy. A
+default would quietly turn one of them into policy. Zero is accepted as a real
+price, because the pitch is a free site with hosting-only payment; absent is
+refused, because "free" and "nobody said" must not look the same to the person
+accepting it.
+
+**Atlas never confirms a payment.** `billing.manage` is deferred to P3, so no
+provider is integrated. A confirmed payment is a fact an operator records with
+the provider's own reference, and that reference is all that is stored — no
+card data, no token that can move money. `hosting.state` never returns the
+reference itself, only whether one exists.
+
+Cancellation disables renewal and deletes nothing: no history, no offer, no
+export. A customer who paid for the period keeps it, because cancelling is not
+a refund and taking a paid-for site down early would be worse service than the
+thing being cancelled.
+
+### Migration 0006 is written and not applied
+
+`supabase/migrations/0006_offers_and_hosting.sql` creates `offers`,
+`deal_decisions` and `hosting_entitlements`. The five capabilities report
+`schema_pending` until it runs.
 
 ## Awaiting a decision
 

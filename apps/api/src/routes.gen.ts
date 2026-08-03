@@ -25,6 +25,11 @@ export const GENERATED_CAPABILITY_IDS = [
   "automation.sequence",
   "sequence.advance",
   "sequence.state",
+  "offers.publish",
+  "deals.decide",
+  "hosting.activate",
+  "hosting.cancel",
+  "hosting.state",
   "events.site",
   "approvals.list",
   "approvals.decide",
@@ -798,6 +803,247 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "array"
         },
         "next": {
+          "type": "object"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    }
+  } as const satisfies CapabilityRouteMeta, deps);
+  registerCapabilityRoute(app, {
+    "id": "offers.publish",
+    "name": "Publish an offer version",
+    "path": "/v1/offers/publish",
+    "method": "POST",
+    "taskClass": "do",
+    "requiresApproval": false,
+    "scopes": [
+      "leads:write"
+    ],
+    "input": {
+      "type": "object",
+      "required": [
+        "leadId",
+        "country",
+        "currency",
+        "priceMinor",
+        "period",
+        "termsVersion",
+        "disclosures"
+      ],
+      "properties": {
+        "leadId": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "priceMinor": {
+          "type": "number"
+        },
+        "period": {
+          "type": "string"
+        },
+        "termsVersion": {
+          "type": "string"
+        },
+        "disclosures": {
+          "type": "object"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "offerId": {
+          "type": "string"
+        },
+        "version": {
+          "type": "number"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "priceMinor": {
+          "type": "number"
+        },
+        "period": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string"
+        },
+        "supersedes": {
+          "type": "number"
+        },
+        "published": {
+          "type": "boolean"
+        },
+        "code": {
+          "type": "string"
+        },
+        "missing": {
+          "type": "array"
+        },
+        "required": {
+          "type": "array"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    }
+  } as const satisfies CapabilityRouteMeta, deps);
+  registerCapabilityRoute(app, {
+    "id": "deals.decide",
+    "name": "Record a deal decision",
+    "path": "/v1/deals/decide",
+    "method": "POST",
+    "taskClass": "quick",
+    "requiresApproval": false,
+    "scopes": [],
+    "input": {
+      "type": "object",
+      "required": [
+        "leadId",
+        "state"
+      ],
+      "properties": {
+        "leadId": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "offerVersion": {
+          "type": "number"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "decisionId": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "offerVersion": {
+          "type": "number"
+        },
+        "decided": {
+          "type": "boolean"
+        },
+        "code": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    }
+  } as const satisfies CapabilityRouteMeta, deps);
+  registerCapabilityRoute(app, {
+    "id": "hosting.activate",
+    "name": "Activate hosting",
+    "path": "/v1/hosting/activate",
+    "method": "POST",
+    "taskClass": "quick",
+    "requiresApproval": true,
+    "scopes": [],
+    "input": {
+      "type": "object",
+      "required": [
+        "leadId"
+      ],
+      "properties": {
+        "leadId": {
+          "type": "string"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "approvalId": {
+          "type": "string"
+        }
+      }
+    }
+  } as const satisfies CapabilityRouteMeta, deps);
+  registerCapabilityRoute(app, {
+    "id": "hosting.cancel",
+    "name": "Cancel hosting",
+    "path": "/v1/hosting/cancel",
+    "method": "POST",
+    "taskClass": "quick",
+    "requiresApproval": true,
+    "scopes": [],
+    "input": {
+      "type": "object",
+      "required": [
+        "leadId"
+      ],
+      "properties": {
+        "leadId": {
+          "type": "string"
+        },
+        "servesUntil": {
+          "type": "string"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "approvalId": {
+          "type": "string"
+        }
+      }
+    }
+  } as const satisfies CapabilityRouteMeta, deps);
+  registerCapabilityRoute(app, {
+    "id": "hosting.state",
+    "name": "Hosting state",
+    "path": "/v1/hosting/state",
+    "method": "GET",
+    "taskClass": "quick",
+    "requiresApproval": false,
+    "scopes": [
+      "leads:write"
+    ],
+    "input": {
+      "type": "object",
+      "required": [
+        "leadId"
+      ],
+      "properties": {
+        "leadId": {
+          "type": "string"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "offer": {
+          "type": "object"
+        },
+        "deal": {
+          "type": "object"
+        },
+        "entitlement": {
           "type": "object"
         },
         "status": {

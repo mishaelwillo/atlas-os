@@ -15,6 +15,8 @@ import type { Db, Queryable } from './db.js';
 import { checkOutreachPolicy } from './policy.js';
 import type { Descriptor } from './factory/dossier.js';
 import { qaForDescriptor } from './factory/qa.js';
+import { readActivationFacts } from './revenue/activation-read.js';
+import { planHostingTransition } from './revenue/hosting-activation.js';
 import type { Env } from './env.js';
 import { validateAgainstSchema } from './validate.js';
 
@@ -111,6 +113,49 @@ async function checkDeployQa(
 }
 
 /**
+ * hosting.activate — the activation gate decides before the approval exists.
+ *
+ * "Hosting cannot activate before approved terms and confirmed payment" is the
+ * acceptance, so an activation that cannot pass must not reach the queue: an
+ * operator should never be shown an approval the dispatcher will refuse. The
+ * dispatcher checks again, because the deal or the offer can change in between
+ * and the approval says nothing about either.
+ */
+async function checkHostingActivation(
+  q: Queryable,
+  input: Record<string, unknown>,
+): Promise<PreApprovalRefusal | null> {
+  const leadId = typeof input.leadId === 'string' ? input.leadId.trim() : '';
+  if (leadId === '') return null; // the dispatcher reports the missing id
+
+  let facts;
+  try {
+    facts = await readActivationFacts(q, leadId);
+  } catch (err) {
+    // Migration 0006 has not been applied; the dispatcher reports that.
+    if (typeof err === 'object' && err !== null && (err as { code?: unknown }).code === '42P01') {
+      return null;
+    }
+    throw err;
+  }
+  // No entitlement at all is the dispatcher's story to tell, not a gate refusal.
+  if ('note' in facts) return null;
+
+  const plan = planHostingTransition({
+    from: facts.state,
+    to: 'entitlement_active',
+    dealState: facts.dealState,
+    acceptedOfferVersion: facts.acceptedOfferVersion,
+    entitlementOfferVersion: facts.entitlementOfferVersion,
+    disclosuresComplete: facts.disclosuresComplete,
+    paymentReference: facts.paymentReference,
+  });
+  if (plan.ok) return null;
+
+  return { code: plan.code, message: plan.message, detail: { from: facts.state } };
+}
+
+/**
  * Capability-specific policy gates evaluated before an approval is created.
  * Returns null when the request may proceed.
  */
@@ -122,6 +167,7 @@ async function checkPreApprovalPolicy(
   deps: PipelineDeps,
 ): Promise<PreApprovalRefusal | null> {
   if (capabilityId === 'factory.deploy_site') return checkDeployQa(q, input);
+  if (capabilityId === 'hosting.activate') return checkHostingActivation(q, input);
   if (capabilityId !== 'outreach.send') return null;
 
   const leadId = typeof input.leadId === 'string' ? input.leadId.trim() : '';
