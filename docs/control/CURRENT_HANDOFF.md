@@ -1,32 +1,31 @@
 # Current Handoff
 
-**Handoff ID:** `fix-handoff-ancestry`
+**Handoff ID:** `factory-qa-gate`
 **Status:** active
-**Started:** 2026-08-02T23:29:50.574Z
-**Updated:** 2026-08-02T23:29:50.574Z
+**Started:** 2026-08-03T00:05:30.630Z
+**Updated:** 2026-08-03T00:05:30.630Z
 **Actor:** Claude
-**Objective:** Restore a handoff boundary that main contains and record the required merge strategy
+**Objective:** Gate publish on the required build QA checks
 
 ## Active work
 
 - Work item: `P2B-FACTORY-001`
-- Branch: `fix/restore-handoff-ancestry`
+- Branch: `feat/factory-qa-gate`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `9e11b59d8bba7bafacc506d4ec004f96d8cb24df`
+- Head commit: `50c141c425b84a40d025c1c882a5976656ba268c`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Documented that PRs must be merged with a merge commit, since squash merges break the boundary-ancestor check
+- QA runs before the approval row is created and again in the dispatcher; the renderer now emits the headings, CSP, privacy notice and sourced JSON-LD its own gate requires
 
 ## Current working tree
 
-- ` M docs/control/CURRENT_HANDOFF.md`
-- `?? docs/control/handoffs/archived/2026-08-02-docs-new-session-prompt.md`
+- Clean.
 
 ## Verification evidence
 
-- PRs #28-#33 merged with merge commits and main was green; squashed #34 and #36 turned main red
+- pnpm build, pnpm test (626 tests across 14 tasks) and pnpm lint all exit 0; each guard mutation-tested by disabling it and confirming the tests fail
 
 ## Database actions
 
@@ -48,8 +47,8 @@
 
 ## Next exact action
 
-Implement accessibility, responsive, link and structured-data checks that must pass before a site can be approved for publish
+Run the timed benchmark: a profile URL to an approved live demo in under 30 minutes, then continue the P2C revenue-pilot build-now scope
 
 ## Definition of done
 
-A build that fails any QA check cannot reach an approved publish.
+A build that fails any QA check cannot reach an approved publish
