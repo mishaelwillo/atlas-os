@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `publish-fingerprint-readback`
+**Handoff ID:** `pin-migration-0007`
 **Status:** active
-**Started:** 2026-08-03T05:57:40.730Z
-**Updated:** 2026-08-03T05:57:40.730Z
+**Started:** 2026-08-03T06:18:08.355Z
+**Updated:** 2026-08-03T06:18:08.355Z
 **Actor:** Claude
-**Objective:** Measure the published fingerprint instead of asserting it
+**Objective:** Pin the applied 0007 schema across the control plane
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `feat/publish-fingerprint-readback`
+- Branch: `chore/pin-migration-0007`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `a13cbc0090547bc3ae2713a4cbe6d9f771880599`
+- Head commit: `b7b5a9f245a54950e160ecb992546de6a61cf061`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- site_deployments gains public_fingerprint, fingerprint_checked_at and fingerprint_matches; PipelineDeps gains an injected readPublic
+- Not supplied.
 
 ## Current working tree
 
@@ -25,17 +25,17 @@
 
 ## Verification evidence
 
-- pnpm build, pnpm test (858 tests) and pnpm lint exit 0; the unreadable guard mutation-tested, failing 7 tests
+- control:status observed migration 0007_deployment_fingerprint; required_tables unchanged because 0007 adds columns rather than tables
 
 ## Database actions
 
-- Migration 0007_deployment_fingerprint written and NOT applied; expected_migration still pins 0006_offers_and_hosting
-- Observed Supabase status: ok (live-read-only at 2026-08-03T03:24:58.972Z).
+- Operator applied 0007_deployment_fingerprint; verified by reading the migration ledger through control:status
+- Observed Supabase status: ok (live-read-only at 2026-08-03T06:17:21.348Z).
 
 ## Hosting actions
 
-- No external action reported.
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-03T03:24:58.972Z).
+- Set ATLAS_SCHEMA_VERSION=0007_deployment_fingerprint on the Railway api and os services
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-03T06:17:21.348Z).
 
 ## External side effects
 
@@ -43,12 +43,12 @@
 
 ## Blockers
 
-- The zone still injects a bot-detection script, so a real publish will now record fingerprint_matches false until that setting changes
+- Not supplied.
 
 ## Next exact action
 
-Apply migration 0007_deployment_fingerprint, decide the Cloudflare Bot Fight Mode setting for sites.andtronai.com, then run the timed acceptance through Mission Control
+Decide the Cloudflare Bot Fight Mode setting for sites.andtronai.com, then run the timed acceptance through Mission Control
 
 ## Definition of done
 
-A deployment records what the public address actually served, and an unreadable address is never recorded as a match
+Expected and observed migration identity agree, and neither service fingerprint claims a schema it is not running
