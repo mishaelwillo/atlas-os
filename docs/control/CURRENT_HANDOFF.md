@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `p2c-offers-hosting`
+**Handoff ID:** `pin-migration-0006`
 **Status:** active
-**Started:** 2026-08-03T03:12:19.361Z
-**Updated:** 2026-08-03T03:12:19.361Z
+**Started:** 2026-08-03T03:21:46.474Z
+**Updated:** 2026-08-03T03:21:46.474Z
 **Actor:** Claude
-**Objective:** Build offers, terms and the hosting activation gate
+**Objective:** Pin the applied 0006 schema across the control plane
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `feat/p2c-offers-hosting`
+- Branch: `chore/pin-migration-0006`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `87192fc6bb6a359c5bfdde55386055b7818452da`
+- Head commit: `500bfc4970efa9f51d1106650de50a8444909075`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- offers.publish, deals.decide, hosting.activate, hosting.cancel and hosting.state added; executable count 23 to 28
+- Not supplied.
 
 ## Current working tree
 
@@ -25,17 +25,17 @@
 
 ## Verification evidence
 
-- pnpm build, pnpm test (797 tests) and pnpm lint exit 0; the payment guard and the pre-approval gate each mutation-tested, failing 4 and 5 tests
+- control:status observed migration 0006_offers_and_hosting and 26 public tables including offers, deal_decisions and hosting_entitlements
 
 ## Database actions
 
-- Migration 0006_offers_and_hosting written and NOT applied; expected_migration still pins 0005_outreach_sequences
-- Observed Supabase status: ok (live-read-only at 2026-08-03T01:52:04.479Z).
+- Operator applied 0006_offers_and_hosting; verified by reading the migration ledger and information_schema through control:status
+- Observed Supabase status: ok (live-read-only at 2026-08-03T03:20:46.154Z).
 
 ## Hosting actions
 
-- No external action reported.
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-03T01:52:04.479Z).
+- Set ATLAS_SCHEMA_VERSION=0006_offers_and_hosting on the Railway api and os services
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-03T03:20:46.154Z).
 
 ## External side effects
 
@@ -43,12 +43,12 @@
 
 ## Blockers
 
-- Migration 0006 needs applying before the five capabilities do anything in production
+- Not supplied.
 
 ## Next exact action
 
-Apply migration 0006_offers_and_hosting and bump expected_migration, then build funnel analytics and the operator surface, the last build-now item
+Build funnel analytics and the operator surface, the last P2C build-now item
 
 ## Definition of done
 
-Hosting cannot reach entitlement_active without an accepted deal on the same offer version, complete disclosures, and a recorded payment reference
+Expected and observed migration identity agree, and neither service fingerprint claims a schema it is not running
