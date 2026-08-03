@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `pin-migration-0004`
+**Handoff ID:** `p2c-sequence-state`
 **Status:** active
-**Started:** 2026-08-03T00:59:18.110Z
-**Updated:** 2026-08-03T00:59:18.110Z
+**Started:** 2026-08-03T01:24:24.672Z
+**Updated:** 2026-08-03T01:24:24.672Z
 **Actor:** Claude
-**Objective:** Pin the applied 0004 schema across the control plane
+**Objective:** Build outreach sequence state that cannot send or record a send
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `chore/pin-migration-0004`
+- Branch: `feat/p2c-sequence-state`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `30f742f832c3a7cbe2a30da2e68922910ba386f9`
+- Head commit: `cfd437c5a48de83b920b674b6eceddef5b2e8680`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Not supplied.
+- automation.sequence promoted from candidate to executable; sequence.advance and sequence.state added; executable count 20 to 23, candidates 32 to 31
 
 ## Current working tree
 
@@ -25,17 +25,17 @@
 
 ## Verification evidence
 
-- control:status observed migration 0004_prospect_qualification and both new tables; expected_migration and both service variables now match
+- pnpm build, pnpm test (742 tests) and pnpm lint exit 0; the send guard mutation-tested by disabling it, which failed 3 tests
 
 ## Database actions
 
-- Operator applied 0004_prospect_qualification; verified by reading the migration ledger and information_schema through control:status
-- Observed Supabase status: ok (live-read-only at 2026-08-03T00:57:04.398Z).
+- Migration 0005_outreach_sequences written and NOT applied; expected_migration still pins 0004_prospect_qualification
+- Observed Supabase status: ok (live-read-only at 2026-08-03T01:03:04.211Z).
 
 ## Hosting actions
 
-- Set ATLAS_SCHEMA_VERSION=0004_prospect_qualification on the Railway api and os services
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-03T00:57:04.398Z).
+- No external action reported.
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-03T01:03:04.211Z).
 
 ## External side effects
 
@@ -43,12 +43,12 @@
 
 ## Blockers
 
-- Both applied migrations still carry a false REVIEW ONLY banner and nothing cross-checks it against expected_migration
+- Migration 0005 needs applying before the three sequence capabilities do anything in production
 
 ## Next exact action
 
-Continue the P2C build-now scope: sequence state, offers/terms, hosting activation state and funnel analytics
+Apply migration 0005_outreach_sequences and bump expected_migration, then build offers/terms and hosting activation state
 
 ## Definition of done
 
-Expected and observed migration identity agree, and neither service fingerprint claims a schema it is not running
+A sequence cannot move a touch to sent, and only the approved outreach.send dispatch can
