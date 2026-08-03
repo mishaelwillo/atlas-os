@@ -262,18 +262,6 @@ candidates:
     evidence_ids: [video-qy0l1t7x6le-marketing-navigation]
     specification: docs/specs/p2/upsell-capabilities.md
 
-  - id: prospecting.workspace
-    stage: candidate
-    phase: P2C
-    implementation: build
-    menu_group: Prospecting
-    atlas_description: Review sourced prospects, eligibility, demo status, and outreach readiness.
-    evidence_ids:
-      - video-qy0l1t7x6le-marketing-navigation
-      - video-qy0l1t7x6le-google-maps-prospecting
-      - video-qy0l1t7x6le-prebuild-demos
-    specification: docs/specs/p2/revenue-pilot.md
-
   - id: affiliates.manage
     stage: deferred
     phase: P3

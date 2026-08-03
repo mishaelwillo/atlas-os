@@ -52,7 +52,11 @@ blocking finding.
   from profile URL to approved live demo.
 - **P2C Revenue pilot** — outreach drafting exists in the product, and
   suppression plus a per-space daily cap are enforced before an approval is
-  created. Lead sourcing needs a directory adapter that does not exist.
+  created. Prospect qualification and the demo queue are built but not yet
+  usable against production: they need migration `0004`, which is written and
+  unapplied. Remaining build-now scope is sequence state, offers/terms, hosting
+  activation state, and funnel analytics. Lead sourcing still needs a directory
+  adapter that does not exist.
 
 ## P1 acceptance
 
@@ -171,6 +175,57 @@ advisory and still publishes, while the 150 KB hard limit blocks. One check is
 stricter than it may look — an outbound source link over plain `http` fails
 `link.scheme`, because the dossier admits an http source and nothing else would
 stop it reaching a published page.
+
+## Prospect qualification and the demo queue
+
+The pilot rubric is a pure function of recorded evidence. An operator supplies
+what they found; the verdict and the six dimension scores are derived, so two
+operators assessing the same prospect cannot record different totals, and a
+stored verdict can be recomputed from the evidence beside it.
+
+Two kinds of failure are kept apart, because the specification treats them
+differently. A **blocker** is a settled fact — a duplicate, a closed business,
+a demo that would misrepresent the prospect — and disqualifies. An **unknown**
+is a question nobody has answered, and sends the prospect to eligibility review
+rather than discarding it. A blocker outranks an unknown: answering every open
+question does not make a closed business qualifiable.
+
+The required checks are strict enough that any complete prospect scores at
+least 22 of 30, so the qualifying threshold sits at 24 — inside the band it can
+actually reach. Below that a complete prospect goes to a human instead of
+being dropped.
+
+Suppression is read from the lead row, never from the request. Nothing in this
+path writes `leads.status`: that column is the outreach lifecycle, and letting
+a qualification verdict write it would allow a disqualification to overwrite a
+suppression.
+
+The demo queue caps concurrent demos at ten and reports a queue under five as
+thin without blocking it, which is the specification's 5–10 band. States move
+forward only — `queued → building → qa → approved → shareable`, with `expired`
+reachable from anything still in flight — so a demo cannot reach an owner
+without passing the QA gate.
+
+### Migration 0004 is written and not applied
+
+`supabase/migrations/0004_prospect_qualification.sql` creates
+`qualification_assessments` and `demo_queue`. It has not run: this session had
+no permitted path to the production database, so nothing was applied and
+`ENVIRONMENTS.yaml` still pins `0003_site_deployments`.
+
+Until it runs, `prospecting.qualify`, `prospecting.workspace`, `demos.enqueue`
+and `demos.advance` answer `schema_pending` and change nothing, naming the
+migration in the response. `prospecting.qualify` still returns the verdict,
+because the rubric is pure and needs no table to answer. That is the same
+honesty the hosting adapter applies when no provider is configured — a 500
+would be indistinguishable from a real fault, and a fabricated success worse
+than either. Applying the migration requires bumping `expected_migration`,
+adding both tables to `required_tables`, and updating `ATLAS_SCHEMA_VERSION` on
+both Railway services in the same change.
+
+There is no operator UI for these yet. Wiring Mission Control to endpoints that
+currently report `schema_pending` would put a surface in front of an operator
+that cannot do anything; it belongs with the funnel analytics work.
 
 ## Awaiting a decision
 

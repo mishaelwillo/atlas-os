@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `factory-qa-gate`
+**Handoff ID:** `p2c-qualification-demo-queue`
 **Status:** active
-**Started:** 2026-08-03T00:05:30.630Z
-**Updated:** 2026-08-03T00:05:30.630Z
+**Started:** 2026-08-03T00:30:12.997Z
+**Updated:** 2026-08-03T00:30:12.997Z
 **Actor:** Claude
-**Objective:** Gate publish on the required build QA checks
+**Objective:** Build prospect qualification and the capped demo queue
 
 ## Active work
 
-- Work item: `P2B-FACTORY-001`
-- Branch: `feat/factory-qa-gate`
+- Work item: `P2C-REVENUE-001`
+- Branch: `feat/p2c-qualification-demo-queue`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `50c141c425b84a40d025c1c882a5976656ba268c`
+- Head commit: `75041bdbbe5ebc958b4640bac643fd71b7354abc`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- QA runs before the approval row is created and again in the dispatcher; the renderer now emits the headings, CSP, privacy notice and sourced JSON-LD its own gate requires
+- prospecting.workspace promoted from candidate to executable; prospecting.qualify, demos.enqueue and demos.advance added; executable count 16 to 20, candidates 33 to 32
 
 ## Current working tree
 
@@ -25,11 +25,11 @@
 
 ## Verification evidence
 
-- pnpm build, pnpm test (626 tests across 14 tasks) and pnpm lint all exit 0; each guard mutation-tested by disabling it and confirming the tests fail
+- pnpm build, pnpm test (692 tests) and pnpm lint exit 0; suppression-from-lead-row and queue-cap guards mutation-tested
 
 ## Database actions
 
-- No external action reported.
+- Migration 0004_prospect_qualification written and NOT applied; no database has run it and expected_migration still pins 0003_site_deployments
 - Observed Supabase status: ok (live-read-only at 2026-07-28T09:07:53.146Z).
 
 ## Hosting actions
@@ -43,12 +43,12 @@
 
 ## Blockers
 
-- Not supplied.
+- Direct database access was denied in this session, so 0004 could not be applied or dry-run; the four new capabilities report schema_pending until it is
 
 ## Next exact action
 
-Run the timed benchmark: a profile URL to an approved live demo in under 30 minutes, then continue the P2C revenue-pilot build-now scope
+Apply migration 0004_prospect_qualification, bump expected_migration and ATLAS_SCHEMA_VERSION, then continue the build-now scope: sequence state, offers/terms, hosting activation state and funnel analytics
 
 ## Definition of done
 
-A build that fails any QA check cannot reach an approved publish
+A prospect cannot take a demo slot without a standing, unexpired qualification, and the queue cannot exceed the pilot cap

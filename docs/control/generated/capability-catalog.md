@@ -187,6 +187,38 @@ ledgers is not executable and does not appear here.
 - Description: One outreach touch \(email/SMS/WhatsApp draft\)\. ALWAYS approval\-gated\. Suppressed leads and a per\-space daily cap are refused before an approval is created\.
 
 ## Prospecting
+### `demos.advance` — Move a demo along
+- Stage: candidate
+- Phase: P2C
+- Monetization: acquisition
+- Autonomy: manual
+- Implementation: build
+- Regions: `global`
+- Entitlements: `revenue-pilot`
+- Evidence: `video-qy0l1t7x6le-prebuild-demos`
+- Specification: `docs/specs/p2/revenue-pilot.md`
+- Method: POST
+- Task class: quick
+- Approval required: no
+- Scopes: `leads:write`
+- Description: Advance one demo slot by exactly one declared step, or expire it\. A demo cannot jump past QA, and cannot be rewound\.
+
+### `demos.enqueue` — Take a demo slot
+- Stage: candidate
+- Phase: P2C
+- Monetization: acquisition
+- Autonomy: manual
+- Implementation: build
+- Regions: `global`
+- Entitlements: `revenue-pilot`
+- Evidence: `video-qy0l1t7x6le-prebuild-demos`
+- Specification: `docs/specs/p2/revenue-pilot.md`
+- Method: POST
+- Task class: do
+- Approval required: no
+- Scopes: `leads:write`
+- Description: Admit a qualified prospect to the demo queue\. Refuses an unqualified or stale prospect, a prospect already holding a slot, and anything over the pilot cap of ten\.
+
 ### `leads.find` — Find leads
 - Stage: candidate
 - Phase: P2C
@@ -202,6 +234,38 @@ ledgers is not executable and does not appear here.
 - Approval required: no
 - Scopes: `leads:write`
 - Description: Industry \+ location \+ criteria → scored lead table \(active GBP, no website\)\.
+
+### `prospecting.qualify` — Qualify prospect
+- Stage: candidate
+- Phase: P2C
+- Monetization: acquisition
+- Autonomy: manual
+- Implementation: build
+- Regions: `global`
+- Entitlements: `revenue-pilot`
+- Evidence: none
+- Specification: `docs/specs/p2/revenue-pilot.md`
+- Method: POST
+- Task class: do
+- Approval required: no
+- Scopes: `leads:write`
+- Description: Score one sourced prospect against the pilot rubric and record an append\-only assessment\. Settled blockers disqualify; open questions send it to eligibility review\. Never writes leads\.status, which is the outreach lifecycle\.
+
+### `prospecting.workspace` — Prospecting workspace
+- Stage: candidate
+- Phase: P2C
+- Monetization: acquisition
+- Autonomy: manual
+- Implementation: build
+- Regions: `global`
+- Entitlements: `revenue-pilot`
+- Evidence: `video-qy0l1t7x6le-google-maps-prospecting`, `video-qy0l1t7x6le-marketing-navigation`, `video-qy0l1t7x6le-prebuild-demos`
+- Specification: `docs/specs/p2/revenue-pilot.md`
+- Method: GET
+- Task class: quick
+- Approval required: no
+- Scopes: `leads:write`
+- Description: Review sourced prospects with their standing qualification verdict, demo slot and outreach readiness\. Read\-only; it decides nothing\.
 
 ## Runs
 ### `runs.execute` — Execute capability run

@@ -55,7 +55,7 @@ items:
   - id: P2B-FACTORY-001
     phase: P2B
     title: Build the Website Factory
-    status: in_progress
+    status: review
     priority: high
     dependencies:
       - P2A-CONTROL-001
@@ -67,11 +67,11 @@ items:
   - id: P2C-REVENUE-001
     phase: P2C
     title: Run the minimum complete revenue pilot
-    status: ready
+    status: in_progress
     priority: high
     dependencies:
       - P2B-FACTORY-001
     specification: docs/specs/p2/revenue-pilot.md
     acceptance_checks:
       - One real hosting-paying customer completes an approval-gated sequence
-    next_action: Outreach drafting and policy enforcement are live; remaining build-now scope is prospect qualification, the demo queue and sequence state
+    next_action: Apply migration 0004_prospect_qualification and bump expected_migration, then continue the build-now scope — sequence state, offers/terms, hosting activation state and funnel analytics

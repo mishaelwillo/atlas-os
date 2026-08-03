@@ -5,6 +5,12 @@ import { eventsSite } from './events.js';
 import { memoryAnswer, memoryDistill, memoryIngest } from './memory.js';
 import { runsExecute } from './runs.js';
 import { factoryBuildSite, factoryPreview } from './factory.js';
+import {
+  demosAdvance,
+  demosEnqueue,
+  prospectingQualify,
+  prospectingWorkspace,
+} from './prospecting.js';
 import { statusMissionControl } from './status.js';
 import {
   benchRun,
@@ -23,6 +29,10 @@ export const handlers: Record<string, CapabilityHandler> = {
   'memory.ingest': memoryIngest,
   'runs.execute': runsExecute,
   'events.site': eventsSite,
+  'prospecting.qualify': prospectingQualify,
+  'prospecting.workspace': prospectingWorkspace,
+  'demos.enqueue': demosEnqueue,
+  'demos.advance': demosAdvance,
   // typed TODO stubs
   'memory.answer': memoryAnswer,
   'memory.distill': memoryDistill,
