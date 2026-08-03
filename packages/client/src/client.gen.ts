@@ -230,6 +230,71 @@ export type SequenceStateOutput = {
   status?: string;
 };
 
+export type OffersPublishInput = {
+  leadId: string;
+  country: string;
+  currency: string;
+  priceMinor: number;
+  period: string;
+  termsVersion: string;
+  disclosures: Record<string, unknown>;
+};
+export type OffersPublishOutput = {
+  offerId?: string;
+  version?: number;
+  currency?: string;
+  priceMinor?: number;
+  period?: string;
+  country?: string;
+  supersedes?: number;
+  published?: boolean;
+  code?: string;
+  missing?: Array<unknown>;
+  required?: Array<unknown>;
+  status?: string;
+};
+
+export type DealsDecideInput = {
+  leadId: string;
+  state: string;
+  offerVersion?: number;
+  notes?: string;
+};
+export type DealsDecideOutput = {
+  decisionId?: string;
+  from?: string;
+  to?: string;
+  offerVersion?: number;
+  decided?: boolean;
+  code?: string;
+  status?: string;
+};
+
+export type HostingActivateInput = {
+  leadId: string;
+};
+export type HostingActivateOutput = {
+  approvalId?: string;
+};
+
+export type HostingCancelInput = {
+  leadId: string;
+  servesUntil?: string;
+};
+export type HostingCancelOutput = {
+  approvalId?: string;
+};
+
+export type HostingStateInput = {
+  leadId: string;
+};
+export type HostingStateOutput = {
+  offer?: Record<string, unknown>;
+  deal?: Record<string, unknown>;
+  entitlement?: Record<string, unknown>;
+  status?: string;
+};
+
 export type EventsSiteInput = {
   siteId: string;
   channel: string;
@@ -388,6 +453,31 @@ export class AtlasGeneratedClient {
   /** Outreach sequence state — GET /v1/sequence/state */
   sequenceState(input: SequenceStateInput): Promise<SequenceStateOutput | ApprovalPending> {
     return this.request<SequenceStateOutput>("GET", "/v1/sequence/state", input);
+  }
+
+  /** Publish an offer version — POST /v1/offers/publish */
+  offersPublish(input: OffersPublishInput): Promise<OffersPublishOutput | ApprovalPending> {
+    return this.request<OffersPublishOutput>("POST", "/v1/offers/publish", input);
+  }
+
+  /** Record a deal decision — POST /v1/deals/decide */
+  dealsDecide(input: DealsDecideInput): Promise<DealsDecideOutput | ApprovalPending> {
+    return this.request<DealsDecideOutput>("POST", "/v1/deals/decide", input);
+  }
+
+  /** Activate hosting — POST /v1/hosting/activate (approval-gated: returns {approvalId, status:"review"}) */
+  hostingActivate(input: HostingActivateInput): Promise<HostingActivateOutput | ApprovalPending> {
+    return this.request<HostingActivateOutput>("POST", "/v1/hosting/activate", input);
+  }
+
+  /** Cancel hosting — POST /v1/hosting/cancel (approval-gated: returns {approvalId, status:"review"}) */
+  hostingCancel(input: HostingCancelInput): Promise<HostingCancelOutput | ApprovalPending> {
+    return this.request<HostingCancelOutput>("POST", "/v1/hosting/cancel", input);
+  }
+
+  /** Hosting state — GET /v1/hosting/state */
+  hostingState(input: HostingStateInput): Promise<HostingStateOutput | ApprovalPending> {
+    return this.request<HostingStateOutput>("GET", "/v1/hosting/state", input);
   }
 
   /** Site event webhook — POST /v1/events/site */

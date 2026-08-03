@@ -9,6 +9,8 @@ import { renderSite } from './factory/render.js';
 import { planPublish } from './factory/publish.js';
 import { runQa } from './factory/qa.js';
 import { planTouchAdvance } from './revenue/sequence.js';
+import { readActivationFacts } from './revenue/activation-read.js';
+import { planCancellation, planHostingTransition } from './revenue/hosting-activation.js';
 import { siteSlug } from './factory/hosting.js';
 
 /**
@@ -346,9 +348,123 @@ const playbooksAuthor: ApprovalDispatcher = async (ctx, payload) => {
   };
 };
 
+/**
+ * hosting.activate — grant a customer hosting, once and only once terms are
+ * accepted and payment is recorded.
+ *
+ * The gate is re-decided here rather than trusted from the approval. An
+ * approval says an operator was willing to activate; it does not say the deal
+ * is still accepted, that the accepted offer is the one being activated, or
+ * that a payment reference exists. All three are read fresh.
+ *
+ * Atlas never confirms the payment itself. `billing.manage` is deferred to P3,
+ * so the reference is a fact an operator read off the provider's console.
+ */
+const hostingActivate: ApprovalDispatcher = async (ctx, payload) => {
+  const input = (payload.input ?? {}) as Record<string, unknown>;
+  const leadId = typeof input.leadId === 'string' ? input.leadId.trim() : '';
+  if (leadId === '') return { executed: false, note: 'hosting.activate: leadId is required' };
+
+  const decided = await readActivationFacts(ctx.q, leadId);
+  if ('note' in decided) return { executed: false, note: decided.note };
+
+  const plan = planHostingTransition({
+    from: decided.state,
+    to: 'entitlement_active',
+    dealState: decided.dealState,
+    acceptedOfferVersion: decided.acceptedOfferVersion,
+    entitlementOfferVersion: decided.entitlementOfferVersion,
+    disclosuresComplete: decided.disclosuresComplete,
+    paymentReference: decided.paymentReference,
+  });
+
+  if (!plan.ok) {
+    await insertAudit(ctx.q, ctx.spaceId, ctx.auth.actor, 'hosting.activate_refused', leadId, {
+      code: plan.code,
+    });
+    return { executed: false, note: plan.message, code: plan.code };
+  }
+
+  await ctx.q.query(
+    `update hosting_entitlements
+        set state = 'entitlement_active', activated_at = now(), updated_at = now()
+      where entitlement_id = $1`,
+    [decided.entitlementId],
+  );
+  await insertAudit(ctx.q, ctx.spaceId, ctx.auth.actor, 'hosting.activated', decided.entitlementId, {
+    leadId,
+    offerVersion: decided.entitlementOfferVersion,
+  });
+
+  return {
+    executed: true,
+    entitlementId: decided.entitlementId,
+    state: 'entitlement_active',
+    offerVersion: decided.entitlementOfferVersion,
+    note: 'hosting entitlement is active',
+  };
+};
+
+/**
+ * hosting.cancel — stop renewal without destroying anything.
+ *
+ * Cancellation deletes no history, no offer and no export: the specification
+ * requires both to survive it, and the pilot needs the record of customers who
+ * left as much as of those who stayed. A customer who paid for the period
+ * keeps it — cancelling is not a refund, and taking a paid-for site down early
+ * would be worse service than the thing being cancelled.
+ */
+const hostingCancel: ApprovalDispatcher = async (ctx, payload) => {
+  const input = (payload.input ?? {}) as Record<string, unknown>;
+  const leadId = typeof input.leadId === 'string' ? input.leadId.trim() : '';
+  if (leadId === '') return { executed: false, note: 'hosting.cancel: leadId is required' };
+  const servesUntil = typeof input.servesUntil === 'string' ? input.servesUntil.trim() : null;
+
+  const found = await ctx.q.query(
+    `select entitlement_id, state from hosting_entitlements
+      where lead_id = $1 order by created_at desc limit 1`,
+    [leadId],
+  );
+  const row = found.rows[0];
+  if (!row) return { executed: false, note: 'hosting.cancel: no entitlement for this lead' };
+
+  const plan = planCancellation(String(row.state));
+  if (!plan.ok) {
+    await insertAudit(ctx.q, ctx.spaceId, ctx.auth.actor, 'hosting.cancel_refused', leadId, {
+      code: plan.code,
+    });
+    return { executed: false, note: plan.message, code: plan.code };
+  }
+
+  await ctx.q.query(
+    `update hosting_entitlements
+        set state = 'cancelled', renewal_enabled = false, cancelled_at = now(),
+            serves_until = case when $2 then coalesce($3::timestamptz, serves_until) else null end,
+            updated_at = now()
+      where entitlement_id = $1`,
+    [String(row.entitlement_id), plan.servesUntilPeriodEnd, servesUntil],
+  );
+  await insertAudit(ctx.q, ctx.spaceId, ctx.auth.actor, 'hosting.cancelled', String(row.entitlement_id), {
+    leadId,
+    from: plan.from,
+    servesUntilPeriodEnd: plan.servesUntilPeriodEnd,
+  });
+
+  return {
+    executed: true,
+    entitlementId: String(row.entitlement_id),
+    state: 'cancelled',
+    renewalEnabled: false,
+    servesUntilPeriodEnd: plan.servesUntilPeriodEnd,
+    note: 'renewal disabled; history, offer and export are preserved',
+  };
+};
+
 export const dispatchers: Record<string, ApprovalDispatcher> = {
   'outreach.send': outreachSend,
   'memory.adjudicate': memoryAdjudicate,
   'factory.deploy_site': factoryDeploySite,
   'playbooks.author': playbooksAuthor,
+  'hosting.activate': hostingActivate,
+  'hosting.cancel': hostingCancel,
 };

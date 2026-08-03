@@ -11,6 +11,7 @@ import {
   prospectingQualify,
   prospectingWorkspace,
 } from './prospecting.js';
+import { dealsDecide, hostingState, offersPublish } from './offers.js';
 import { automationSequence, sequenceAdvance, sequenceState } from './sequence.js';
 import { statusMissionControl } from './status.js';
 import {
@@ -37,6 +38,9 @@ export const handlers: Record<string, CapabilityHandler> = {
   'automation.sequence': automationSequence,
   'sequence.advance': sequenceAdvance,
   'sequence.state': sequenceState,
+  'offers.publish': offersPublish,
+  'deals.decide': dealsDecide,
+  'hosting.state': hostingState,
   // typed TODO stubs
   'memory.answer': memoryAnswer,
   'memory.distill': memoryDistill,

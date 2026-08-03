@@ -315,6 +315,87 @@ ledgers is not executable and does not appear here.
 - Scopes: `leads:write`
 - Description: Review sourced prospects with their standing qualification verdict, demo slot and outreach readiness\. Read\-only; it decides nothing\.
 
+## Revenue Operations
+### `deals.decide` — Record a deal decision
+- Stage: candidate
+- Phase: P2C
+- Monetization: hosting
+- Autonomy: manual
+- Implementation: build
+- Regions: `global`
+- Entitlements: `revenue-pilot`
+- Evidence: none
+- Specification: `docs/specs/p2/revenue-pilot.md`
+- Method: POST
+- Task class: quick
+- Approval required: no
+- Scopes: none
+- Description: Record where a deal has got to: interested, discovery, offer\_review, accepted or declined\. Operator\-only — it records a human decision, it does not make one\. Reviewing or accepting requires a published offer version\.
+
+### `hosting.activate` — Activate hosting
+- Stage: candidate
+- Phase: P2C
+- Monetization: hosting
+- Autonomy: shadow
+- Implementation: build
+- Regions: `global`
+- Entitlements: `website-hosting`
+- Evidence: `video-qy0l1t7x6le-free-hosting-offer`
+- Specification: `docs/specs/p2/revenue-pilot.md`
+- Method: POST
+- Task class: quick
+- Approval required: yes
+- Scopes: none
+- Description: Grant a customer hosting\. ALWAYS approval\-gated\. Refused before an approval is created, and again before the entitlement moves, unless terms were accepted on this exact offer version with every required disclosure and a payment reference is recorded\. Atlas never confirms a payment itself\.
+
+### `hosting.cancel` — Cancel hosting
+- Stage: candidate
+- Phase: P2C
+- Monetization: hosting
+- Autonomy: shadow
+- Implementation: build
+- Regions: `global`
+- Entitlements: `website-hosting`
+- Evidence: none
+- Specification: `docs/specs/p2/revenue-pilot.md`
+- Method: POST
+- Task class: quick
+- Approval required: yes
+- Scopes: none
+- Description: Disable renewal for a customer\. ALWAYS approval\-gated\. Deletes no history, offer or export, and a customer who paid for the period keeps it\.
+
+### `hosting.state` — Hosting state
+- Stage: candidate
+- Phase: P2C
+- Monetization: hosting
+- Autonomy: manual
+- Implementation: build
+- Regions: `global`
+- Entitlements: `website-hosting`
+- Evidence: none
+- Specification: `docs/specs/p2/revenue-pilot.md`
+- Method: GET
+- Task class: quick
+- Approval required: no
+- Scopes: `leads:write`
+- Description: The standing offer, deal decision and hosting entitlement for one lead\. Read\-only, and it never returns the payment reference itself — only whether one exists\.
+
+### `offers.publish` — Publish an offer version
+- Stage: candidate
+- Phase: P2C
+- Monetization: hosting
+- Autonomy: manual
+- Implementation: build
+- Regions: `global`
+- Entitlements: `revenue-pilot`
+- Evidence: `video-qy0l1t7x6le-free-hosting-offer`
+- Specification: `docs/specs/p2/revenue-pilot.md`
+- Method: POST
+- Task class: do
+- Approval required: no
+- Scopes: `leads:write`
+- Description: Record an immutable offer for one lead\. Country, currency, price, period and terms version are all required — there is no default price and no USD assumption — and every disclosure the pilot requires must carry text\. A change is a new version, never an edit\.
+
 ## Runs
 ### `runs.execute` — Execute capability run
 - Stage: core

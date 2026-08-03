@@ -436,7 +436,7 @@ evidence:
     atlas_interpretation: >-
       Make site ownership, hosting scope, support, edits, data portability,
       renewal, taxes, and cancellation terms explicit before activation.
-    capability_ids: [factory.deploy_site, billing.manage]
+    capability_ids: [factory.deploy_site, billing.manage, offers.publish, hosting.activate]
     specification: docs/specs/p2/revenue-pilot.md
     artifacts:
       - type: transcript
