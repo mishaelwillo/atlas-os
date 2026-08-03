@@ -6,6 +6,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { createGeneratedClient, type AtlasGeneratedClient } from '@atlas/client';
+import { QaVerdict, type QaSummary } from './QaVerdict';
 import styles from './MissionControl.module.css';
 import { SignIn } from './SignIn.js';
 import { SiteBuilderCard, type TemplateOption } from './SiteBuilderCard.js';
@@ -512,6 +513,7 @@ function SitesCard({ card, client }: { card: StatusCard; client: AtlasGeneratedC
   const [openId, setOpenId] = useState<string | null>(null);
   const [html, setHtml] = useState<string | null>(null);
   const [meta, setMeta] = useState<{ hash?: string; expiresAt?: string } | null>(null);
+  const [qa, setQa] = useState<QaSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -520,6 +522,7 @@ function SitesCard({ card, client }: { card: StatusCard; client: AtlasGeneratedC
       setBusy(true);
       setError(null);
       setHtml(null);
+      setQa(null);
       setOpenId(siteId);
       try {
         const res = (await client.factoryPreview({ siteId })) as unknown as {
@@ -528,6 +531,7 @@ function SitesCard({ card, client }: { card: StatusCard; client: AtlasGeneratedC
           expiresAt?: string;
           expired?: boolean;
           issues?: Array<{ detail: string }>;
+          qa?: QaSummary;
         };
         if (res.expired) {
           setError(`Preview expired ${res.expiresAt ? new Date(res.expiresAt).toLocaleString() : ''}.`);
@@ -536,6 +540,7 @@ function SitesCard({ card, client }: { card: StatusCard; client: AtlasGeneratedC
         } else if (typeof res.html === 'string') {
           setHtml(res.html);
           setMeta({ hash: res.hash, expiresAt: res.expiresAt });
+          setQa(res.qa ?? null);
         } else {
           setError('Preview returned no build.');
         }
@@ -577,6 +582,7 @@ function SitesCard({ card, client }: { card: StatusCard; client: AtlasGeneratedC
             build <code>{meta?.hash?.slice(0, 12)}</code>
             {meta?.expiresAt && <> · expires {new Date(meta.expiresAt).toLocaleString()}</>}
           </p>
+          <QaVerdict qa={qa} />
           <iframe
             title="Site preview"
             data-testid="preview-frame"

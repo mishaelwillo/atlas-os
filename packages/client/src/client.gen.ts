@@ -95,6 +95,7 @@ export type FactoryBuildSiteOutput = {
   blocked?: Array<unknown>;
   buildHash?: string;
   renderIssues?: Array<unknown>;
+  qa?: Record<string, unknown>;
 };
 
 export type FactoryPreviewInput = {
@@ -106,6 +107,7 @@ export type FactoryPreviewOutput = {
   expiresAt?: string;
   expired?: boolean;
   issues?: Array<unknown>;
+  qa?: Record<string, unknown>;
 };
 
 export type FactoryDeploySiteInput = {

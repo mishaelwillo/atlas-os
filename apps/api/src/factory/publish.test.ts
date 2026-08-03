@@ -14,6 +14,7 @@ const base = {
   approvedBuildHash: HASH_A,
   currentBuildHash: HASH_A,
   renderIssues: [],
+  qaFailures: [],
   latestVersion: 0,
   live: null,
 };
@@ -55,6 +56,31 @@ describe('publish planning', () => {
     expect(refusal).toMatchObject({ ok: false, code: 'template_unsatisfied' });
     if (refusal.ok) throw new Error('expected refusal');
     expect(refusal.issues).toHaveLength(1);
+  });
+
+  /**
+   * The QA acceptance: a build that fails a required check cannot reach an
+   * approved publish, whatever was approved earlier.
+   */
+  it('refuses a build that fails a required QA check and names it', () => {
+    const refusal = planPublish({ ...base, qaFailures: ['accessibility.single-h1'] });
+    expect(refusal).toMatchObject({ ok: false, code: 'qa_failed' });
+    if (refusal.ok) throw new Error('expected refusal');
+    expect(refusal.qaFailures).toEqual(['accessibility.single-h1']);
+    expect(refusal.message).toContain('accessibility.single-h1');
+  });
+
+  /**
+   * A failing check outranks a matching fingerprint: approving the right bytes
+   * does not make those bytes publishable.
+   */
+  it('refuses on QA even when the approved build still matches', () => {
+    const refusal = planPublish({
+      ...base,
+      qaFailures: ['security.csp'],
+      live: { deploymentId: 'dep-1', version: 1, buildHash: HASH_B },
+    });
+    expect(refusal).toMatchObject({ ok: false, code: 'qa_failed' });
   });
 
   /** Re-publishing an identical build would add a version that changes nothing. */

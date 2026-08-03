@@ -12,7 +12,9 @@ import { AuthError, authenticate, checkScopes, type AuthContext } from './auth.j
 import type { BuildInfo } from './build-info.js';
 import type { HostingAdapter } from './factory/hosting.js';
 import type { Db, Queryable } from './db.js';
-import { checkOutreachPolicy, type PolicyRefusal } from './policy.js';
+import { checkOutreachPolicy } from './policy.js';
+import type { Descriptor } from './factory/dossier.js';
+import { qaForDescriptor } from './factory/qa.js';
 import type { Env } from './env.js';
 import { validateAgainstSchema } from './validate.js';
 
@@ -66,6 +68,48 @@ export interface PipelineDeps {
   log: { info: (obj: unknown, msg?: string) => void; warn: (obj: unknown, msg?: string) => void; error: (obj: unknown, msg?: string) => void };
 }
 
+/** A pre-approval gate's verdict; `detail` is recorded on the refusal audit. */
+interface PreApprovalRefusal {
+  code: string;
+  message: string;
+  detail?: Record<string, unknown>;
+}
+
+/**
+ * factory.deploy_site — the required QA checks decide before the approval row
+ * exists.
+ *
+ * A build that fails accessibility, responsive, link, structured-data,
+ * privacy, security or performance must not reach the queue at all. Queuing it
+ * would invite an operator to approve something that cannot be published, and
+ * make the approval the place quality is decided rather than where the
+ * external effect is confirmed. The dispatcher checks again at publish time,
+ * because the descriptor can change in between.
+ */
+async function checkDeployQa(
+  q: Queryable,
+  input: Record<string, unknown>,
+): Promise<PreApprovalRefusal | null> {
+  const siteId = typeof input.siteId === 'string' ? input.siteId.trim() : '';
+  if (siteId === '') return null; // the dispatcher reports the missing id
+
+  const res = await q.query(`select descriptor from sites where site_id = $1`, [siteId]);
+  const row = res.rows[0];
+  // An unknown site is not a QA failure; the dispatcher reports it as missing.
+  if (!row) return null;
+
+  const { report, failures } = qaForDescriptor(row.descriptor as Descriptor);
+  // A descriptor that will not render has no build to judge; planPublish
+  // refuses it on the render issues instead.
+  if (report === null || failures.length === 0) return null;
+
+  return {
+    code: 'qa_failed',
+    message: `the build fails required QA checks: ${failures.join(', ')}`,
+    detail: { qaFailures: failures },
+  };
+}
+
 /**
  * Capability-specific policy gates evaluated before an approval is created.
  * Returns null when the request may proceed.
@@ -76,7 +120,8 @@ async function checkPreApprovalPolicy(
   spaceId: string | null,
   input: Record<string, unknown>,
   deps: PipelineDeps,
-): Promise<PolicyRefusal | null> {
+): Promise<PreApprovalRefusal | null> {
+  if (capabilityId === 'factory.deploy_site') return checkDeployQa(q, input);
   if (capabilityId !== 'outreach.send') return null;
 
   const leadId = typeof input.leadId === 'string' ? input.leadId.trim() : '';
@@ -164,8 +209,12 @@ export async function executeCapability(
       if (refusal) {
         await insertAudit(q, spaceId, auth.actor, `${meta.id}.refused`, null, {
           code: refusal.code,
+          ...(refusal.detail ?? {}),
         });
-        return { statusCode: 409, body: { error: refusal.message, code: refusal.code } };
+        return {
+          statusCode: 409,
+          body: { error: refusal.message, code: refusal.code, ...(refusal.detail ?? {}) },
+        };
       }
 
       const res = await q.query(

@@ -251,7 +251,7 @@ ledgers is not executable and does not appear here.
 - Task class: quick
 - Approval required: yes
 - Scopes: none
-- Description: Promote a demo site to live hosting\. Deploys are governed\.
+- Description: Promote a demo site to live hosting\. Deploys are governed\. Required accessibility, responsive, link, structured\-data, privacy, security and performance checks are re\-run before an approval is created and again before the build is promoted\.
 
 ### `factory.preview` — Preview built site
 - Stage: candidate

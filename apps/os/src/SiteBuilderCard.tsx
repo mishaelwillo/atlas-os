@@ -12,6 +12,7 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import type { AtlasGeneratedClient } from '@atlas/client';
+import { QaVerdict, type QaSummary } from './QaVerdict';
 import styles from './MissionControl.module.css';
 
 export interface TemplateOption {
@@ -321,6 +322,7 @@ export function SiteBuilderCard({
               blocked: {blocked.map((b) => `${b.field} (${b.reason})`).join(', ')}
             </p>
           )}
+          <QaVerdict qa={(result.qa as QaSummary | undefined) ?? null} />
         </div>
       )}
     </div>

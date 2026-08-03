@@ -93,7 +93,7 @@ export const registry = [
     // `facts` carries the research dossier until directory adapters exist; each
     // entry needs a sourceUrl or ownerProvided, or it is blocked, not rendered.
     input: { type: 'object', required: ['profileUrl'], properties: { profileUrl: { type: 'string' }, region: { type: 'string' }, template: { type: 'string' }, stylePack: { type: 'string' }, facts: { type: 'array' } } },
-    output: { type: 'object', properties: { siteId: { type: 'string' }, previewUrl: { type: 'string' }, status: { type: 'string' }, created: { type: 'boolean' }, factCount: { type: 'number' }, blocked: { type: 'array' }, buildHash: { type: 'string' }, renderIssues: { type: 'array' } } },
+    output: { type: 'object', properties: { siteId: { type: 'string' }, previewUrl: { type: 'string' }, status: { type: 'string' }, created: { type: 'boolean' }, factCount: { type: 'number' }, blocked: { type: 'array' }, buildHash: { type: 'string' }, renderIssues: { type: 'array' }, qa: { type: 'object' } } },
     taskClass: 'do', requiresApproval: false, scopes: ['factory:write'], method: 'POST',
   },
   {
@@ -101,13 +101,13 @@ export const registry = [
     name: 'Preview built site',
     description: 'Re-render a stored descriptor and return the immutable build. Access-controlled, expiring, noindex — never public.',
     input: { type: 'object', required: ['siteId'], properties: { siteId: { type: 'string' } } },
-    output: { type: 'object', properties: { html: { type: 'string' }, hash: { type: 'string' }, expiresAt: { type: 'string' }, expired: { type: 'boolean' }, issues: { type: 'array' } } },
+    output: { type: 'object', properties: { html: { type: 'string' }, hash: { type: 'string' }, expiresAt: { type: 'string' }, expired: { type: 'boolean' }, issues: { type: 'array' }, qa: { type: 'object' } } },
     taskClass: 'quick', requiresApproval: false, scopes: ['factory:write'], method: 'GET',
   },
   {
     id: 'factory.deploy_site',
     name: 'Deploy site live',
-    description: 'Promote a demo site to live hosting. Deploys are governed.',
+    description: 'Promote a demo site to live hosting. Deploys are governed. Required accessibility, responsive, link, structured-data, privacy, security and performance checks are re-run before an approval is created and again before the build is promoted.',
     input: { type: 'object', required: ['siteId'], properties: { siteId: { type: 'string' }, domain: { type: 'string' } } },
     output: { type: 'object', properties: { deployUrl: { type: 'string' } } },
     taskClass: 'quick', requiresApproval: true, scopes: [], method: 'POST',
