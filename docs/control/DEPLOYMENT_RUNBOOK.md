@@ -33,8 +33,21 @@ Bump `expected_migration` in `ENVIRONMENTS.yaml` in the same approved change,
 and update `ATLAS_SCHEMA_VERSION` on both services so their fingerprints stop
 claiming the previous schema.
 
+A migration file must not say whether it has been applied. `expected_migration`
+in `ENVIRONMENTS.yaml` is the authority, and the drift collector compares it
+against the live ledger; a file cannot know its own history. Every migration
+here once carried a `REVIEW ONLY — NOT APPLIED` banner, and every one became
+false the moment it ran — `0002` through `0006` all shipped saying no database
+had run them. Keeping such a banner current is a manual step that failed, so
+the claim is banned rather than maintained: `control:verify` fails with
+`control.migration_claims_applied_state` on any applied-state assertion in a
+migration comment, in either direction.
+
 `0001_init.sql` is immutable. An applied migration is immutable too: correct a
-mistake with a new migration, never by editing one that has run.
+mistake with a new migration, never by editing one that has run. That rule
+protects what executes. Removing those false banners changed comment lines
+only — the non-comment content of each file hashes identically before and
+after — and nothing may edit a statement in a migration that has run.
 
 ## Secret handling
 

@@ -226,11 +226,13 @@ production, and stays as the honest failure mode if the schema is ever behind
 the code again — a 500 would be indistinguishable from a real fault, and a
 fabricated success worse than either.
 
-**Known wart.** Both `0003` and `0004` still carry a `REVIEW ONLY — NOT
-APPLIED` banner, which is false for each. Applied migrations are immutable, so
-neither file was edited to say otherwise. Nothing cross-checks that banner
-against `expected_migration`, so it will keep going stale; teaching
-`control:verify` to fail on it is a real follow-up.
+**Fixed.** `0002` through `0006` all shipped carrying a `REVIEW ONLY — NOT
+APPLIED` banner that was false for every one of them, because nothing checked.
+The claim is now banned rather than maintained: `control:verify` fails with
+`control.migration_claims_applied_state` on any applied-state assertion in a
+migration comment, in either direction, and `expected_migration` is left as the
+single authority. Removing the banners touched comment lines only — the
+non-comment content of each file hashes identically before and after.
 
 There is no operator UI for these yet. Wiring Mission Control to endpoints that
 currently report `schema_pending` would put a surface in front of an operator

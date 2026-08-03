@@ -1,9 +1,10 @@
 -- ATLAS OS — 0005: outreach sequence state (P2C-REVENUE-001)
 -- Owning specification: docs/specs/p2/revenue-pilot.md
 --
--- REVIEW ONLY — NOT APPLIED at the time this file was committed. Applied state
--- is recorded in docs/control/ENVIRONMENTS.yaml (expected_migration), which is
--- the authority; this banner is not.
+-- Applied state lives in docs/control/ENVIRONMENTS.yaml (expected_migration),
+-- which the drift collector compares against the live migration ledger. This
+-- file records intent and coupling only: it cannot know its own history, and
+-- the banner that used to claim otherwise went stale the moment it ran.
 --
 -- COUPLING: applying this requires bumping expected_migration to
 -- 0005_outreach_sequences, adding both tables to required_tables, and updating
