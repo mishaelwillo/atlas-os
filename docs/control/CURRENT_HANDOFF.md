@@ -1,31 +1,31 @@
 # Current Handoff
 
-**Handoff ID:** `verify-live-sites`
+**Handoff ID:** `schedule-live-sweep`
 **Status:** active
-**Started:** 2026-08-03T18:52:42.984Z
-**Updated:** 2026-08-03T18:52:42.984Z
+**Started:** 2026-08-03T20:03:01.528Z
+**Updated:** 2026-08-03T20:03:56.998Z
 **Actor:** Claude
-**Objective:** Re-check sites that are already live, not just the one being published
+**Objective:** Run the live-site sweep without anyone remembering to run it
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `feat/verify-live-sites`
+- Branch: `feat/schedule-live-sweep`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `c3d6c7da8acdbc1a2782227f315d4a01c0b751dc`
+- Head commit: `28d302955265cf63b4a05f461d3bb00726378673`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- factory.verify_live added; executable count 29 to 30
+- The worker runs factory.verify_live hourly per space, outside the schedules table
 
 ## Current working tree
 
-- Clean.
+- `M  docs/control/CURRENT_HANDOFF.md`
 
 ## Verification evidence
 
-- pnpm build, pnpm test (882 tests) and pnpm lint exit 0; the unreadable-is-not-healthy rule mutation-tested, failing 3 tests
+- pnpm build, pnpm test (892 tests) and pnpm lint exit 0; the interval floor and the keep-going-on-failure guards each mutation-tested
 
 ## Database actions
 
@@ -43,12 +43,12 @@
 
 ## Blockers
 
-- Nothing schedules the sweep yet, so it only runs when called
+- Scheduling a deterministic capability through the schedules table records a model's prose as a succeeded run, because runs.execute never invokes handlers
 
 ## Next exact action
 
-Schedule factory.verify_live, decide the Cloudflare Bot Fight Mode setting, and wire a rollback capability so takedowns stop needing direct database writes
+Decide whether the registry should say which capabilities are model-run and which are deterministic, so runs.execute stops answering scheduled deterministic capabilities with model prose; decide the Cloudflare Bot Fight Mode setting; wire a rollback capability
 
 ## Definition of done
 
-A live site whose address stops serving its approved build is reported without anyone loading it by hand
+A live site that stops serving its approved build is reported on a timer rather than when someone loads it
