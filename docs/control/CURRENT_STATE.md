@@ -52,11 +52,10 @@ blocking finding.
   from profile URL to approved live demo.
 - **P2C Revenue pilot** — outreach drafting exists in the product, and
   suppression plus a per-space daily cap are enforced before an approval is
-  created. Prospect qualification and the demo queue are built but not yet
-  usable against production: they need migration `0004`, which is written and
-  unapplied. Remaining build-now scope is sequence state, offers/terms, hosting
-  activation state, and funnel analytics. Lead sourcing still needs a directory
-  adapter that does not exist.
+  created. Prospect qualification and the demo queue are built and live, with
+  migration `0004` applied and verified against the ledger. Remaining build-now
+  scope is sequence state, offers/terms, hosting activation state, and funnel
+  analytics. Lead sourcing still needs a directory adapter that does not exist.
 
 ## P1 acceptance
 
@@ -206,22 +205,29 @@ forward only — `queued → building → qa → approved → shareable`, with `
 reachable from anything still in flight — so a demo cannot reach an owner
 without passing the QA gate.
 
-### Migration 0004 is written and not applied
+### Migration 0004 is applied
 
-`supabase/migrations/0004_prospect_qualification.sql` creates
-`qualification_assessments` and `demo_queue`. It has not run: this session had
-no permitted path to the production database, so nothing was applied and
-`ENVIRONMENTS.yaml` still pins `0003_site_deployments`.
+`supabase/migrations/0004_prospect_qualification.sql` created
+`qualification_assessments` and `demo_queue`. The operator applied it on
+2026-08-03; Claude had no permitted path to the database in that session.
 
-Until it runs, `prospecting.qualify`, `prospecting.workspace`, `demos.enqueue`
-and `demos.advance` answer `schema_pending` and change nothing, naming the
-migration in the response. `prospecting.qualify` still returns the verdict,
-because the rubric is pure and needs no table to answer. That is the same
-honesty the hosting adapter applies when no provider is configured — a 500
-would be indistinguishable from a real fault, and a fabricated success worse
-than either. Applying the migration requires bumping `expected_migration`,
-adding both tables to `required_tables`, and updating `ATLAS_SCHEMA_VERSION` on
-both Railway services in the same change.
+Applied identity is proven, not assumed. `railway run --service api pnpm
+control:status` read `0004_prospect_qualification` from
+`supabase_migrations.schema_migrations` and both new tables from
+`information_schema`, so the migration self-recorded as its final statement —
+the step `0003` skipped, which is why the ledger drifted a version behind then.
+`ENVIRONMENTS.yaml` pins `0004_prospect_qualification` and lists both tables.
+
+The `schema_pending` path in these four capabilities is now unreachable in
+production, and stays as the honest failure mode if the schema is ever behind
+the code again — a 500 would be indistinguishable from a real fault, and a
+fabricated success worse than either.
+
+**Known wart.** Both `0003` and `0004` still carry a `REVIEW ONLY — NOT
+APPLIED` banner, which is false for each. Applied migrations are immutable, so
+neither file was edited to say otherwise. Nothing cross-checks that banner
+against `expected_migration`, so it will keep going stale; teaching
+`control:verify` to fail on it is a real follow-up.
 
 There is no operator UI for these yet. Wiring Mission Control to endpoints that
 currently report `schema_pending` would put a surface in front of an operator
