@@ -8,6 +8,7 @@ import type { Descriptor } from './factory/dossier.js';
 import { renderSite } from './factory/render.js';
 import { planPublish } from './factory/publish.js';
 import { runQa } from './factory/qa.js';
+import { classifyFingerprint } from './factory/fingerprint.js';
 import { planTouchAdvance } from './revenue/sequence.js';
 import { readActivationFacts } from './revenue/activation-read.js';
 import { planCancellation, planHostingTransition } from './revenue/hosting-activation.js';
@@ -220,11 +221,37 @@ const factoryDeploySite: ApprovalDispatcher = async (ctx, payload) => {
     publishError = err instanceof Error ? err.message : String(err);
   }
 
+  /*
+   * Read the published address back before recording anything. `build_hash` is
+   * what Atlas intended to publish; this is what a reader actually receives,
+   * and the acceptance is about the second. A failure to read is recorded as
+   * unreadable rather than assumed fine — a row carrying a verified-looking
+   * fingerprint that nothing verified would be worse than no read-back at all.
+   *
+   * This never fails the publish. The site is serving; refusing to record that
+   * because a read-back stumbled would be its own inaccuracy.
+   */
+  let fingerprint = null;
+  if (published) {
+    try {
+      const read = await ctx.deps.readPublic(published.url);
+      fingerprint = classifyFingerprint({ approved: plan.buildHash, read });
+    } catch (err) {
+      fingerprint = classifyFingerprint({
+        approved: plan.buildHash,
+        read: null,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
   const status = published ? 'live' : 'queued';
   const inserted = await ctx.q.query(
     `insert into site_deployments
-       (space_id, site_id, version, environment, domain, build_hash, renderer_sha, status, approved_by, went_live_at)
-     values ($1, $2, $3, 'production', $4, $5, $6, $7, $8, case when $7 = 'live' then now() else null end)
+       (space_id, site_id, version, environment, domain, build_hash, renderer_sha, status, approved_by, went_live_at,
+        public_fingerprint, fingerprint_checked_at, fingerprint_matches)
+     values ($1, $2, $3, 'production', $4, $5, $6, $7, $8, case when $7 = 'live' then now() else null end,
+             $9, case when $9 is null then null else now() end, $10)
      returning deployment_id`,
     [
       ctx.spaceId,
@@ -235,6 +262,8 @@ const factoryDeploySite: ApprovalDispatcher = async (ctx, payload) => {
       ctx.deps.buildInfo.gitSha,
       status,
       ctx.auth.actor,
+      fingerprint?.observed ?? null,
+      fingerprint === null ? null : fingerprint.matches,
     ],
   );
   const deploymentId = String(inserted.rows[0]?.deployment_id ?? '');
@@ -254,6 +283,7 @@ const factoryDeploySite: ApprovalDispatcher = async (ctx, payload) => {
     version: plan.version,
     buildHash: plan.buildHash,
     provider: ctx.deps.hosting.name,
+    fingerprint: fingerprint?.verdict ?? null,
   });
 
   return {
@@ -265,8 +295,12 @@ const factoryDeploySite: ApprovalDispatcher = async (ctx, payload) => {
     status,
     url: published?.url ?? null,
     providerRef: published?.providerRef ?? null,
+    fingerprint: fingerprint?.verdict ?? null,
+    publicFingerprint: fingerprint?.observed ?? undefined,
     note: published
-      ? `published to ${published.url}`
+      ? fingerprint?.matches === true
+        ? `published to ${published.url}`
+        : `published to ${published.url}, but ${fingerprint?.message ?? 'the address was not read back'}`
       : `build verified and recorded, but not serving: ${publishError ?? 'no hosting target is configured'}`,
   };
 };

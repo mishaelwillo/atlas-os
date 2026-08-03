@@ -81,10 +81,15 @@ function publishingHost() {
   };
 }
 
-async function approve(db: FakeDb, hosting?: { name: string; publish: (t: never) => Promise<{ url: string; providerRef: string | null }> }) {
+async function approve(
+  db: FakeDb,
+  hosting?: { name: string; publish: (t: never) => Promise<{ url: string; providerRef: string | null }> },
+  readPublic?: PipelineDeps['readPublic'],
+) {
   const deps = hosting
     ? { ...buildTestDeps(db), hosting: hosting as unknown as PipelineDeps['hosting'] }
     : buildTestDeps(db);
+  if (readPublic) deps.readPublic = readPublic;
   const res = await buildApp({ deps }).inject({
     method: 'POST',
     url: '/v1/approvals/decide',
@@ -179,6 +184,83 @@ describe('deploy on approval', () => {
 
     expect(dispatched.executed).toBe(true);
     expect(dispatched.supersedes).toBe('dep-1');
+  });
+
+  /**
+   * The read-back the 2026-08-03 benchmark proved was missing: `build_hash` is
+   * what Atlas intended to publish, and until this existed nothing checked what
+   * a reader actually receives.
+   */
+  describe('reading the published address back', () => {
+    function servedHtml(): string {
+      const r = renderSite(descriptor());
+      if (!r.rendered) throw new Error('fixture must render');
+      return r.html;
+    }
+
+    it('records a matching fingerprint when the address serves the approved build', async () => {
+      const db = dbFor({ approvedHash: liveHash() });
+      const dispatched = await approve(db, publishingHost(), async () => ({
+        status: 200,
+        body: servedHtml(),
+      }));
+
+      expect(dispatched.fingerprint).toBe('match');
+      expect(dispatched.publicFingerprint).toBe(liveHash());
+      const params = deployInsert(db)?.params ?? [];
+      expect(params).toContain(liveHash());
+      expect(params).toContain(true);
+    });
+
+    /** The real finding: the edge injected a script, so the reader got other bytes. */
+    it('records a mismatch when something changed the bytes in transit', async () => {
+      const db = dbFor({ approvedHash: liveHash() });
+      const dispatched = await approve(db, publishingHost(), async () => ({
+        status: 200,
+        body: `${servedHtml()}<script>/* injected */</script>`,
+      }));
+
+      expect(dispatched.fingerprint).toBe('mismatch');
+      expect(dispatched.publicFingerprint).not.toBe(liveHash());
+      expect((deployInsert(db)?.params ?? [])).toContain(false);
+      // Still live: the site is serving, and saying otherwise would be its own lie.
+      expect(dispatched.status).toBe('live');
+      expect(String(dispatched.note)).toMatch(/not the approved/i);
+    });
+
+    /** Unreadable is not a match; the row must not claim a verified fingerprint. */
+    it('records unreadable rather than assuming the publish was faithful', async () => {
+      const db = dbFor({ approvedHash: liveHash() });
+      const dispatched = await approve(db, publishingHost(), async () => {
+        throw new Error('ECONNRESET');
+      });
+
+      expect(dispatched.fingerprint).toBe('unreadable');
+      expect(dispatched.publicFingerprint).toBeUndefined();
+      const params = deployInsert(db)?.params ?? [];
+      expect(params).toContain(false);
+      expect(params).not.toContain(liveHash().replace('a', 'b'));
+    });
+
+    /** A read-back failure must never cost the deployment record. */
+    it('still records the deployment when the read-back fails', async () => {
+      const db = dbFor({ approvedHash: liveHash() });
+      const dispatched = await approve(db, publishingHost(), async () => {
+        throw new Error('ECONNRESET');
+      });
+
+      expect(dispatched.executed).toBe(true);
+      expect(deployInsert(db)).toBeDefined();
+    });
+
+    /** Nothing was published, so there is nothing to read back. */
+    it('records no fingerprint for a queued deployment', async () => {
+      const db = dbFor({ approvedHash: liveHash() });
+      const dispatched = await approve(db);
+
+      expect(dispatched.status).toBe('queued');
+      expect(dispatched.fingerprint).toBeNull();
+    });
   });
 
   it('audits a refusal so a blocked publish is not silent', async () => {

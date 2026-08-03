@@ -62,6 +62,11 @@ export interface PipelineDeps {
   buildInfo: BuildInfo;
   /** Where published sites land; refuses when no provider is configured. */
   hosting: HostingAdapter;
+  /**
+   * Reads a published address back so the recorded fingerprint is measured
+   * rather than assumed. Injected so tests never touch the network.
+   */
+  readPublic: (url: string) => Promise<{ status: number; body: string }>;
   router: AtlasRouter;
   /** registry meta keyed by capability id — runs.execute routes through this */
   capabilities: Record<string, CapabilityRouteMeta>;
