@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `pin-migration-0006`
+**Handoff ID:** `p2c-funnel-analytics`
 **Status:** active
-**Started:** 2026-08-03T03:21:46.474Z
-**Updated:** 2026-08-03T03:21:46.474Z
+**Started:** 2026-08-03T04:16:19.198Z
+**Updated:** 2026-08-03T04:16:19.198Z
 **Actor:** Claude
-**Objective:** Pin the applied 0006 schema across the control plane
+**Objective:** Build funnel analytics and the operator surface
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `chore/pin-migration-0006`
+- Branch: `feat/p2c-funnel-analytics`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `500bfc4970efa9f51d1106650de50a8444909075`
+- Head commit: `98d661913c869ad72281db3edb64093d018d3c6c`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Not supplied.
+- analytics.funnel added and a funnel card wired into status.mission_control; executable count 28 to 29
 
 ## Current working tree
 
@@ -25,17 +25,17 @@
 
 ## Verification evidence
 
-- control:status observed migration 0006_offers_and_hosting and 26 public tables including offers, deal_decisions and hosting_entitlements
+- pnpm build, pnpm test (839 tests) and pnpm lint exit 0; the null-rate rule mutation-tested on both the API and the card, failing 5 and 2 tests
 
 ## Database actions
 
-- Operator applied 0006_offers_and_hosting; verified by reading the migration ledger and information_schema through control:status
-- Observed Supabase status: ok (live-read-only at 2026-08-03T03:20:46.154Z).
+- No external action reported.
+- Observed Supabase status: ok (live-read-only at 2026-08-03T03:24:58.972Z).
 
 ## Hosting actions
 
-- Set ATLAS_SCHEMA_VERSION=0006_offers_and_hosting on the Railway api and os services
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-03T03:20:46.154Z).
+- No external action reported.
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-03T03:24:58.972Z).
 
 ## External side effects
 
@@ -43,12 +43,12 @@
 
 ## Blockers
 
-- Not supplied.
+- The funnel is empty because lead sourcing has no directory adapter, and the Mission Control card was not exercised in a signed-in browser
 
 ## Next exact action
 
-Build funnel analytics and the operator surface, the last P2C build-now item
+Decide the directory adapter for lead sourcing; the P2C build-now scope is complete and the pilot's exit criterion blocks on that integration
 
 ## Definition of done
 
-Expected and observed migration identity agree, and neither service fingerprint claims a schema it is not running
+A rate with no denominator reads as unknown rather than zero, end to end from the query to the rendered card
