@@ -125,17 +125,6 @@ candidates:
     evidence_ids: [video-qy0l1t7x6le-ai-agent-tabs]
     specification: docs/specs/p2/intelligence-foundation.md
 
-  - id: automation.sequence
-    stage: candidate
-    phase: P2C
-    implementation: build
-    menu_group: Automation
-    atlas_description: Run approval-aware, consent-aware, capped follow-up sequences.
-    evidence_ids:
-      - video-qy0l1t7x6le-dashboard-navigation
-      - video-qy0l1t7x6le-follow-up-automation
-    specification: docs/specs/p2/revenue-pilot.md
-
   - id: factory.template_library
     stage: candidate
     phase: P2B

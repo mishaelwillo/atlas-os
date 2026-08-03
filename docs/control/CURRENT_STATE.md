@@ -53,9 +53,10 @@ blocking finding.
 - **P2C Revenue pilot** — outreach drafting exists in the product, and
   suppression plus a per-space daily cap are enforced before an approval is
   created. Prospect qualification and the demo queue are built and live, with
-  migration `0004` applied and verified against the ledger. Remaining build-now
-  scope is sequence state, offers/terms, hosting activation state, and funnel
-  analytics. Lead sourcing still needs a directory adapter that does not exist.
+  migration `0004` applied and verified against the ledger. Outreach sequence
+  state is built and awaits migration `0005`. Remaining build-now scope is
+  offers/terms, hosting activation state, and funnel analytics. Lead sourcing
+  still needs a directory adapter that does not exist.
 
 ## P1 acceptance
 
@@ -232,6 +233,48 @@ against `expected_migration`, so it will keep going stale; teaching
 There is no operator UI for these yet. Wiring Mission Control to endpoints that
 currently report `schema_pending` would put a surface in front of an operator
 that cannot do anything; it belongs with the funnel analytics work.
+
+## Outreach sequence state
+
+A sequence plans touches and records what happened to them. It cannot send, and
+— the part that took the most care — it cannot *record* a send. The specification
+says `automation.sequence` "plans state but cannot bypass per-touch checks", so
+that is enforced structurally rather than asserted:
+
+- `scheduled → sent` is refused to every caller. The only code that may make
+  that move is the approved `outreach.send` dispatcher, which passes an internal
+  flag no request body can set. Recording a send that no dispatch performed
+  would make the audit trail claim an external effect that never happened.
+- `approval_required → approved` requires an approvals row that exists **and**
+  has status `approved`. Any other string is not an approval.
+- A suppressed lead cannot be sequenced at all — the refusal happens at planning
+  time, not one approval screen away from a mistake.
+
+Only one touch may be in flight per sequence, enforced both in the rules and by
+a partial unique index. If two could run at once, "each touch is separately
+eligible, capped and approved" would stop meaning anything, because a reply to
+the first would arrive after the second had already gone out. Touches are spaced
+at least 48 hours apart, a channel may carry at most one touch, and a sequence
+plans at most four — more is the aggressive frequency the MVP excludes.
+
+A reply or an opt-out stops the whole sequence. A failed send does not: it ends
+that touch without ending the plan.
+
+### What is deliberately not enforced
+
+Region packs carry `preferred_channels`, but the specification states that North
+American SMS and Caribbean WhatsApp preference "are availability hints, not
+permission". So channel preference gates nothing here; what gates a touch is the
+approval it cannot be sent without. The packs also carry no quiet hours, so none
+are enforced — inventing a window would be worse than not having one.
+
+### Migration 0005 is written and not applied
+
+`supabase/migrations/0005_outreach_sequences.sql` creates `outreach_sequences`
+and `outreach_touches`. `automation.sequence`, `sequence.advance` and
+`sequence.state` report `schema_pending` until it runs, and the `outreach.send`
+dispatch still succeeds when it cannot record the touch — the send is what
+matters and it says so in the result rather than failing.
 
 ## Awaiting a decision
 

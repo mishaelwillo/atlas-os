@@ -22,6 +22,9 @@ export const GENERATED_CAPABILITY_IDS = [
   "demos.enqueue",
   "demos.advance",
   "outreach.send",
+  "automation.sequence",
+  "sequence.advance",
+  "sequence.state",
   "events.site",
   "approvals.list",
   "approvals.decide",
@@ -627,6 +630,9 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
         },
         "body": {
           "type": "string"
+        },
+        "touchId": {
+          "type": "string"
         }
       }
     },
@@ -634,6 +640,167 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
       "type": "object",
       "properties": {
         "approvalId": {
+          "type": "string"
+        }
+      }
+    }
+  } as const satisfies CapabilityRouteMeta, deps);
+  registerCapabilityRoute(app, {
+    "id": "automation.sequence",
+    "name": "Plan an outreach sequence",
+    "path": "/v1/automation/sequence",
+    "method": "POST",
+    "taskClass": "do",
+    "requiresApproval": false,
+    "scopes": [
+      "leads:write"
+    ],
+    "input": {
+      "type": "object",
+      "required": [
+        "leadId",
+        "channels"
+      ],
+      "properties": {
+        "leadId": {
+          "type": "string"
+        },
+        "channels": {
+          "type": "array"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "sequenceId": {
+          "type": "string"
+        },
+        "version": {
+          "type": "number"
+        },
+        "state": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "array"
+        },
+        "planned": {
+          "type": "boolean"
+        },
+        "code": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    }
+  } as const satisfies CapabilityRouteMeta, deps);
+  registerCapabilityRoute(app, {
+    "id": "sequence.advance",
+    "name": "Record a touch outcome",
+    "path": "/v1/sequence/advance",
+    "method": "POST",
+    "taskClass": "quick",
+    "requiresApproval": false,
+    "scopes": [
+      "leads:write"
+    ],
+    "input": {
+      "type": "object",
+      "required": [
+        "touchId",
+        "state"
+      ],
+      "properties": {
+        "touchId": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "approvalId": {
+          "type": "string"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "touchId": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "sequenceState": {
+          "type": "string"
+        },
+        "stopped": {
+          "type": "boolean"
+        },
+        "advanced": {
+          "type": "boolean"
+        },
+        "code": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    }
+  } as const satisfies CapabilityRouteMeta, deps);
+  registerCapabilityRoute(app, {
+    "id": "sequence.state",
+    "name": "Outreach sequence state",
+    "path": "/v1/sequence/state",
+    "method": "GET",
+    "taskClass": "quick",
+    "requiresApproval": false,
+    "scopes": [
+      "leads:write"
+    ],
+    "input": {
+      "type": "object",
+      "required": [
+        "leadId"
+      ],
+      "properties": {
+        "leadId": {
+          "type": "string"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "found": {
+          "type": "boolean"
+        },
+        "sequenceId": {
+          "type": "string"
+        },
+        "version": {
+          "type": "number"
+        },
+        "state": {
+          "type": "string"
+        },
+        "stoppedReason": {
+          "type": "string"
+        },
+        "touches": {
+          "type": "array"
+        },
+        "next": {
+          "type": "object"
+        },
+        "status": {
           "type": "string"
         }
       }

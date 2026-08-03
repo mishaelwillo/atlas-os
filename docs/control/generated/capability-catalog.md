@@ -170,6 +170,22 @@ ledgers is not executable and does not appear here.
 - Description: Scheduled: score models on eval task families; results feed the router\.
 
 ## Outreach
+### `automation.sequence` — Plan an outreach sequence
+- Stage: candidate
+- Phase: P2C
+- Monetization: acquisition
+- Autonomy: manual
+- Implementation: build
+- Regions: `global`
+- Entitlements: `revenue-pilot`
+- Evidence: `video-qy0l1t7x6le-dashboard-navigation`, `video-qy0l1t7x6le-follow-up-automation`
+- Specification: `docs/specs/p2/revenue-pilot.md`
+- Method: POST
+- Task class: do
+- Approval required: no
+- Scopes: `leads:write`
+- Description: Plan an ordered set of touches for one lead\. Planning creates drafts only: each touch still needs its own policy check and its own named approval, and no touch can be sent from here\. A suppressed lead cannot be sequenced\.
+
 ### `outreach.send` — Send outreach message
 - Stage: candidate
 - Phase: P2C
@@ -185,6 +201,38 @@ ledgers is not executable and does not appear here.
 - Approval required: yes
 - Scopes: none
 - Description: One outreach touch \(email/SMS/WhatsApp draft\)\. ALWAYS approval\-gated\. Suppressed leads and a per\-space daily cap are refused before an approval is created\.
+
+### `sequence.advance` — Record a touch outcome
+- Stage: candidate
+- Phase: P2C
+- Monetization: acquisition
+- Autonomy: manual
+- Implementation: build
+- Regions: `global`
+- Entitlements: `revenue-pilot`
+- Evidence: none
+- Specification: `docs/specs/p2/revenue-pilot.md`
+- Method: POST
+- Task class: quick
+- Approval required: no
+- Scopes: `leads:write`
+- Description: Move one touch by exactly one declared step\. Approval requires a real approved approvals row; recording a touch as sent is refused here and is only ever done by the approved outreach\.send dispatch\. A reply or an opt\-out stops the sequence\.
+
+### `sequence.state` — Outreach sequence state
+- Stage: candidate
+- Phase: P2C
+- Monetization: acquisition
+- Autonomy: manual
+- Implementation: build
+- Regions: `global`
+- Entitlements: `revenue-pilot`
+- Evidence: none
+- Specification: `docs/specs/p2/revenue-pilot.md`
+- Method: GET
+- Task class: quick
+- Approval required: no
+- Scopes: `leads:write`
+- Description: The plan for one lead, what happened to each touch, and which touch is eligible next — or why none is\. Read\-only\.
 
 ## Prospecting
 ### `demos.advance` — Move a demo along
