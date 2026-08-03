@@ -251,7 +251,10 @@ const factoryDeploySite: ApprovalDispatcher = async (ctx, payload) => {
        (space_id, site_id, version, environment, domain, build_hash, renderer_sha, status, approved_by, went_live_at,
         public_fingerprint, fingerprint_checked_at, fingerprint_matches)
      values ($1, $2, $3, 'production', $4, $5, $6, $7, $8, case when $7 = 'live' then now() else null end,
-             $9, case when $9 is null then null else now() end, $10)
+             -- Cast explicitly: $9 appears in a null test that gives Postgres no
+             -- type to infer from, and an uncast parameter there fails the whole
+             -- statement with 42P08 rather than defaulting to the column's type.
+             $9::text, case when $9::text is null then null else now() end, $10::boolean)
      returning deployment_id`,
     [
       ctx.spaceId,
