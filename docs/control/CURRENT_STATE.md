@@ -455,6 +455,14 @@ Two follow-ups, neither taken unilaterally:
    saying otherwise would be its own inaccuracy.
    Migration `0007` is applied and verified against the ledger.
 
+   **A test double cannot catch bad SQL.** The first read-back attempt reached
+   production and failed with `42P08: could not determine data type of
+   parameter $9` — an uncast parameter inside a null test, which Postgres
+   cannot infer a type for. Every unit test passed, because `FakeDb` records
+   statements without parsing them. Any statement that touches the schema needs
+   a transactional dry run against the real database before it ships; the fake
+   proves handler logic and nothing about SQL.
+
 ### What the run left in production
 
 In the `studio` space: two sites, two approvals, two deployments — one `queued`
