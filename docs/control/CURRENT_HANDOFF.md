@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `pages-serves-every-live-site`
+**Handoff ID:** `verify-live-sites`
 **Status:** active
-**Started:** 2026-08-03T16:53:17.979Z
-**Updated:** 2026-08-03T16:53:17.979Z
+**Started:** 2026-08-03T18:52:42.984Z
+**Updated:** 2026-08-03T18:52:42.984Z
 **Actor:** Claude
-**Objective:** Stop each publish deleting every previously published site
+**Objective:** Re-check sites that are already live, not just the one being published
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `fix/pages-serves-every-live-site`
+- Branch: `feat/verify-live-sites`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `3909aa394feb9c5daca4349bf03c3da5ed05afef`
+- Head commit: `c3d6c7da8acdbc1a2782227f315d4a01c0b751dc`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- PublishTarget gains a required alsoServe set; the dispatcher gathers live siblings and refuses when one no longer reproduces its approved build
+- factory.verify_live added; executable count 29 to 30
 
 ## Current working tree
 
@@ -25,11 +25,11 @@
 
 ## Verification evidence
 
-- pnpm build, pnpm test (869 tests) and pnpm lint exit 0; sibling inclusion mutation-tested
+- pnpm build, pnpm test (882 tests) and pnpm lint exit 0; the unreadable-is-not-healthy rule mutation-tested, failing 3 tests
 
 ## Database actions
 
-- Moved both fixture deployments from live to rolled_back with an audit row each; no live deployment remains
+- No external action reported.
 - Observed Supabase status: ok (live-read-only at 2026-08-03T06:21:29.385Z).
 
 ## Hosting actions
@@ -39,16 +39,16 @@
 
 ## External side effects
 
-- Rolled Cloudflare Pages back to fe747724, its pre-fixture placeholder, taking both fixture sites down at the operator's request
+- No external action reported.
 
 ## Blockers
 
-- No rollback capability exists in the registry, so the takedown was a direct database write
+- Nothing schedules the sweep yet, so it only runs when called
 
 ## Next exact action
 
-Decide the Cloudflare Bot Fight Mode setting, add a sweep that re-checks previously-live sites, and wire a rollback capability so takedowns stop needing direct database writes
+Schedule factory.verify_live, decide the Cloudflare Bot Fight Mode setting, and wire a rollback capability so takedowns stop needing direct database writes
 
 ## Definition of done
 
-A publish keeps every already-live site served, or refuses
+A live site whose address stops serving its approved build is reported without anyone loading it by hand
