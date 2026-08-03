@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `p2c-funnel-analytics`
+**Handoff ID:** `migration-banner-authority`
 **Status:** active
-**Started:** 2026-08-03T04:16:19.198Z
-**Updated:** 2026-08-03T04:16:19.198Z
+**Started:** 2026-08-03T04:40:19.809Z
+**Updated:** 2026-08-03T04:40:19.809Z
 **Actor:** Claude
-**Objective:** Build funnel analytics and the operator surface
+**Objective:** Stop migration files claiming whether they have been applied
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `feat/p2c-funnel-analytics`
+- Branch: `fix/migration-banner-authority`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `98d661913c869ad72281db3edb64093d018d3c6c`
+- Head commit: `4e3df8241270bf5a4fffcae2c3024b6588e951fc`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- analytics.funnel added and a funnel card wired into status.mission_control; executable count 28 to 29
+- Added control.migration_claims_applied_state to verify-static; removed the false banner from migrations 0002 through 0006
 
 ## Current working tree
 
@@ -25,7 +25,7 @@
 
 ## Verification evidence
 
-- pnpm build, pnpm test (839 tests) and pnpm lint exit 0; the null-rate rule mutation-tested on both the API and the card, failing 5 and 2 tests
+- pnpm build, pnpm test (845 tests) and pnpm lint exit 0; the gate mutation-tested by reintroducing a banner, which failed verify and one test; non-comment content of all five migrations hashes identically before and after
 
 ## Database actions
 
@@ -43,7 +43,7 @@
 
 ## Blockers
 
-- The funnel is empty because lead sourcing has no directory adapter, and the Mission Control card was not exercised in a signed-in browser
+- Not supplied.
 
 ## Next exact action
 
@@ -51,4 +51,4 @@ Decide the directory adapter for lead sourcing; the P2C build-now scope is compl
 
 ## Definition of done
 
-A rate with no denominator reads as unknown rather than zero, end to end from the query to the rendered card
+A migration comment asserting applied state in either direction is a blocking control:verify finding
