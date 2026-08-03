@@ -6,7 +6,7 @@ environments:
       branch: main
     supabase:
       project_ref: yyyspvralawnvhtmuyvg
-      expected_migration: 0006_offers_and_hosting
+      expected_migration: 0007_deployment_fingerprint
       required_tables:
         - spaces
         - api_tokens

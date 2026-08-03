@@ -453,6 +453,7 @@ Two follow-ups, neither taken unilaterally:
    a verified-looking fingerprint that nothing verified would be worse than no
    read-back. A mismatch does not un-publish anything: the site is serving, and
    saying otherwise would be its own inaccuracy.
+   Migration `0007` is applied and verified against the ledger.
 
 ### What the run left in production
 
