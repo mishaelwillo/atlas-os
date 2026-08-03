@@ -504,8 +504,24 @@ probably fine: counting it otherwise would reproduce the silence that let the
 original defect last an hour. Only failures are audited, so a clean sweep does
 not bury the trail under evidence that nothing happened.
 
-Nothing schedules it yet. It is a capability an operator or a scheduled run can
-call; wiring it into the scheduler is a small follow-up.
+The worker runs it hourly, per space that has something live, with the interval
+overridable by `ATLAS_VERIFY_LIVE_INTERVAL_MS` and floored at five minutes so a
+misconfigured value cannot turn it into a load test on customer sites. A drift
+finding is logged at error level, because a live site not serving its approved
+build is the condition the whole mechanism exists to surface.
+
+**It deliberately does not use the `schedules` table.** That path executes via
+`runs.execute`, which for a non-approval capability sends a prompt to the model
+router and records the model's text as the run's output — it never invokes the
+capability's handler. Scheduling a deterministic check that way would record a
+`succeeded` run for a check that never happened, which is worse than not
+scheduling it. That is a defect in `runs.execute` in its own right: every
+capability in the registry has a handler entry, several of which are typed
+stubs that throw, so "has a handler" cannot be the discriminator either. Fixing
+it properly needs the registry to say which capabilities are model-run and
+which are deterministic, and that is a governance change nobody has decided.
+Until then, anything scheduled through `schedules` is a model answering a
+prompt about the capability, not the capability running.
 
 ### What the run left in production
 
