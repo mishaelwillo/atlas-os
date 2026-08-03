@@ -74,4 +74,4 @@ items:
     specification: docs/specs/p2/revenue-pilot.md
     acceptance_checks:
       - One real hosting-paying customer completes an approval-gated sequence
-    next_action: Apply migration 0006_offers_and_hosting and bump expected_migration, then build funnel analytics and the operator surface, which is the last build-now item
+    next_action: Build funnel analytics and the operator surface, the last build-now item; every table the funnel reads is now applied

@@ -6,7 +6,7 @@ environments:
       branch: main
     supabase:
       project_ref: yyyspvralawnvhtmuyvg
-      expected_migration: 0005_outreach_sequences
+      expected_migration: 0006_offers_and_hosting
       required_tables:
         - spaces
         - api_tokens
@@ -31,6 +31,9 @@ environments:
         - demo_queue
         - outreach_sequences
         - outreach_touches
+        - offers
+        - deal_decisions
+        - hosting_entitlements
     railway:
       api:
         public_url: https://api-production-78a5.up.railway.app
