@@ -34,6 +34,7 @@ export interface BuildDepsOptions {
   router?: AtlasRouter;
   buildInfo?: BuildInfo;
   hosting?: HostingAdapter;
+  readPublic?: (url: string) => Promise<{ status: number; body: string }>;
   log?: PipelineDeps['log'];
 }
 
@@ -59,6 +60,17 @@ export function buildDeps(opts: BuildDepsOptions = {}): PipelineDeps {
     // records a queued build rather than claiming an address that does not
     // serve.
     hosting: opts.hosting ?? pagesHostingFromEnv(process.env) ?? new UnconfiguredHosting(),
+    /*
+     * Follows redirects on purpose: Pages answers a path without its trailing
+     * slash with a 308, and the bytes a reader receives are the ones after
+     * that redirect. Comparing the redirect body would compare nothing.
+     */
+    readPublic:
+      opts.readPublic ??
+      (async (url: string) => {
+        const res = await fetch(url, { redirect: 'follow' });
+        return { status: res.status, body: await res.text() };
+      }),
     router,
     capabilities: capabilityMetaMap(),
     handlers,

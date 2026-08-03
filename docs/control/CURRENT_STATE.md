@@ -446,10 +446,13 @@ Two follow-ups, neither taken unilaterally:
 1. **Zone setting.** Disabling Bot Fight Mode, or scoping a configuration rule
    to `sites.andtronai.com`, would stop the injection. That is a security
    trade-off for the whole zone and an operator's decision.
-2. **Nothing checks.** The dispatcher records `live` without ever reading the
-   public address back. The specification requires the deployment to record a
-   fingerprint that equals the approved build, so a post-publish read-back that
-   records a mismatch rather than assuming a match is real work worth doing.
+2. **Built.** The dispatcher now reads the published address back and records
+   what it actually served: `public_fingerprint`, `fingerprint_checked_at` and
+   `fingerprint_matches` on `site_deployments` (migration `0007`). An
+   unreachable address records as unreadable, never as a match — a row carrying
+   a verified-looking fingerprint that nothing verified would be worse than no
+   read-back. A mismatch does not un-publish anything: the site is serving, and
+   saying otherwise would be its own inaccuracy.
 
 ### What the run left in production
 

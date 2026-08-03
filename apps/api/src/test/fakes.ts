@@ -86,6 +86,11 @@ export function buildTestDeps(db: FakeDb, env: Env = testEnv()): PipelineDeps {
       registryVersion: REGISTRY_VERSION,
     },
     hosting: new UnconfiguredHosting(),
+    // Tests that care override this; the default refuses so an unmocked
+    // read-back cannot silently reach the network.
+    readPublic: async () => {
+      throw new Error('readPublic not stubbed in this test');
+    },
     router: stubRouter,
     capabilities: capabilityMetaMap(),
     handlers,
