@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `p2c-sequence-state`
+**Handoff ID:** `pin-migration-0005`
 **Status:** active
-**Started:** 2026-08-03T01:24:24.672Z
-**Updated:** 2026-08-03T01:24:24.672Z
+**Started:** 2026-08-03T01:48:48.231Z
+**Updated:** 2026-08-03T01:48:48.231Z
 **Actor:** Claude
-**Objective:** Build outreach sequence state that cannot send or record a send
+**Objective:** Pin the applied 0005 schema across the control plane
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `feat/p2c-sequence-state`
+- Branch: `chore/pin-migration-0005`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `cfd437c5a48de83b920b674b6eceddef5b2e8680`
+- Head commit: `99e632eaa2870e3936d2d2ed6635f37b65d6599e`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- automation.sequence promoted from candidate to executable; sequence.advance and sequence.state added; executable count 20 to 23, candidates 32 to 31
+- Not supplied.
 
 ## Current working tree
 
@@ -25,17 +25,17 @@
 
 ## Verification evidence
 
-- pnpm build, pnpm test (742 tests) and pnpm lint exit 0; the send guard mutation-tested by disabling it, which failed 3 tests
+- control:status observed migration 0005_outreach_sequences and 23 public tables including outreach_sequences and outreach_touches
 
 ## Database actions
 
-- Migration 0005_outreach_sequences written and NOT applied; expected_migration still pins 0004_prospect_qualification
-- Observed Supabase status: ok (live-read-only at 2026-08-03T01:03:04.211Z).
+- Operator applied 0005_outreach_sequences; verified by reading the migration ledger and information_schema through control:status
+- Observed Supabase status: ok (live-read-only at 2026-08-03T01:47:03.937Z).
 
 ## Hosting actions
 
-- No external action reported.
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-03T01:03:04.211Z).
+- Set ATLAS_SCHEMA_VERSION=0005_outreach_sequences on the Railway api and os services
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-03T01:47:03.937Z).
 
 ## External side effects
 
@@ -43,12 +43,12 @@
 
 ## Blockers
 
-- Migration 0005 needs applying before the three sequence capabilities do anything in production
+- Not supplied.
 
 ## Next exact action
 
-Apply migration 0005_outreach_sequences and bump expected_migration, then build offers/terms and hosting activation state
+Build offers/terms and hosting activation state together, since hosting cannot activate before approved terms and confirmed payment, then funnel analytics and the operator surface
 
 ## Definition of done
 
-A sequence cannot move a touch to sent, and only the approved outreach.send dispatch can
+Expected and observed migration identity agree, and neither service fingerprint claims a schema it is not running

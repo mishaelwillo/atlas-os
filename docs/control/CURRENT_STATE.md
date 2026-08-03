@@ -53,8 +53,8 @@ blocking finding.
 - **P2C Revenue pilot** — outreach drafting exists in the product, and
   suppression plus a per-space daily cap are enforced before an approval is
   created. Prospect qualification and the demo queue are built and live, with
-  migration `0004` applied and verified against the ledger. Outreach sequence
-  state is built and awaits migration `0005`. Remaining build-now scope is
+  migrations `0004` and `0005` applied and verified against the ledger, and
+  outreach sequence state live alongside them. Remaining build-now scope is
   offers/terms, hosting activation state, and funnel analytics. Lead sourcing
   still needs a directory adapter that does not exist.
 
@@ -268,13 +268,20 @@ permission". So channel preference gates nothing here; what gates a touch is the
 approval it cannot be sent without. The packs also carry no quiet hours, so none
 are enforced — inventing a window would be worse than not having one.
 
-### Migration 0005 is written and not applied
+### Migration 0005 is applied
 
-`supabase/migrations/0005_outreach_sequences.sql` creates `outreach_sequences`
-and `outreach_touches`. `automation.sequence`, `sequence.advance` and
-`sequence.state` report `schema_pending` until it runs, and the `outreach.send`
-dispatch still succeeds when it cannot record the touch — the send is what
-matters and it says so in the result rather than failing.
+`supabase/migrations/0005_outreach_sequences.sql` created `outreach_sequences`
+and `outreach_touches`. The operator applied it on 2026-08-03.
+
+Verified the same way as `0004`: `railway run --service api pnpm control:status`
+read `0005_outreach_sequences` from the migration ledger and both tables from
+`information_schema`, 23 public tables in total. `ENVIRONMENTS.yaml` pins the
+identity and lists both tables, and `ATLAS_SCHEMA_VERSION` is set to it on both
+services.
+
+The `schema_pending` path in the three sequence capabilities is now unreachable
+in production, and the `outreach.send` dispatch records the touch rather than
+reporting that it could not.
 
 ## Awaiting a decision
 
