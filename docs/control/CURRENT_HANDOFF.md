@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `p2c-qualification-demo-queue`
+**Handoff ID:** `pin-migration-0004`
 **Status:** active
-**Started:** 2026-08-03T00:30:12.997Z
-**Updated:** 2026-08-03T00:30:12.997Z
+**Started:** 2026-08-03T00:59:18.110Z
+**Updated:** 2026-08-03T00:59:18.110Z
 **Actor:** Claude
-**Objective:** Build prospect qualification and the capped demo queue
+**Objective:** Pin the applied 0004 schema across the control plane
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `feat/p2c-qualification-demo-queue`
+- Branch: `chore/pin-migration-0004`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `75041bdbbe5ebc958b4640bac643fd71b7354abc`
+- Head commit: `30f742f832c3a7cbe2a30da2e68922910ba386f9`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- prospecting.workspace promoted from candidate to executable; prospecting.qualify, demos.enqueue and demos.advance added; executable count 16 to 20, candidates 33 to 32
+- Not supplied.
 
 ## Current working tree
 
@@ -25,17 +25,17 @@
 
 ## Verification evidence
 
-- pnpm build, pnpm test (692 tests) and pnpm lint exit 0; suppression-from-lead-row and queue-cap guards mutation-tested
+- control:status observed migration 0004_prospect_qualification and both new tables; expected_migration and both service variables now match
 
 ## Database actions
 
-- Migration 0004_prospect_qualification written and NOT applied; no database has run it and expected_migration still pins 0003_site_deployments
-- Observed Supabase status: ok (live-read-only at 2026-07-28T09:07:53.146Z).
+- Operator applied 0004_prospect_qualification; verified by reading the migration ledger and information_schema through control:status
+- Observed Supabase status: ok (live-read-only at 2026-08-03T00:57:04.398Z).
 
 ## Hosting actions
 
-- No external action reported.
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-07-28T09:07:53.146Z).
+- Set ATLAS_SCHEMA_VERSION=0004_prospect_qualification on the Railway api and os services
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-03T00:57:04.398Z).
 
 ## External side effects
 
@@ -43,12 +43,12 @@
 
 ## Blockers
 
-- Direct database access was denied in this session, so 0004 could not be applied or dry-run; the four new capabilities report schema_pending until it is
+- Both applied migrations still carry a false REVIEW ONLY banner and nothing cross-checks it against expected_migration
 
 ## Next exact action
 
-Apply migration 0004_prospect_qualification, bump expected_migration and ATLAS_SCHEMA_VERSION, then continue the build-now scope: sequence state, offers/terms, hosting activation state and funnel analytics
+Continue the P2C build-now scope: sequence state, offers/terms, hosting activation state and funnel analytics
 
 ## Definition of done
 
-A prospect cannot take a demo slot without a standing, unexpired qualification, and the queue cannot exceed the pilot cap
+Expected and observed migration identity agree, and neither service fingerprint claims a schema it is not running
