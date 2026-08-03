@@ -1,5 +1,6 @@
 /** Handler map — one entry per registry capability (completeness asserted in tests). */
 import type { CapabilityHandler } from '../pipeline.js';
+import { analyticsFunnel } from './analytics.js';
 import { approvalsDecide, approvalsList } from './approvals.js';
 import { eventsSite } from './events.js';
 import { memoryAnswer, memoryDistill, memoryIngest } from './memory.js';
@@ -41,6 +42,7 @@ export const handlers: Record<string, CapabilityHandler> = {
   'offers.publish': offersPublish,
   'deals.decide': dealsDecide,
   'hosting.state': hostingState,
+  'analytics.funnel': analyticsFunnel,
   // typed TODO stubs
   'memory.answer': memoryAnswer,
   'memory.distill': memoryDistill,

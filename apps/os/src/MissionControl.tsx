@@ -6,6 +6,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { createGeneratedClient, type AtlasGeneratedClient } from '@atlas/client';
+import { FunnelCard } from './FunnelCard';
 import { QaVerdict, type QaSummary } from './QaVerdict';
 import styles from './MissionControl.module.css';
 import { SignIn } from './SignIn.js';
@@ -49,7 +50,7 @@ interface RunItem {
 }
 interface StatusCard {
   id: string;
-  kind: 'approvals' | 'runs' | 'model_chain' | 'cache' | 'schedules' | 'memory' | 'deployment' | 'sites' | 'leads';
+  kind: 'approvals' | 'runs' | 'model_chain' | 'cache' | 'schedules' | 'memory' | 'deployment' | 'sites' | 'leads' | 'funnel';
   title: string;
   data: Record<string, unknown>;
 }
@@ -869,6 +870,8 @@ export function MissionControlLive() {
                   <SitesCard card={card} client={client} />
                 </React.Fragment>
               );
+            case 'funnel':
+              return <FunnelCard key={card.id} data={card.data} />;
             case 'leads':
               return (
                 <OutreachDraftCard

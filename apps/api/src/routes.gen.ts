@@ -30,6 +30,7 @@ export const GENERATED_CAPABILITY_IDS = [
   "hosting.activate",
   "hosting.cancel",
   "hosting.state",
+  "analytics.funnel",
   "events.site",
   "approvals.list",
   "approvals.decide",
@@ -1047,6 +1048,53 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "object"
         },
         "status": {
+          "type": "string"
+        }
+      }
+    }
+  } as const satisfies CapabilityRouteMeta, deps);
+  registerCapabilityRoute(app, {
+    "id": "analytics.funnel",
+    "name": "Revenue pilot funnel",
+    "path": "/v1/analytics/funnel",
+    "method": "GET",
+    "taskClass": "quick",
+    "requiresApproval": false,
+    "scopes": [
+      "leads:write"
+    ],
+    "input": {
+      "type": "object",
+      "properties": {}
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "stages": {
+          "type": "array"
+        },
+        "rates": {
+          "type": "object"
+        },
+        "revenue": {
+          "type": "object"
+        },
+        "unavailable": {
+          "type": "array"
+        },
+        "empty": {
+          "type": "boolean"
+        },
+        "channelContribution": {
+          "type": "object"
+        },
+        "topBlockers": {
+          "type": "array"
+        },
+        "status": {
+          "type": "string"
+        },
+        "note": {
           "type": "string"
         }
       }

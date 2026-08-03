@@ -6,6 +6,8 @@
 import type { Queryable } from '../db.js';
 import type { CapabilityHandler } from '../pipeline.js';
 import { TEMPLATE_LIBRARY } from '../factory/templates.js';
+import { isMissingTable, readFunnel } from './analytics.js';
+import { buildFunnel } from '../revenue/funnel.js';
 
 /** The migration identity the drift collector reads, asked of the live database. */
 const MIGRATION_QUERY = `select version || '_' || name as migration_identity
@@ -138,6 +140,31 @@ export const statusMissionControl: CapabilityHandler = async (ctx) => {
     ),
     observedMigration(ctx.q),
   ]);
+
+  /*
+   * The funnel is read after the parallel batch rather than inside it: it spans
+   * the tables migrations 0004-0006 create, and if any is absent the whole card
+   * has to say so. A partial funnel — some stages counted, others silently zero
+   * — would read as a funnel where everybody dropped out.
+   */
+  let funnel: Record<string, unknown>;
+  try {
+    const data = await readFunnel(ctx.q, space);
+    funnel = {
+      ...buildFunnel({
+        counts: data.counts,
+        recurringMinorByCurrency: data.recurringMinorByCurrency,
+      }),
+      topBlockers: data.topBlockers,
+      available: true,
+    };
+  } catch (err) {
+    if (!isMissingTable(err)) throw err;
+    funnel = {
+      available: false,
+      note: 'the funnel spans tables migrations 0004 to 0006 create; some are not applied',
+    };
+  }
 
   const rungCounts: Record<string, number> = {};
   let modelCost = 0;
@@ -281,6 +308,12 @@ export const statusMissionControl: CapabilityHandler = async (ctx) => {
           observedMigration: migration,
           findings,
         },
+      },
+      {
+        id: 'funnel',
+        kind: 'funnel',
+        title: 'Revenue pilot funnel',
+        data: funnel,
       },
       {
         id: 'schedules',

@@ -295,6 +295,19 @@ export type HostingStateOutput = {
   status?: string;
 };
 
+export type AnalyticsFunnelInput = Record<string, unknown>;
+export type AnalyticsFunnelOutput = {
+  stages?: Array<unknown>;
+  rates?: Record<string, unknown>;
+  revenue?: Record<string, unknown>;
+  unavailable?: Array<unknown>;
+  empty?: boolean;
+  channelContribution?: Record<string, unknown>;
+  topBlockers?: Array<unknown>;
+  status?: string;
+  note?: string;
+};
+
 export type EventsSiteInput = {
   siteId: string;
   channel: string;
@@ -478,6 +491,11 @@ export class AtlasGeneratedClient {
   /** Hosting state — GET /v1/hosting/state */
   hostingState(input: HostingStateInput): Promise<HostingStateOutput | ApprovalPending> {
     return this.request<HostingStateOutput>("GET", "/v1/hosting/state", input);
+  }
+
+  /** Revenue pilot funnel — GET /v1/analytics/funnel */
+  analyticsFunnel(input: AnalyticsFunnelInput): Promise<AnalyticsFunnelOutput | ApprovalPending> {
+    return this.request<AnalyticsFunnelOutput>("GET", "/v1/analytics/funnel", input);
   }
 
   /** Site event webhook — POST /v1/events/site */
