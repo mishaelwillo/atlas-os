@@ -389,6 +389,77 @@ The card was not exercised in a signed-in browser. Mission Control needs an
 operator password Claude has never had, so verification stopped at component
 tests, the shape of the `status.mission_control` payload, and the built bundle.
 
+## P2B benchmark run, 2026-08-03
+
+Run against production on `b799878` with an operator-authorised HS256 token,
+because Mission Control's password is not available to Claude. It therefore
+measures the machine path, **not** the specification's thirty-minute
+acceptance: the facts were prepared in advance and submitted programmatically,
+so none of the research, entry or review time the budget exists to bound was
+incurred. P2B stays in `review` for that reason.
+
+The chain itself completed end to end:
+
+| step | at |
+| --- | --- |
+| `factory.build_site` — 28 QA checks passed | +1.01s |
+| `factory.preview` — hash matches the build | +1.66s |
+| `factory.deploy_site` — approval created | +2.13s |
+| `approvals.decide` — dispatched, status `live` | +4.32s |
+| public address returns 200 | +4.75s |
+
+### It found a defect that had never let a site serve
+
+The first run failed at the provider: `8000096: A "manifest" field was expected
+in the request body but was not provided`. The Pages deployments endpoint takes
+multipart/form-data with the manifest as a form field; the adapter sent JSON.
+**No site had ever been published.** The adapter's own test asserted the same
+wrong shape the adapter sent, so nineteen passing tests confirmed only that the
+code matched its author's misunderstanding of the provider contract.
+
+It was recoverable because the dispatcher records a failed publish as `queued`
+carrying the provider's reason rather than claiming an address that never
+served. Fixed in `b799878`, and the re-run published.
+
+### The public fingerprint does not equal the approved build
+
+The acceptance is "public fingerprint equals approved build". Measured both
+ways:
+
+- **Pages origin** `atlas-sites-2np.pages.dev/<slug>` — 2,205 bytes, sha256
+  `13b4d140…`, **exactly the approved build hash**, no script tags. The publish
+  path is correct.
+- **Public address** `sites.andtronai.com/<slug>` — 3,143 bytes, sha256
+  `b9957589…`, carrying an injected `/cdn-cgi/challenge-platform/scripts`
+  block.
+
+The difference is Cloudflare **JS Detections** (Bot Fight Mode) rewriting the
+response on the proxied `andtronai.com` record. It is a zone setting, not an
+Atlas defect — but it means the page the public receives contains an executable
+script nobody approved, which is precisely what the QA gate's
+`security.no-executable-script` and `privacy.no-third-party-resources` exist to
+prevent. The CSP the renderer emits (`default-src 'none'`) would stop it
+executing, which is luck rather than design.
+
+Two follow-ups, neither taken unilaterally:
+
+1. **Zone setting.** Disabling Bot Fight Mode, or scoping a configuration rule
+   to `sites.andtronai.com`, would stop the injection. That is a security
+   trade-off for the whole zone and an operator's decision.
+2. **Nothing checks.** The dispatcher records `live` without ever reading the
+   public address back. The specification requires the deployment to record a
+   fingerprint that equals the approved build, so a post-publish read-back that
+   records a mismatch rather than assuming a match is real work worth doing.
+
+### What the run left in production
+
+In the `studio` space: two sites, two approvals, two deployments — one `queued`
+from the failed attempt, one `live`. The fixture is deliberately fictional
+("Atlas Acceptance Test Plumbing", every fact owner-provided, so nothing is
+attributed to a source that did not say it), the page carries `noindex`, and it
+is still serving at
+`https://sites.andtronai.com/atlas-acceptance-test-plumbing-5bb7da70`.
+
 ## Awaiting a decision
 
 None of these is blocked on code:
