@@ -3,7 +3,8 @@
  * Each throws a 501 CapabilityError so the route pipeline (auth, validation,
  * audit) still runs and the contract surface is complete.
  * NOTE: approval-gated capabilities (memory.adjudicate, playbooks.author,
- * factory.deploy_site, outreach.send) never reach a handler — the pipeline
+ * factory.deploy_site, outreach.send, hosting.activate, hosting.cancel) never
+ * reach a handler — the pipeline
  * inserts an approvals row first. Their post-approval behavior lives in
  * dispatch.ts. Stubs below exist for completeness/dispatch wiring.
  */
@@ -21,3 +22,5 @@ export const factoryDeploySite = todo('factory.deploy_site', 'deploy fires via d
 export const leadsFind = todo('leads.find', 'lead scoring pipeline lands in P2');
 export const outreachSend = todo('outreach.send', 'send fires via dispatch.ts after approval (log-only stub)');
 export const benchRun = todo('bench.run', 'model bench harness lands in P2');
+export const hostingActivate = todo('hosting.activate', 'activation fires via dispatch.ts after approval');
+export const hostingCancel = todo('hosting.cancel', 'cancellation fires via dispatch.ts after approval');

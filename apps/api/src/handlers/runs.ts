@@ -1,7 +1,18 @@
 /**
- * runs.execute — create run row → route by task_class via @atlas/router →
- * update tokens/cost/status. Approval-requiring target capabilities are held
- * (approvals row + run status 'review') — never executed directly.
+ * runs.execute — create run row → execute the target → update status.
+ *
+ * How the target executes is the capability's own declaration. A `handler`
+ * capability does real work in its own code and a run invokes it; a `model`
+ * capability's deliverable is the router's answer.
+ *
+ * That distinction used to not exist: every non-approval capability went to the
+ * router, so a scheduled deterministic check recorded a `succeeded` run
+ * carrying a model's prose about work that never happened. "Has a handler"
+ * could not be the discriminator either, because every capability has a
+ * handler entry and several are typed stubs that throw.
+ *
+ * Approval-requiring targets are held (approvals row + run status 'review') and
+ * reach neither path.
  */
 import { CapabilityError, type CapabilityHandler } from '../pipeline.js';
 
@@ -42,6 +53,43 @@ export const runsExecute: CapabilityHandler = async (ctx, input) => {
     [ctx.spaceId, target.id, target.taskClass, JSON.stringify(capInput)],
   );
   const runId = String(created.rows[0].run_id);
+
+  /*
+   * A deterministic capability runs its own code. Its result is the run's
+   * output, and no tokens are spent — recording a model cost for work a
+   * handler did would make the spend ladder describe something that did not
+   * happen.
+   */
+  if (target.execution === 'handler') {
+    const handler = ctx.deps.handlers[target.id];
+    if (!handler) {
+      await ctx.q.query(
+        `update runs set status = 'failed', output = $2, finished_at = now() where run_id = $1`,
+        [runId, JSON.stringify({ error: `no handler for ${target.id}` })],
+      );
+      return { runId, status: 'failed' };
+    }
+    try {
+      const output = await handler({ q: ctx.q, auth: ctx.auth, spaceId: ctx.spaceId, deps: ctx.deps }, capInput);
+      await ctx.q.query(
+        `update runs set status = 'succeeded', output = $2, answered_by = 'handler', finished_at = now()
+          where run_id = $1`,
+        [runId, JSON.stringify(output)],
+      );
+      return { runId, status: 'succeeded' };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      await ctx.q.query(
+        `update runs set status = 'failed', output = $2, finished_at = now() where run_id = $1`,
+        [runId, JSON.stringify({ error: message })],
+      );
+      await ctx.q.query(`insert into run_logs (run_id, level, message) values ($1, 'error', $2)`, [
+        runId,
+        message.slice(0, 2000),
+      ]);
+      return { runId, status: 'failed' };
+    }
+  }
 
   try {
     const result = await ctx.deps.router.complete(target.taskClass, [

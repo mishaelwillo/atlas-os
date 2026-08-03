@@ -23,6 +23,7 @@ export function capabilityMetaMap(): Record<string, CapabilityRouteMeta> {
       scopes: cap.scopes,
       input: cap.input,
       output: cap.output,
+      execution: cap.execution,
     };
   }
   return map;

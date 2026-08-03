@@ -1,35 +1,35 @@
 # Current Handoff
 
-**Handoff ID:** `schedule-live-sweep`
+**Handoff ID:** `capability-execution-mode`
 **Status:** active
-**Started:** 2026-08-03T20:03:01.528Z
-**Updated:** 2026-08-03T20:03:56.998Z
+**Started:** 2026-08-03T20:16:56.661Z
+**Updated:** 2026-08-03T20:16:56.661Z
 **Actor:** Claude
-**Objective:** Run the live-site sweep without anyone remembering to run it
+**Objective:** Stop runs.execute answering deterministic capabilities with model prose
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `feat/schedule-live-sweep`
+- Branch: `feat/deterministic-capability-execution`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `28d302955265cf63b4a05f461d3bb00726378673`
+- Head commit: `67d6dc1cb773015e0f89dec5b46410c51ff2031d`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- The worker runs factory.verify_live hourly per space, outside the schedules table
+- Every registry entry declares execution: handler or model; runs.execute branches on it; hosting.activate and hosting.cancel gained the handler entries they never had
 
 ## Current working tree
 
-- `M  docs/control/CURRENT_HANDOFF.md`
+- Clean.
 
 ## Verification evidence
 
-- pnpm build, pnpm test (892 tests) and pnpm lint exit 0; the interval floor and the keep-going-on-failure guards each mutation-tested
+- pnpm build, pnpm test (902 tests) and pnpm lint exit 0; the handler branch mutation-tested, failing 4 tests
 
 ## Database actions
 
-- No external action reported.
+- Migration 0008_run_answered_by_handler written and NOT applied; expected_migration still pins 0007_deployment_fingerprint
 - Observed Supabase status: ok (live-read-only at 2026-08-03T06:21:29.385Z).
 
 ## Hosting actions
@@ -43,12 +43,12 @@
 
 ## Blockers
 
-- Scheduling a deterministic capability through the schedules table records a model's prose as a succeeded run, because runs.execute never invokes handlers
+- Until 0008 is applied a handler-executed run will fail the answered_by check constraint
 
 ## Next exact action
 
-Decide whether the registry should say which capabilities are model-run and which are deterministic, so runs.execute stops answering scheduled deterministic capabilities with model prose; decide the Cloudflare Bot Fight Mode setting; wire a rollback capability
+Apply migration 0008_run_answered_by_handler and bump expected_migration, then decide the Cloudflare Bot Fight Mode setting and wire a rollback capability
 
 ## Definition of done
 
-A live site that stops serving its approved build is reported on a timer rather than when someone loads it
+A run of a deterministic capability invokes its handler and records no model cost

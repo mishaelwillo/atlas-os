@@ -30,6 +30,8 @@ export interface CapabilityRouteMeta {
   scopes: readonly string[];
   input: object;
   output: object;
+  /** Whether a run invokes this capability's handler or the model router. */
+  execution: 'handler' | 'model';
 }
 
 export interface HandlerCtx {
