@@ -4,6 +4,23 @@ This file is generated from the executable Atlas capability registry and its
 typed lifecycle metadata. An item listed only in the research or candidate
 ledgers is not executable and does not appear here.
 
+## Analytics
+### `analytics.funnel` — Revenue pilot funnel
+- Stage: candidate
+- Phase: P2C
+- Monetization: operations
+- Autonomy: full-auto
+- Implementation: build
+- Regions: `global`
+- Entitlements: `revenue-pilot`
+- Evidence: none
+- Specification: `docs/specs/p2/revenue-pilot.md`
+- Method: GET
+- Task class: quick
+- Approval required: no
+- Scopes: `leads:write`
+- Description: Counts at every pilot stage with conversion between them, per\-channel counts that attribute nothing, and revenue per currency\. A rate with no denominator is reported as unknown, never as zero, and metrics nothing records are named rather than defaulted\.
+
 ## Customer Engagement
 ### `events.site` — Site event webhook
 - Stage: candidate

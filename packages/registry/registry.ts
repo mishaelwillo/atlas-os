@@ -227,6 +227,14 @@ export const registry = [
     taskClass: 'quick', requiresApproval: false, scopes: ['leads:write'], method: 'GET',
   },
   {
+    id: 'analytics.funnel',
+    name: 'Revenue pilot funnel',
+    description: 'Counts at every pilot stage with conversion between them, per-channel counts that attribute nothing, and revenue per currency. A rate with no denominator is reported as unknown, never as zero, and metrics nothing records are named rather than defaulted.',
+    input: { type: 'object', properties: {} },
+    output: { type: 'object', properties: { stages: { type: 'array' }, rates: { type: 'object' }, revenue: { type: 'object' }, unavailable: { type: 'array' }, empty: { type: 'boolean' }, channelContribution: { type: 'object' }, topBlockers: { type: 'array' }, status: { type: 'string' }, note: { type: 'string' } } },
+    taskClass: 'quick', requiresApproval: false, scopes: ['leads:write'], method: 'GET',
+  },
+  {
     id: 'events.site',
     name: 'Site event webhook',
     description: 'Deployed sites post form/chat/call events here → conversation + qualification workflow.',

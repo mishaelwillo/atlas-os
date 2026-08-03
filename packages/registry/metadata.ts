@@ -350,6 +350,21 @@ export const capabilityMetadata: Record<CapabilityId, CapabilityMetadata> = {
     evidenceIds: [],
     specification: P2_REVENUE_SPECIFICATION,
   },
+  'analytics.funnel': {
+    stage: 'candidate',
+    phase: 'P2C',
+    menuGroup: 'Analytics',
+    regions: ['global'],
+    entitlements: ['revenue-pilot'],
+    monetization: 'operations',
+    implementation: 'build',
+    // Read-only counting. It changes nothing and decides nothing.
+    autonomy: 'full-auto',
+    // The funnel derives from the owning specification's analytics list, not
+    // from the video. No evidence is claimed.
+    evidenceIds: [],
+    specification: P2_REVENUE_SPECIFICATION,
+  },
   'events.site': {
     stage: 'candidate',
     phase: 'P2B',

@@ -56,8 +56,9 @@ blocking finding.
   migrations `0004` and `0005` applied and verified against the ledger, and
   outreach sequence state, offers, terms and hosting activation live alongside
   them — migrations `0004` through `0006` applied and verified against the
-  ledger. The remaining build-now scope is funnel analytics and the operator
-  surface. Lead sourcing still needs a directory adapter that does not exist.
+  ledger — and funnel analytics complete the build-now scope. The funnel is
+  empty because lead sourcing still needs a directory adapter that does not
+  exist, which is what now blocks the pilot's exit criterion.
 
 ## P1 acceptance
 
@@ -339,6 +340,52 @@ control:status` read `0006_offers_and_hosting` from the migration ledger and
 all three tables from `information_schema`, 26 public tables in total. The
 `schema_pending` path in these five capabilities is now unreachable in
 production.
+
+## Funnel analytics
+
+`analytics.funnel` counts every stage the pilot passes through and reports the
+conversion between them. The same computation feeds a `funnel` card in
+`status.mission_control`, so the operator surface stays declarative — the UI
+renders that JSON rather than fetching anything of its own.
+
+It is built to refuse three specific lies:
+
+- **A rate with no denominator is unknown, not zero.** Nothing entering a stage
+  means the conversion cannot be known. "0% reply rate" on a pilot that has sent
+  nothing is worse than "—", because the first invites someone to go and fix
+  messaging that was never sent. The card renders null as an em dash, and both
+  halves are mutation-tested.
+- **A metric nobody records is not zero either.** Provider cost, labour,
+  support time, satisfaction, time-per-stage and demo cost have no source in the
+  schema. They are named as unavailable rather than defaulted to zero and folded
+  into a margin, and no gross-margin figure is reported at all.
+- **Channel counts are not attribution.** The specification asks for "channel
+  sequence contribution (not assumed causation)", so per-channel numbers carry
+  an explicit `attribution: none`.
+
+Two counting decisions worth knowing. A touch counts toward every milestone it
+passed rather than only its current state, so sends do not appear to fall as
+replies arrive. And the standing qualification verdict is counted once per
+prospect, so the qualification rate does not drift with how often prospects are
+re-assessed.
+
+If any funnel table is missing the whole report refuses, because a partial
+funnel — some stages counted, others silently zero — would read as a funnel
+where everybody dropped out.
+
+### The funnel is empty, and that is the finding
+
+Nothing has entered it. Lead sourcing still has no directory adapter, so there
+are no prospects to qualify, no demos to queue and no sequences to run. The card
+says so in those terms rather than showing zeros that look like failure. The
+pilot's exit criterion — one real hosting-paying customer — is blocked on that
+adapter, not on any of the code built for P2C.
+
+### Not verified
+
+The card was not exercised in a signed-in browser. Mission Control needs an
+operator password Claude has never had, so verification stopped at component
+tests, the shape of the `status.mission_control` payload, and the built bundle.
 
 ## Awaiting a decision
 
