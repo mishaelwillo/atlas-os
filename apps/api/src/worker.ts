@@ -7,6 +7,7 @@
  */
 import { runSchedulerTick, type ScheduleRow, type SchedulerStore } from '@atlas/scheduler';
 import { buildDeps } from './deps.js';
+import { runLiveSweepTick, sweepIntervalMs } from './live-sweep.js';
 import { executeCapability, insertAudit, type PipelineDeps } from './pipeline.js';
 
 const TICK_MS = 30_000;
@@ -88,6 +89,29 @@ async function main(): Promise<void> {
 
   await tick();
   setInterval(() => void tick(), TICK_MS);
+
+  /*
+   * The live-site sweep runs on its own timer rather than through the
+   * `schedules` table. That path executes via runs.execute, which sends a
+   * prompt to the model router and records the model's text as the run's
+   * output — it never invokes the capability's handler. A deterministic check
+   * scheduled that way would record a `succeeded` run for a check that never
+   * happened.
+   */
+  const sweepMs = sweepIntervalMs(process.env.ATLAS_VERIFY_LIVE_INTERVAL_MS);
+  console.log('[worker] live-site verification every', sweepMs, 'ms');
+
+  const sweep = async (): Promise<void> => {
+    try {
+      const r = await runLiveSweepTick(deps);
+      if (r.spaces > 0) console.log('[worker] live-site sweep', JSON.stringify(r));
+    } catch (err) {
+      console.error('[worker] live-site sweep failed', err);
+    }
+  };
+
+  await sweep();
+  setInterval(() => void sweep(), sweepMs);
 }
 
 // Only run when invoked directly (not when imported by tests).
