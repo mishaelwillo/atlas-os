@@ -15,6 +15,7 @@ import {
 import { dealsDecide, hostingState, offersPublish } from './offers.js';
 import { automationSequence, sequenceAdvance, sequenceState } from './sequence.js';
 import { statusMissionControl } from './status.js';
+import { verifyLiveSites } from './verify-live.js';
 import {
   benchRun,
   factoryDeploySite,
@@ -43,6 +44,7 @@ export const handlers: Record<string, CapabilityHandler> = {
   'deals.decide': dealsDecide,
   'hosting.state': hostingState,
   'analytics.funnel': analyticsFunnel,
+  'factory.verify_live': verifyLiveSites,
   // typed TODO stubs
   'memory.answer': memoryAnswer,
   'memory.distill': memoryDistill,

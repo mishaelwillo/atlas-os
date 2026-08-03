@@ -147,9 +147,9 @@ export function assertTraceabilityIntegrity(
   );
   // Pinned deliberately: adding an executable capability is a governance
   // event, so the count must be changed knowingly rather than drifting.
-  // 29 as of the P2C funnel.
-  if (executable.size !== 29) {
-    throw new Error(`expected exactly 29 executable capabilities, found ${executable.size}`);
+  // 30 as of the live-site fingerprint sweep.
+  if (executable.size !== 30) {
+    throw new Error(`expected exactly 30 executable capabilities, found ${executable.size}`);
   }
   if (candidate.size !== 31) {
     throw new Error(`expected exactly 31 capability candidates, found ${candidate.size}`);

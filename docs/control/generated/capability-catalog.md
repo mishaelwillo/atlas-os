@@ -478,3 +478,19 @@ ledgers is not executable and does not appear here.
 - Approval required: no
 - Scopes: `factory:write`
 - Description: Re\-render a stored descriptor and return the immutable build\. Access\-controlled, expiring, noindex — never public\.
+
+### `factory.verify_live` — Verify live sites
+- Stage: candidate
+- Phase: P2B
+- Monetization: hosting
+- Autonomy: full-auto
+- Implementation: build
+- Regions: `global`
+- Entitlements: `website-hosting`
+- Evidence: none
+- Specification: `docs/specs/p2/website-factory.md`
+- Method: POST
+- Task class: quick
+- Approval required: no
+- Scopes: `factory:write`
+- Description: Read every live deployment back and compare what its address serves against the build approved for it\. Changes no deployment state: a site that has gone wrong is still the site that is public\. Records the observation and names what is wrong\.
