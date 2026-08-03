@@ -181,3 +181,75 @@ export function planRollback(
 function short(hash: string): string {
   return hash.slice(0, 12);
 }
+
+// ---------- sites that must stay served ----------
+
+/**
+ * A site that is currently live and must survive the next publish.
+ *
+ * `renderedHash` and `html` come from re-rendering its stored descriptor now;
+ * `recordedBuildHash` is what its deployment row says was approved.
+ */
+export interface LiveSibling {
+  siteId: string;
+  slug: string;
+  recordedBuildHash: string;
+  renderedHash: string | null;
+  html: string | null;
+}
+
+export type SiblingRefusalCode = 'sibling_build_drifted' | 'sibling_unrenderable';
+
+export interface SiblingRefusal {
+  ok: false;
+  code: SiblingRefusalCode;
+  message: string;
+  /** Slugs that could not be reproduced. */
+  sites: string[];
+}
+
+export interface SiblingPlan {
+  ok: true;
+  sites: Array<{ slug: string; html: string }>;
+}
+
+/**
+ * Decide which already-live sites go into the next deployment.
+ *
+ * Providers that deploy a whole-site snapshot replace everything each time, so
+ * every live site has to be re-sent with each publish or it goes dark. The
+ * bytes are re-derived by rendering each stored descriptor, which is safe only
+ * because rendering is deterministic — the re-render must reproduce the hash
+ * that deployment recorded.
+ *
+ * When one does not, the publish is refused rather than proceeding. The two
+ * alternatives are worse: dropping that site takes a paying customer offline,
+ * and shipping the new bytes publishes something nobody approved. A refusal
+ * blocks until someone looks, which is the point.
+ */
+export function planSiblings(siblings: readonly LiveSibling[]): SiblingPlan | SiblingRefusal {
+  const unrenderable = siblings.filter((s) => s.html === null || s.renderedHash === null);
+  if (unrenderable.length > 0) {
+    return {
+      ok: false,
+      code: 'sibling_unrenderable',
+      message: `these live sites no longer render, so they cannot be kept served: ${unrenderable.map((s) => s.slug).join(', ')}`,
+      sites: unrenderable.map((s) => s.slug),
+    };
+  }
+
+  const drifted = siblings.filter((s) => s.renderedHash !== s.recordedBuildHash);
+  if (drifted.length > 0) {
+    return {
+      ok: false,
+      code: 'sibling_build_drifted',
+      message: `these live sites no longer reproduce the build that was approved for them, so republishing would serve bytes nobody approved: ${drifted.map((s) => s.slug).join(', ')}`,
+      sites: drifted.map((s) => s.slug),
+    };
+  }
+
+  return {
+    ok: true,
+    sites: siblings.map((s) => ({ slug: s.slug, html: s.html as string })),
+  };
+}

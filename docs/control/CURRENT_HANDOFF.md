@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `fix-deployment-insert-types`
+**Handoff ID:** `pages-serves-every-live-site`
 **Status:** active
-**Started:** 2026-08-03T06:32:58.820Z
-**Updated:** 2026-08-03T06:32:58.820Z
+**Started:** 2026-08-03T16:53:17.979Z
+**Updated:** 2026-08-03T16:53:17.979Z
 **Actor:** Claude
-**Objective:** Make the fingerprint read-back's insert executable against the real schema
+**Objective:** Stop each publish deleting every previously published site
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `fix/deployment-insert-parameter-types`
+- Branch: `fix/pages-serves-every-live-site`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `5dadb1ceb977bb5deaa66f6d5c01f2d0b6a4187e`
+- Head commit: `3909aa394feb9c5daca4349bf03c3da5ed05afef`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Not supplied.
+- PublishTarget gains a required alsoServe set; the dispatcher gathers live siblings and refuses when one no longer reproduces its approved build
 
 ## Current working tree
 
@@ -25,11 +25,11 @@
 
 ## Verification evidence
 
-- 42P08 reproduced against production; the corrected statement verified in a rolled-back transaction for both the live and queued branches
+- pnpm build, pnpm test (869 tests) and pnpm lint exit 0; sibling inclusion mutation-tested
 
 ## Database actions
 
-- Ran the insert twice inside begin/rollback against production to verify parameter typing; nothing was committed
+- Moved both fixture deployments from live to rolled_back with an audit row each; no live deployment remains
 - Observed Supabase status: ok (live-read-only at 2026-08-03T06:21:29.385Z).
 
 ## Hosting actions
@@ -39,16 +39,16 @@
 
 ## External side effects
 
-- No external action reported.
+- Rolled Cloudflare Pages back to fe747724, its pre-fixture placeholder, taking both fixture sites down at the operator's request
 
 ## Blockers
 
-- One deploy approval is pending from the failed attempt and can be decided once the fix deploys
+- No rollback capability exists in the registry, so the takedown was a direct database write
 
 ## Next exact action
 
-Decide the pending deploy approval to record a real fingerprint, then run the timed acceptance through Mission Control
+Decide the Cloudflare Bot Fight Mode setting, add a sweep that re-checks previously-live sites, and wire a rollback capability so takedowns stop needing direct database writes
 
 ## Definition of done
 
-A publish records public_fingerprint and fingerprint_matches without erroring
+A publish keeps every already-live site served, or refuses

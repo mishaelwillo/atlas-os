@@ -4,7 +4,13 @@
  * previous fingerprint healthy."
  */
 import { describe, expect, it } from 'vitest';
-import { planPublish, planRollback, type DeploymentRecord } from './publish.js';
+import {
+  planPublish,
+  planRollback,
+  planSiblings,
+  type DeploymentRecord,
+  type LiveSibling,
+} from './publish.js';
 
 const HASH_A = 'a'.repeat(64);
 const HASH_B = 'b'.repeat(64);
@@ -192,5 +198,66 @@ describe('rollback planning', () => {
     if (!plan.ok) throw new Error('expected a plan');
     expect(plan.version).toBe(3);
     expect(plan.target.version).toBe(1);
+  });
+});
+
+/**
+ * Providers that deploy a whole-site snapshot replace everything each time, so
+ * every live site has to be re-sent with each publish or it goes dark. That
+ * happened in production: publishing a second site left the first answering 404
+ * while its deployment row still read `live`.
+ */
+describe('keeping already-live sites served', () => {
+  function sibling(overrides: Partial<LiveSibling> = {}): LiveSibling {
+    return {
+      siteId: 'site-1',
+      slug: 'bravo-plumbing-2b3c4d5e',
+      recordedBuildHash: HASH_B,
+      renderedHash: HASH_B,
+      html: '<html>Bravo</html>',
+      ...overrides,
+    };
+  }
+
+  it('passes through every site that still reproduces its approved build', () => {
+    const plan = planSiblings([
+      sibling(),
+      sibling({ siteId: 'site-2', slug: 'charlie-roofing-3c', recordedBuildHash: HASH_C, renderedHash: HASH_C, html: '<html>C</html>' }),
+    ]);
+    expect(plan).toMatchObject({ ok: true });
+    if (!plan.ok) throw new Error('expected a plan');
+    expect(plan.sites.map((s) => s.slug)).toEqual(['bravo-plumbing-2b3c4d5e', 'charlie-roofing-3c']);
+  });
+
+  it('is satisfied by nothing else being live', () => {
+    expect(planSiblings([])).toMatchObject({ ok: true, sites: [] });
+  });
+
+  /**
+   * Refusing is the least-bad option. Dropping the site takes a paying customer
+   * offline; shipping the new bytes publishes something nobody approved.
+   */
+  it('refuses when a live site no longer reproduces its approved build', () => {
+    const refusal = planSiblings([sibling({ renderedHash: HASH_C })]);
+    expect(refusal).toMatchObject({ ok: false, code: 'sibling_build_drifted' });
+    if (refusal.ok) throw new Error('expected refusal');
+    expect(refusal.sites).toEqual(['bravo-plumbing-2b3c4d5e']);
+    expect(refusal.message).toContain('nobody approved');
+  });
+
+  it('refuses when a live site no longer renders at all', () => {
+    const refusal = planSiblings([sibling({ renderedHash: null, html: null })]);
+    expect(refusal).toMatchObject({ ok: false, code: 'sibling_unrenderable' });
+    if (refusal.ok) throw new Error('expected refusal');
+    expect(refusal.sites).toEqual(['bravo-plumbing-2b3c4d5e']);
+  });
+
+  /** An unrenderable site is reported as such, not as drift. */
+  it('reports unrenderable ahead of drifted', () => {
+    const refusal = planSiblings([
+      sibling({ renderedHash: null, html: null }),
+      sibling({ siteId: 'site-2', slug: 'other', renderedHash: HASH_C }),
+    ]);
+    expect(refusal).toMatchObject({ ok: false, code: 'sibling_unrenderable' });
   });
 });

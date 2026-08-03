@@ -99,15 +99,32 @@ export class CloudflarePagesHosting implements HostingAdapter {
   }
 
   async publish(target: PublishTarget): Promise<PublishedSite> {
-    // The site lives at its own path so one project can host many businesses.
-    const path = `/${target.slug}/index.html`;
-    const key = pagesFileHash(target.html);
-    const entry: UploadEntry = {
-      key,
-      value: Buffer.from(target.html, 'utf8').toString('base64'),
-      metadata: { contentType: 'text/html' },
-      base64: true,
-    };
+    /*
+     * A Pages deployment is a complete snapshot of the project, not a patch.
+     * A manifest carrying only the site being promoted therefore deletes every
+     * other one — which is exactly what happened before this took `alsoServe`:
+     * publishing a second site left the first answering 404 while its
+     * deployment row still read `live`.
+     *
+     * So every live site goes into every deployment. Duplicate slugs collapse
+     * to the promoted build, because that is the one being approved now.
+     */
+    const files = new Map<string, string>();
+    for (const site of target.alsoServe) files.set(site.slug, site.html);
+    files.set(target.slug, target.html);
+
+    const entries: UploadEntry[] = [];
+    const manifest: Record<string, string> = {};
+    for (const [slug, html] of [...files].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) {
+      const fileKey = pagesFileHash(html);
+      manifest[`/${slug}/index.html`] = fileKey;
+      entries.push({
+        key: fileKey,
+        value: Buffer.from(html, 'utf8').toString('base64'),
+        metadata: { contentType: 'text/html' },
+        base64: true,
+      });
+    }
 
     const tokenResult = await cfJson(
       await this.fetchImpl(`${this.base}/upload-token`, {
@@ -123,7 +140,7 @@ export class CloudflarePagesHosting implements HostingAdapter {
       await this.fetchImpl('https://api.cloudflare.com/client/v4/pages/assets/upload', {
         method: 'POST',
         headers: { Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify([entry]),
+        body: JSON.stringify(entries),
       }),
       'uploading the build',
     );
@@ -134,7 +151,7 @@ export class CloudflarePagesHosting implements HostingAdapter {
      * body Cloudflare's form parser cannot read.
      */
     const form = new FormData();
-    form.append('manifest', JSON.stringify({ [path]: key }));
+    form.append('manifest', JSON.stringify(manifest));
 
     const deployment = await cfJson(
       await this.fetchImpl(`${this.base}/deployments`, {

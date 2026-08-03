@@ -6,7 +6,7 @@
 import { insertAudit, type ApprovalDispatcher } from './pipeline.js';
 import type { Descriptor } from './factory/dossier.js';
 import { renderSite } from './factory/render.js';
-import { planPublish } from './factory/publish.js';
+import { planPublish, planSiblings, type LiveSibling } from './factory/publish.js';
 import { runQa } from './factory/qa.js';
 import { classifyFingerprint } from './factory/fingerprint.js';
 import { planTouchAdvance } from './revenue/sequence.js';
@@ -203,6 +203,41 @@ const factoryDeploySite: ApprovalDispatcher = async (ctx, payload) => {
   }
 
   /*
+   * Every other live site has to go into this deployment or it goes dark: the
+   * provider replaces the whole project each time. Their bytes are re-derived
+   * by rendering each stored descriptor, which is only safe because rendering
+   * is deterministic — so each re-render must reproduce the hash that site's
+   * deployment recorded.
+   */
+  const liveRows = await ctx.q.query(
+    `select d.site_id, d.build_hash, s.business_name, s.descriptor
+       from site_deployments d
+       join sites s on s.site_id = d.site_id
+      where d.status = 'live' and d.environment = 'production' and d.site_id <> $1`,
+    [siteId],
+  );
+  const siblings: LiveSibling[] = liveRows.rows.map((r) => {
+    const siblingId = String(r.site_id);
+    const rendered = renderSite(r.descriptor as Descriptor);
+    return {
+      siteId: siblingId,
+      slug: siteSlug(String(r.business_name ?? ''), siblingId),
+      recordedBuildHash: String(r.build_hash),
+      renderedHash: rendered.rendered ? rendered.hash : null,
+      html: rendered.rendered ? rendered.html : null,
+    };
+  });
+
+  const kept = planSiblings(siblings);
+  if (!kept.ok) {
+    await insertAudit(ctx.q, ctx.spaceId, ctx.auth.actor, 'factory.deploy_refused', siteId, {
+      code: kept.code,
+      sites: kept.sites,
+    });
+    return { executed: false, note: kept.message, code: kept.code };
+  }
+
+  /*
    * Attempt the publish first, then record the outcome. A failure is kept as a
    * queued row carrying the provider's reason rather than being discarded: the
    * operator approved this, so the attempt belongs in history either way.
@@ -216,6 +251,7 @@ const factoryDeploySite: ApprovalDispatcher = async (ctx, payload) => {
       html: render.rendered ? render.html : '',
       buildHash: plan.buildHash,
       version: plan.version,
+      alsoServe: kept.sites,
     });
   } catch (err) {
     publishError = err instanceof Error ? err.message : String(err);
