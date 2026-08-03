@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `p2b-benchmark-result`
+**Handoff ID:** `publish-fingerprint-readback`
 **Status:** active
-**Started:** 2026-08-03T05:44:02.794Z
-**Updated:** 2026-08-03T05:44:02.794Z
+**Started:** 2026-08-03T05:57:40.730Z
+**Updated:** 2026-08-03T05:57:40.730Z
 **Actor:** Claude
-**Objective:** Record the P2B benchmark run and what it found
+**Objective:** Measure the published fingerprint instead of asserting it
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `docs/p2b-benchmark-result`
+- Branch: `feat/publish-fingerprint-readback`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `5c2f0f94de617f82dd4a38ecf603d54c84bab1fb`
+- Head commit: `a13cbc0090547bc3ae2713a4cbe6d9f771880599`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Not supplied.
+- site_deployments gains public_fingerprint, fingerprint_checked_at and fingerprint_matches; PipelineDeps gains an injected readPublic
 
 ## Current working tree
 
@@ -25,11 +25,11 @@
 
 ## Verification evidence
 
-- Pages origin serves sha256 13b4d140 which equals the approved build hash exactly; the proxied public address serves b9957589 with an injected cdn-cgi challenge-platform script
+- pnpm build, pnpm test (858 tests) and pnpm lint exit 0; the unreadable guard mutation-tested, failing 7 tests
 
 ## Database actions
 
-- The two runs created two sites, two approvals and two deployments in the studio space, one queued and one live
+- Migration 0007_deployment_fingerprint written and NOT applied; expected_migration still pins 0006_offers_and_hosting
 - Observed Supabase status: ok (live-read-only at 2026-08-03T03:24:58.972Z).
 
 ## Hosting actions
@@ -39,16 +39,16 @@
 
 ## External side effects
 
-- Published a fictional acceptance-test site, still serving at sites.andtronai.com/atlas-acceptance-test-plumbing-5bb7da70 and carrying noindex
+- No external action reported.
 
 ## Blockers
 
-- The public fingerprint does not equal the approved build because the zone injects a bot-detection script, so the P2B acceptance does not pass
+- The zone still injects a bot-detection script, so a real publish will now record fingerprint_matches false until that setting changes
 
 ## Next exact action
 
-Decide the Cloudflare Bot Fight Mode setting for sites.andtronai.com, add a post-publish fingerprint read-back, and run the timed acceptance through Mission Control
+Apply migration 0007_deployment_fingerprint, decide the Cloudflare Bot Fight Mode setting for sites.andtronai.com, then run the timed acceptance through Mission Control
 
 ## Definition of done
 
-The benchmark result and both findings are recorded against the specification they bear on
+A deployment records what the public address actually served, and an unreadable address is never recorded as a match
