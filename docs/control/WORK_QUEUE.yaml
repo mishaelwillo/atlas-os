@@ -63,7 +63,7 @@ items:
     specification: docs/specs/p2/website-factory.md
     acceptance_checks:
       - GBP or profile URL becomes an approved live demo in under 30 minutes
-    next_action: Build-now scope is complete — dossier, descriptor, templates, generation, QA gate, preview, approvals, deployment record, rollback and events; the remaining acceptance is a timed benchmark run from profile URL to approved live demo
+    next_action: The 2026-08-03 machine run published a site end to end and proved the publish path, but the public fingerprint differs from the approved build because the zone injects a bot-detection script; decide that zone setting, add a post-publish read-back, and run the timed acceptance through Mission Control
   - id: P2C-REVENUE-001
     phase: P2C
     title: Run the minimum complete revenue pilot
