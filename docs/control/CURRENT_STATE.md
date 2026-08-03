@@ -510,18 +510,38 @@ misconfigured value cannot turn it into a load test on customer sites. A drift
 finding is logged at error level, because a live site not serving its approved
 build is the condition the whole mechanism exists to surface.
 
-**It deliberately does not use the `schedules` table.** That path executes via
-`runs.execute`, which for a non-approval capability sends a prompt to the model
-router and records the model's text as the run's output — it never invokes the
-capability's handler. Scheduling a deterministic check that way would record a
-`succeeded` run for a check that never happened, which is worse than not
-scheduling it. That is a defect in `runs.execute` in its own right: every
-capability in the registry has a handler entry, several of which are typed
-stubs that throw, so "has a handler" cannot be the discriminator either. Fixing
-it properly needs the registry to say which capabilities are model-run and
-which are deterministic, and that is a governance change nobody has decided.
-Until then, anything scheduled through `schedules` is a model answering a
-prompt about the capability, not the capability running.
+It runs on its own timer rather than through the `schedules` table, which is
+now a preference rather than a necessity: that path was fixed separately, and
+the sweep's dedicated interval keeps a platform health check out of tenant
+automation.
+
+## How a capability executes
+
+Every registry entry declares `execution: 'handler' | 'model'`. A `handler`
+capability does real work in its own code and a run invokes it; a `model`
+capability's deliverable is the router's answer. Only `memory.answer` and
+`memory.distill` are model-answered — they are the token ladder.
+
+Before this, `runs.execute` sent **every** non-approval capability to the model
+router. Scheduling a deterministic check produced a `succeeded` run carrying a
+model's prose about work that never happened, and the run's cost column
+recorded tokens spent describing it. "Has a handler" could not be the
+discriminator, because every capability has a handler entry and several are
+typed stubs that throw — which is exactly the honest outcome for those: a
+failed run rather than an invented answer.
+
+The field is required, not defaulted. A default would put the next capability
+back in the same hole; declaring it is the point.
+
+A handler-executed run records `answered_by = 'handler'` (migration `0008`
+widens the token-ladder check) and no tokens or cost, because no model was
+called. Recording a deterministic run as `model` would put a model's name
+against work no model did.
+
+**Two capabilities had no handler entry at all.** `hosting.activate` and
+`hosting.cancel` were added approval-gated, so nothing reached for them and
+nothing complained — the handler map's own header claimed completeness was
+asserted in tests, and no such test existed. It does now, and the stubs exist.
 
 ### What the run left in production
 

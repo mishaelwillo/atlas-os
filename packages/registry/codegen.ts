@@ -91,6 +91,7 @@ function genRoutes(caps: Capability[]): string {
         scopes: cap.scopes,
         input: cap.input,
         output: cap.output,
+        execution: cap.execution,
       };
       return `  registerCapabilityRoute(app, ${JSON.stringify(meta, null, 2).split('\n').join('\n  ')} as const satisfies CapabilityRouteMeta, deps);`;
     })

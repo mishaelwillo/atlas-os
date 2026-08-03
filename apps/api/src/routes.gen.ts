@@ -85,7 +85,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "number"
         }
       }
-    }
+    },
+    "execution": "model"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "memory.ingest",
@@ -121,7 +122,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "number"
         }
       }
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "memory.distill",
@@ -149,7 +151,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "number"
         }
       }
-    }
+    },
+    "execution": "model"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "memory.adjudicate",
@@ -180,7 +183,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
     },
     "output": {
       "type": "object"
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "runs.execute",
@@ -216,7 +220,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "string"
         }
       }
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "playbooks.author",
@@ -250,7 +255,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "number"
         }
       }
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "factory.build_site",
@@ -316,7 +322,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "object"
         }
       }
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "factory.preview",
@@ -361,7 +368,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "object"
         }
       }
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "factory.deploy_site",
@@ -392,7 +400,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "string"
         }
       }
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "leads.find",
@@ -429,7 +438,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "array"
         }
       }
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "prospecting.qualify",
@@ -484,7 +494,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "string"
         }
       }
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "prospecting.workspace",
@@ -520,7 +531,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "string"
         }
       }
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "demos.enqueue",
@@ -565,7 +577,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "string"
         }
       }
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "demos.advance",
@@ -611,7 +624,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "string"
         }
       }
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "outreach.send",
@@ -650,7 +664,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "string"
         }
       }
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "automation.sequence",
@@ -702,7 +717,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "string"
         }
       }
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "sequence.advance",
@@ -760,7 +776,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "string"
         }
       }
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "sequence.state",
@@ -811,7 +828,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "string"
         }
       }
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "offers.publish",
@@ -898,7 +916,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "string"
         }
       }
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "deals.decide",
@@ -954,7 +973,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "string"
         }
       }
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "hosting.activate",
@@ -982,7 +1002,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "string"
         }
       }
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "hosting.cancel",
@@ -1013,7 +1034,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "string"
         }
       }
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "hosting.state",
@@ -1052,7 +1074,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "string"
         }
       }
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "analytics.funnel",
@@ -1099,7 +1122,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "string"
         }
       }
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "factory.verify_live",
@@ -1137,7 +1161,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "string"
         }
       }
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "events.site",
@@ -1175,7 +1200,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "string"
         }
       }
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "approvals.list",
@@ -1195,7 +1221,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "array"
         }
       }
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "approvals.decide",
@@ -1228,7 +1255,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
     },
     "output": {
       "type": "object"
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "status.mission_control",
@@ -1243,7 +1271,8 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
     },
     "output": {
       "type": "object"
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
   registerCapabilityRoute(app, {
     "id": "bench.run",
@@ -1268,6 +1297,7 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "array"
         }
       }
-    }
+    },
+    "execution": "handler"
   } as const satisfies CapabilityRouteMeta, deps);
 }
