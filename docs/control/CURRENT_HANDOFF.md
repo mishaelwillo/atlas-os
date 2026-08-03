@@ -1,18 +1,18 @@
 # Current Handoff
 
-**Handoff ID:** `pin-migration-0007`
+**Handoff ID:** `fix-deployment-insert-types`
 **Status:** active
-**Started:** 2026-08-03T06:18:08.355Z
-**Updated:** 2026-08-03T06:18:08.355Z
+**Started:** 2026-08-03T06:32:58.820Z
+**Updated:** 2026-08-03T06:32:58.820Z
 **Actor:** Claude
-**Objective:** Pin the applied 0007 schema across the control plane
+**Objective:** Make the fingerprint read-back's insert executable against the real schema
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `chore/pin-migration-0007`
+- Branch: `fix/deployment-insert-parameter-types`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `b7b5a9f245a54950e160ecb992546de6a61cf061`
+- Head commit: `5dadb1ceb977bb5deaa66f6d5c01f2d0b6a4187e`
 - Review status: pending independent review
 
 ## Task change evidence
@@ -25,17 +25,17 @@
 
 ## Verification evidence
 
-- control:status observed migration 0007_deployment_fingerprint; required_tables unchanged because 0007 adds columns rather than tables
+- 42P08 reproduced against production; the corrected statement verified in a rolled-back transaction for both the live and queued branches
 
 ## Database actions
 
-- Operator applied 0007_deployment_fingerprint; verified by reading the migration ledger through control:status
-- Observed Supabase status: ok (live-read-only at 2026-08-03T06:17:21.348Z).
+- Ran the insert twice inside begin/rollback against production to verify parameter typing; nothing was committed
+- Observed Supabase status: ok (live-read-only at 2026-08-03T06:21:29.385Z).
 
 ## Hosting actions
 
-- Set ATLAS_SCHEMA_VERSION=0007_deployment_fingerprint on the Railway api and os services
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-03T06:17:21.348Z).
+- No external action reported.
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-03T06:21:29.385Z).
 
 ## External side effects
 
@@ -43,12 +43,12 @@
 
 ## Blockers
 
-- Not supplied.
+- One deploy approval is pending from the failed attempt and can be decided once the fix deploys
 
 ## Next exact action
 
-Decide the Cloudflare Bot Fight Mode setting for sites.andtronai.com, then run the timed acceptance through Mission Control
+Decide the pending deploy approval to record a real fingerprint, then run the timed acceptance through Mission Control
 
 ## Definition of done
 
-Expected and observed migration identity agree, and neither service fingerprint claims a schema it is not running
+A publish records public_fingerprint and fingerprint_matches without erroring
