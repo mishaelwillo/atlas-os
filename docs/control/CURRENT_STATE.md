@@ -54,10 +54,10 @@ blocking finding.
   suppression plus a per-space daily cap are enforced before an approval is
   created. Prospect qualification and the demo queue are built and live, with
   migrations `0004` and `0005` applied and verified against the ledger, and
-  outreach sequence state live alongside them. Offers, terms and hosting
-  activation are built and await migration `0006`. The remaining build-now
-  scope is funnel analytics and the operator surface. Lead sourcing still needs
-  a directory adapter that does not exist.
+  outreach sequence state, offers, terms and hosting activation live alongside
+  them — migrations `0004` through `0006` applied and verified against the
+  ledger. The remaining build-now scope is funnel analytics and the operator
+  surface. Lead sourcing still needs a directory adapter that does not exist.
 
 ## P1 acceptance
 
@@ -328,11 +328,17 @@ export. A customer who paid for the period keeps it, because cancelling is not
 a refund and taking a paid-for site down early would be worse service than the
 thing being cancelled.
 
-### Migration 0006 is written and not applied
+### Migration 0006 is applied
 
-`supabase/migrations/0006_offers_and_hosting.sql` creates `offers`,
-`deal_decisions` and `hosting_entitlements`. The five capabilities report
-`schema_pending` until it runs.
+`supabase/migrations/0006_offers_and_hosting.sql` created `offers`,
+`deal_decisions` and `hosting_entitlements`. The operator applied it on
+2026-08-03.
+
+Verified the same way as `0004` and `0005`: `railway run --service api pnpm
+control:status` read `0006_offers_and_hosting` from the migration ledger and
+all three tables from `information_schema`, 26 public tables in total. The
+`schema_pending` path in these five capabilities is now unreachable in
+production.
 
 ## Awaiting a decision
 
