@@ -7,6 +7,7 @@ import { insertAudit, type ApprovalDispatcher } from './pipeline.js';
 import type { Descriptor } from './factory/dossier.js';
 import { renderSite } from './factory/render.js';
 import { planPublish } from './factory/publish.js';
+import { runQa } from './factory/qa.js';
 import { siteSlug } from './factory/hosting.js';
 
 /**
@@ -95,10 +96,22 @@ const factoryDeploySite: ApprovalDispatcher = async (ctx, payload) => {
       }
     : null;
 
+  /*
+   * QA runs on the bytes about to be promoted, not on a verdict recorded when
+   * the approval was created. Checks are deterministic over the same build, so
+   * this cannot disagree with what the operator saw unless the descriptor
+   * changed — which is precisely when it must.
+   */
+  const descriptor = row.descriptor as Descriptor;
+  const qa = render.rendered
+    ? runQa({ html: render.html, descriptor, tokens: render.tokens })
+    : null;
+
   const plan = planPublish({
     approvedBuildHash,
     currentBuildHash: render.rendered ? render.hash : null,
     renderIssues: render.rendered ? [] : render.issues,
+    qaFailures: qa ? qa.blocking.map((c) => c.id) : [],
     latestVersion,
     live,
   });
@@ -106,8 +119,14 @@ const factoryDeploySite: ApprovalDispatcher = async (ctx, payload) => {
   if (!plan.ok) {
     await insertAudit(ctx.q, ctx.spaceId, ctx.auth.actor, 'factory.deploy_refused', siteId, {
       code: plan.code,
+      qaFailures: plan.qaFailures ?? [],
     });
-    return { executed: false, note: plan.message, code: plan.code };
+    return {
+      executed: false,
+      note: plan.message,
+      code: plan.code,
+      qaFailures: plan.qaFailures,
+    };
   }
 
   /*

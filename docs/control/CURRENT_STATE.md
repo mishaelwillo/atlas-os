@@ -45,10 +45,11 @@ blocking finding.
   source-free quarantine, versioned playbook authoring under approval, and
   Mission Control drift and memory-freshness cards. The remaining agent audit
   views are candidates gated on an evidence decision.
-- **P2B Website Factory** — sourced descriptors, the template library with
-  deterministic escaped rendering, and access-controlled expiring previews with
-  a sandboxed viewer are live. Publishing is blocked pending a hosting,
-  domain-proof and entitlement decision.
+- **P2B Website Factory** — build-now scope done: sourced descriptors, the
+  template library with deterministic escaped rendering, access-controlled
+  expiring previews with a sandboxed viewer, publish verification and rollback
+  history, and the QA gate. The remaining acceptance is a timed benchmark run
+  from profile URL to approved live demo.
 - **P2C Revenue pilot** — outreach drafting exists in the product, and
   suppression plus a per-space daily cap are enforced before an approval is
   created. Lead sourcing needs a directory adapter that does not exist.
@@ -145,6 +146,31 @@ that does not serve.
 above are prose rather than validated configuration. Extending the schema so
 the collector can observe the Pages deployment is a genuine follow-up; until
 then hosting drift is not detected.
+
+## Build QA
+
+A build runs twenty-eight checks — twenty-seven blocking, one advisory —
+before it can be approved for publish, covering the seven categories the
+Website Factory acceptance names:
+accessibility, responsive, link, structured-data, privacy, security, and
+performance. The gate runs twice — once before the approval row is created, so
+an operator is never asked to approve an unpublishable build, and again in the
+dispatcher before the build is handed to hosting, because the descriptor can
+change in between.
+
+Checks read only the rendered bytes and the descriptor: no network, no clock,
+no headless browser. That keeps the verdict reproducible for the same build,
+which is what lets it sit next to the fingerprint check without contradicting
+it. Nothing is stored for the same reason a render is not stored — a saved
+verdict could drift from the build it claims to describe, and it is cheaper to
+recompute than to reconcile. The spec's `qa_result` table is therefore not
+backed by a migration; if a QA history is ever wanted, that becomes real work.
+
+Severity is real: a page over its 40 KB weight budget is reported as an
+advisory and still publishes, while the 150 KB hard limit blocks. One check is
+stricter than it may look — an outbound source link over plain `http` fails
+`link.scheme`, because the dossier admits an http source and nothing else would
+stop it reaching a published page.
 
 ## Awaiting a decision
 

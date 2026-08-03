@@ -139,6 +139,74 @@ describe('deterministic render', () => {
     expect(outcome.html).toContain('content="noindex,nofollow"');
   });
 
+  /**
+   * The accessibility contract templates declare is met by the markup, not by
+   * a later fix-up pass: one top-level heading, and a heading on every section.
+   */
+  it('makes the business name the single top-level heading', () => {
+    const outcome = renderSite(tradesDescriptor());
+    if (!outcome.rendered) throw new Error('expected a render');
+    expect(outcome.html.match(/<h1[\s>]/g) ?? []).toHaveLength(1);
+    expect(outcome.html).toContain('<h1 id="hero-heading">');
+    expect(outcome.html).toContain('Acme Plumbing');
+  });
+
+  it('heads every other section with its declared title', () => {
+    const outcome = renderSite(tradesDescriptor());
+    if (!outcome.rendered) throw new Error('expected a render');
+    expect(outcome.html).toContain('<h2 id="contact-heading">Contact</h2>');
+    expect(outcome.html).toContain('<h2 id="hours-heading">Opening hours</h2>');
+  });
+
+  it('declares a content security policy and a privacy notice', () => {
+    const outcome = renderSite(tradesDescriptor());
+    if (!outcome.rendered) throw new Error('expected a render');
+    expect(outcome.html).toContain("default-src 'none'");
+    expect(outcome.html).toContain('data-privacy-notice');
+  });
+
+  it('exposes the template tokens the build was rendered with', () => {
+    const outcome = renderSite(tradesDescriptor());
+    if (!outcome.rendered) throw new Error('expected a render');
+    expect(outcome.tokens).toEqual(findTemplate('trades-1')?.tokens);
+  });
+
+  /** Structured data restates sourced facts and adds none of its own. */
+  it('emits JSON-LD built only from sourced facts', () => {
+    const outcome = renderSite(tradesDescriptor());
+    if (!outcome.rendered) throw new Error('expected a render');
+    const block = /<script type="application\/ld\+json">([^<]*)<\/script>/.exec(outcome.html);
+    expect(block).not.toBeNull();
+    expect(JSON.parse(block?.[1] ?? '{}')).toEqual({
+      '@context': 'https://schema.org',
+      '@type': 'LocalBusiness',
+      name: 'Acme Plumbing',
+      openingHours: 'Mon-Fri 9-5',
+      telephone: '555-0100',
+    });
+  });
+
+  /** A fact value must not be able to close the data block it sits in. */
+  it('escapes markup out of the JSON-LD block', () => {
+    const descriptor = buildDescriptor({
+      profileUrl: SRC,
+      region: 'global',
+      template: 'trades-1',
+      stylePack: null,
+      dossier: buildDossier([
+        fact('businessName', '</script><script>alert(1)</script>'),
+        fact('phone', '555-0100'),
+        fact('hours', 'Mon-Fri'),
+      ]),
+    });
+    const outcome = renderSite(descriptor);
+    if (!outcome.rendered) throw new Error('expected a render');
+    const block = /<script type="application\/ld\+json">([^<]*)<\/script>/.exec(outcome.html);
+    expect(block).not.toBeNull();
+    expect(JSON.parse(block?.[1] ?? '{}').name).toBe('</script><script>alert(1)</script>');
+    expect(outcome.html).not.toContain('<script>alert(1)</script>');
+  });
+
   it('carries a source link for every displayed fact', () => {
     const outcome = renderSite(tradesDescriptor());
     if (!outcome.rendered) throw new Error('expected a render');

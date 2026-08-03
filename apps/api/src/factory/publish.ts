@@ -11,6 +11,7 @@ import type { CombinationIssue } from './templates.js';
 
 export type PublishRefusalCode =
   | 'template_unsatisfied'
+  | 'qa_failed'
   | 'build_changed_since_approval'
   | 'already_live';
 
@@ -19,6 +20,8 @@ export interface PublishRefusal {
   code: PublishRefusalCode;
   message: string;
   issues?: CombinationIssue[];
+  /** Blocking QA check ids, when the refusal is `qa_failed`. */
+  qaFailures?: string[];
 }
 
 export interface PublishPlan {
@@ -42,6 +45,12 @@ export interface PublishInput {
   currentBuildHash: string | null;
   /** Issues from re-validating the descriptor against its template. */
   renderIssues: CombinationIssue[];
+  /**
+   * Blocking QA check ids for the build being promoted. Empty means the
+   * required accessibility, responsive, link, structured-data, privacy,
+   * security and performance checks all passed.
+   */
+  qaFailures: readonly string[];
   /** Highest version already recorded for this site. */
   latestVersion: number;
   live: LiveDeployment | null;
@@ -54,6 +63,11 @@ export interface PublishInput {
  * deterministic, so a mismatch means the descriptor changed between approval
  * and publish — exactly the case where publishing would put something live
  * that no one approved.
+ *
+ * QA is re-decided here for the same reason the hash is. An approval recorded
+ * earlier says an operator was willing to publish; it does not say the bytes
+ * being promoted still pass the required checks. A build that fails one cannot
+ * be published, whoever approved it.
  */
 export function planPublish(input: PublishInput): PublishPlan | PublishRefusal {
   if (input.currentBuildHash === null) {
@@ -62,6 +76,14 @@ export function planPublish(input: PublishInput): PublishPlan | PublishRefusal {
       code: 'template_unsatisfied',
       message: 'the descriptor no longer renders; nothing can be published',
       issues: input.renderIssues,
+    };
+  }
+  if (input.qaFailures.length > 0) {
+    return {
+      ok: false,
+      code: 'qa_failed',
+      message: `the build fails required QA checks: ${input.qaFailures.join(', ')}`,
+      qaFailures: [...input.qaFailures],
     };
   }
   if (input.currentBuildHash !== input.approvedBuildHash) {

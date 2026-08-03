@@ -297,6 +297,9 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
         },
         "renderIssues": {
           "type": "array"
+        },
+        "qa": {
+          "type": "object"
         }
       }
     }
@@ -339,6 +342,9 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
         },
         "issues": {
           "type": "array"
+        },
+        "qa": {
+          "type": "object"
         }
       }
     }

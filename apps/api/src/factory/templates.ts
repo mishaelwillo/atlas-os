@@ -13,6 +13,13 @@
 
 export interface SectionContract {
   id: string;
+  /**
+   * Visible heading. Every section needs one: a region of the page with no
+   * heading is unreachable by the heading navigation a screen-reader user
+   * relies on, and the accessibility contract makes that a build failure
+   * rather than a style opinion.
+   */
+  title: string;
   /** Facts this section cannot render without. */
   requires: readonly string[];
   /** Facts it will use when present. */
@@ -36,9 +43,9 @@ export const TEMPLATE_LIBRARY: readonly Template[] = [
     vertical: 'trades',
     regions: ['global', 'north-america', 'caribbean'],
     sections: [
-      { id: 'hero', requires: ['businessName'], optional: ['tagline'] },
-      { id: 'contact', requires: ['phone'], optional: ['email', 'address'] },
-      { id: 'hours', requires: ['hours'] },
+      { id: 'hero', title: 'Overview', requires: ['businessName'], optional: ['tagline'] },
+      { id: 'contact', title: 'Contact', requires: ['phone'], optional: ['email', 'address'] },
+      { id: 'hours', title: 'Opening hours', requires: ['hours'] },
     ],
     tokens: { accent: '#1f6feb', surface: '#ffffff', text: '#101418' },
   },
@@ -48,9 +55,9 @@ export const TEMPLATE_LIBRARY: readonly Template[] = [
     vertical: 'services',
     regions: ['global', 'north-america'],
     sections: [
-      { id: 'hero', requires: ['businessName'], optional: ['tagline'] },
-      { id: 'services', requires: ['services'] },
-      { id: 'contact', requires: ['phone'], optional: ['email'] },
+      { id: 'hero', title: 'Overview', requires: ['businessName'], optional: ['tagline'] },
+      { id: 'services', title: 'Services', requires: ['services'] },
+      { id: 'contact', title: 'Contact', requires: ['phone'], optional: ['email'] },
     ],
     tokens: { accent: '#0f766e', surface: '#ffffff', text: '#101418' },
   },

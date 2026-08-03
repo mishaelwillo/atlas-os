@@ -10,7 +10,21 @@ import {
   type RawFact,
 } from '../factory/dossier.js';
 import { renderSite } from '../factory/render.js';
+import { runQa, type QaReport } from '../factory/qa.js';
 import type { Descriptor } from '../factory/dossier.js';
+
+/**
+ * The wire shape of a QA report: the failing checks by name, plus the counts
+ * that let the operator see the gate ran rather than infer it from silence.
+ */
+function qaSummary(report: QaReport): Record<string, unknown> {
+  return {
+    passed: report.passed,
+    checked: report.checks.length,
+    failures: report.blocking.map((c) => ({ id: c.id, category: c.category, detail: c.detail })),
+    advisories: report.advisories.map((c) => ({ id: c.id, category: c.category, detail: c.detail })),
+  };
+}
 
 /**
  * factory.build_site — turn supplied research facts into a versioned draft
@@ -93,11 +107,24 @@ export const factoryBuildSite: CapabilityHandler = async (ctx, input) => {
     blocked: dossier.blocked.length,
   });
 
+  /*
+   * QA runs on the build, not on the descriptor, and its verdict is reported
+   * rather than thrown. The state machine's `qa_failed` is a state the site
+   * sits in until the operator fixes what failed — the build is still worth
+   * keeping, it just cannot be approved for publish from here.
+   */
+  const qa =
+    render?.rendered === true
+      ? runQa({ html: render.html, descriptor, tokens: render.tokens })
+      : null;
+
   const buildStatus =
     render === null
       ? 'descriptor_draft'
       : render.rendered
-        ? 'preview_built'
+        ? qa?.passed === false
+          ? 'qa_failed'
+          : 'preview_built'
         : 'template_unsatisfied';
 
   return {
@@ -111,6 +138,7 @@ export const factoryBuildSite: CapabilityHandler = async (ctx, input) => {
     // The fingerprint publishing would promote; absent when nothing rendered.
     buildHash: render?.rendered ? render.hash : undefined,
     renderIssues: render && !render.rendered ? render.issues : undefined,
+    qa: qa ? qaSummary(qa) : undefined,
   };
 };
 
@@ -162,10 +190,15 @@ export const factoryPreview: CapabilityHandler = async (ctx, input) => {
     return { expired: false, expiresAt: expiresAt.toISOString(), issues: render.issues };
   }
 
+  // The same report the publish gate will consult, so what an operator reviews
+  // in the preview is what decides whether it can be approved.
+  const qa = runQa({ html: render.html, descriptor, tokens: render.tokens });
+
   return {
     expired: false,
     expiresAt: expiresAt.toISOString(),
     html: render.html,
     hash: render.hash,
+    qa: qaSummary(qa),
   };
 };
