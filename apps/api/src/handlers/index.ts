@@ -11,6 +11,7 @@ import {
   prospectingQualify,
   prospectingWorkspace,
 } from './prospecting.js';
+import { automationSequence, sequenceAdvance, sequenceState } from './sequence.js';
 import { statusMissionControl } from './status.js';
 import {
   benchRun,
@@ -33,6 +34,9 @@ export const handlers: Record<string, CapabilityHandler> = {
   'prospecting.workspace': prospectingWorkspace,
   'demos.enqueue': demosEnqueue,
   'demos.advance': demosAdvance,
+  'automation.sequence': automationSequence,
+  'sequence.advance': sequenceAdvance,
+  'sequence.state': sequenceState,
   // typed TODO stubs
   'memory.answer': memoryAnswer,
   'memory.distill': memoryDistill,

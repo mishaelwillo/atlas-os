@@ -245,6 +245,48 @@ export const capabilityMetadata: Record<CapabilityId, CapabilityMetadata> = {
     evidenceIds: ['video-qy0l1t7x6le-multichannel-outreach'],
     specification: P2_REVENUE_SPECIFICATION,
   },
+  'automation.sequence': {
+    stage: 'candidate',
+    phase: 'P2C',
+    menuGroup: 'Outreach',
+    regions: ['global'],
+    entitlements: ['revenue-pilot'],
+    monetization: 'acquisition',
+    implementation: 'build',
+    // Planning only. It cannot send, and it cannot record a send.
+    autonomy: 'manual',
+    evidenceIds: [
+      'video-qy0l1t7x6le-dashboard-navigation',
+      'video-qy0l1t7x6le-follow-up-automation',
+    ],
+    specification: P2_REVENUE_SPECIFICATION,
+  },
+  'sequence.advance': {
+    stage: 'candidate',
+    phase: 'P2C',
+    menuGroup: 'Outreach',
+    regions: ['global'],
+    entitlements: ['revenue-pilot'],
+    monetization: 'acquisition',
+    implementation: 'build',
+    autonomy: 'manual',
+    // The touch state machine derives from the owning specification's outreach
+    // workflow, not from the video. No evidence is claimed.
+    evidenceIds: [],
+    specification: P2_REVENUE_SPECIFICATION,
+  },
+  'sequence.state': {
+    stage: 'candidate',
+    phase: 'P2C',
+    menuGroup: 'Outreach',
+    regions: ['global'],
+    entitlements: ['revenue-pilot'],
+    monetization: 'acquisition',
+    implementation: 'build',
+    autonomy: 'manual',
+    evidenceIds: [],
+    specification: P2_REVENUE_SPECIFICATION,
+  },
   'events.site': {
     stage: 'candidate',
     phase: 'P2B',

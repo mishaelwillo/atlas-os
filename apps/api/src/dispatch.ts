@@ -8,12 +8,70 @@ import type { Descriptor } from './factory/dossier.js';
 import { renderSite } from './factory/render.js';
 import { planPublish } from './factory/publish.js';
 import { runQa } from './factory/qa.js';
+import { planTouchAdvance } from './revenue/sequence.js';
 import { siteSlug } from './factory/hosting.js';
+
+/**
+ * Mark a sequence touch as sent.
+ *
+ * This is the ONLY place `scheduled → sent` is permitted: `planTouchAdvance`
+ * refuses that move to everyone else, so a sequence cannot record an outbound
+ * effect that no approved dispatch performed. It runs after the send, and a
+ * touch that is not `scheduled` is left alone rather than dragged forward.
+ *
+ * A missing table means migration 0005 has not been applied; the dispatch
+ * itself still stands, so that is reported rather than thrown.
+ */
+async function markTouchSent(
+  ctx: Parameters<ApprovalDispatcher>[0],
+  touchId: string,
+): Promise<{ recorded: boolean; note?: string }> {
+  try {
+    const found = await ctx.q.query(
+      `select t.touch_id, t.state, s.state as sequence_state
+         from outreach_touches t
+         join outreach_sequences s on s.sequence_id = t.sequence_id
+        where t.touch_id = $1`,
+      [touchId],
+    );
+    const row = found.rows[0];
+    if (!row) return { recorded: false, note: 'touch not found' };
+
+    const plan = planTouchAdvance({
+      sequenceState: String(row.sequence_state),
+      from: String(row.state),
+      to: 'sent',
+      approvalId: null,
+      viaDispatcher: true,
+    });
+    if (!plan.ok) return { recorded: false, note: plan.message };
+
+    await ctx.q.query(
+      `update outreach_touches set state = 'sent', sent_at = now(), updated_at = now()
+        where touch_id = $1`,
+      [touchId],
+    );
+    await ctx.q.query(
+      `update outreach_sequences set state = 'active', updated_at = now()
+        where sequence_id = (select sequence_id from outreach_touches where touch_id = $1)`,
+      [touchId],
+    );
+    return { recorded: true };
+  } catch (err) {
+    if (typeof err === 'object' && err !== null && (err as { code?: unknown }).code === '42P01') {
+      return { recorded: false, note: 'migration 0005_outreach_sequences has not been applied' };
+    }
+    throw err;
+  }
+}
 
 /**
  * outreach.send — LOG-ONLY sender stub (P1 acceptance: "dispatcher fires
  * (log-only sender stub)"). A real channel adapter lands in P2; even then the
  * outbound message row must carry approved_by (schema-enforced).
+ *
+ * When the approved input names a sequence touch, that touch is recorded as
+ * sent here and nowhere else.
  */
 const outreachSend: ApprovalDispatcher = async (ctx, payload) => {
   const input = (payload.input ?? {}) as Record<string, unknown>;
@@ -21,11 +79,23 @@ const outreachSend: ApprovalDispatcher = async (ctx, payload) => {
     { leadId: input.leadId, channel: input.channel, bodyPreview: String(input.body ?? '').slice(0, 120) },
     'OUTREACH DISPATCH (log-only stub) — message NOT actually sent',
   );
+
+  const touchId = typeof input.touchId === 'string' ? input.touchId.trim() : '';
+  const touch = touchId === '' ? null : await markTouchSent(ctx, touchId);
+
   await insertAudit(ctx.q, ctx.spaceId, ctx.auth.actor, 'outreach.dispatched', String(input.leadId ?? ''), {
     channel: input.channel,
     stub: true,
+    touchId: touchId === '' ? null : touchId,
+    touchRecorded: touch?.recorded ?? null,
   });
-  return { executed: true, stub: true, note: 'log-only sender — no message left the system' };
+  return {
+    executed: true,
+    stub: true,
+    note: 'log-only sender — no message left the system',
+    touchRecorded: touch?.recorded ?? null,
+    touchNote: touch?.note ?? null,
+  };
 };
 
 /** memory.adjudicate — operator verdict applied to the conflicted node. */

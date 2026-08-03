@@ -180,9 +180,54 @@ export type OutreachSendInput = {
   leadId: string;
   channel: string;
   body: string;
+  touchId?: string;
 };
 export type OutreachSendOutput = {
   approvalId?: string;
+};
+
+export type AutomationSequenceInput = {
+  leadId: string;
+  channels: Array<unknown>;
+};
+export type AutomationSequenceOutput = {
+  sequenceId?: string;
+  version?: number;
+  state?: string;
+  steps?: Array<unknown>;
+  planned?: boolean;
+  code?: string;
+  status?: string;
+};
+
+export type SequenceAdvanceInput = {
+  touchId: string;
+  state: string;
+  approvalId?: string;
+};
+export type SequenceAdvanceOutput = {
+  touchId?: string;
+  from?: string;
+  to?: string;
+  sequenceState?: string;
+  stopped?: boolean;
+  advanced?: boolean;
+  code?: string;
+  status?: string;
+};
+
+export type SequenceStateInput = {
+  leadId: string;
+};
+export type SequenceStateOutput = {
+  found?: boolean;
+  sequenceId?: string;
+  version?: number;
+  state?: string;
+  stoppedReason?: string;
+  touches?: Array<unknown>;
+  next?: Record<string, unknown>;
+  status?: string;
 };
 
 export type EventsSiteInput = {
@@ -328,6 +373,21 @@ export class AtlasGeneratedClient {
   /** Send outreach message — POST /v1/outreach/send (approval-gated: returns {approvalId, status:"review"}) */
   outreachSend(input: OutreachSendInput): Promise<OutreachSendOutput | ApprovalPending> {
     return this.request<OutreachSendOutput>("POST", "/v1/outreach/send", input);
+  }
+
+  /** Plan an outreach sequence — POST /v1/automation/sequence */
+  automationSequence(input: AutomationSequenceInput): Promise<AutomationSequenceOutput | ApprovalPending> {
+    return this.request<AutomationSequenceOutput>("POST", "/v1/automation/sequence", input);
+  }
+
+  /** Record a touch outcome — POST /v1/sequence/advance */
+  sequenceAdvance(input: SequenceAdvanceInput): Promise<SequenceAdvanceOutput | ApprovalPending> {
+    return this.request<SequenceAdvanceOutput>("POST", "/v1/sequence/advance", input);
+  }
+
+  /** Outreach sequence state — GET /v1/sequence/state */
+  sequenceState(input: SequenceStateInput): Promise<SequenceStateOutput | ApprovalPending> {
+    return this.request<SequenceStateOutput>("GET", "/v1/sequence/state", input);
   }
 
   /** Site event webhook — POST /v1/events/site */
