@@ -2,7 +2,11 @@
 -- Owning specification: docs/specs/p2/intelligence-foundation.md
 -- Reconciliation:       docs/specs/p2/intelligence-reconciliation.md
 --
--- REVIEW ONLY — NOT APPLIED. No production database has run this file.
+-- Applied state lives in docs/control/ENVIRONMENTS.yaml (expected_migration),
+-- which the drift collector compares against the live migration ledger. This
+-- file records intent and coupling only: it cannot know its own history, and
+-- the banner that used to claim otherwise went stale the moment it ran.
+--
 -- 0001_init.sql is unmodified; this migration is strictly additive so the exact
 -- migration identity of 0001_init remains the control plane's schema anchor.
 --

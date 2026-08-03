@@ -1,7 +1,10 @@
 -- ATLAS OS — 0003: site deployment history (P2B-FACTORY-001)
 -- Owning specification: docs/specs/p2/website-factory.md
 --
--- REVIEW ONLY — NOT APPLIED. No database has run this file.
+-- Applied state lives in docs/control/ENVIRONMENTS.yaml (expected_migration),
+-- which the drift collector compares against the live migration ledger. This
+-- file records intent and coupling only: it cannot know its own history, and
+-- the banner that used to claim otherwise went stale the moment it ran.
 --
 -- COUPLING: docs/control/ENVIRONMENTS.yaml pins expected_migration. Applying
 -- this requires bumping it to 0003_site_deployments in the same approved

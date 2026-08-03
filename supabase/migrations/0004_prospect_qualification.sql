@@ -1,7 +1,10 @@
 -- ATLAS OS — 0004: prospect qualification and the demo queue (P2C-REVENUE-001)
 -- Owning specification: docs/specs/p2/revenue-pilot.md
 --
--- REVIEW ONLY — NOT APPLIED. No database has run this file.
+-- Applied state lives in docs/control/ENVIRONMENTS.yaml (expected_migration),
+-- which the drift collector compares against the live migration ledger. This
+-- file records intent and coupling only: it cannot know its own history, and
+-- the banner that used to claim otherwise went stale the moment it ran.
 --
 -- COUPLING: docs/control/ENVIRONMENTS.yaml pins expected_migration. Applying
 -- this requires bumping it to 0004_prospect_qualification in the same approved

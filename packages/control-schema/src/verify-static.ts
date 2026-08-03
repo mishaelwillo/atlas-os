@@ -4,6 +4,7 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { parse } from 'yaml';
+import { bannerMessage, findAppliedStateClaims } from './migration-banner.js';
 import { loadRegionPacks } from './regions.js';
 import { assertRepositoryResearchIntegrity } from './research.js';
 import { assertRepositorySpecificationIntegrity } from './specifications.js';
@@ -328,6 +329,35 @@ async function defaultObserveGit(
   };
 }
 
+
+/**
+ * A migration must not claim whether it has been applied.
+ *
+ * Every banner in this repository went stale the moment its migration ran, and
+ * nothing noticed because nothing checked. Keeping them current is the manual
+ * step that failed, so instead the claim is banned outright and
+ * `expected_migration` in `ENVIRONMENTS.yaml` is left as the single authority —
+ * a file that asserts nothing cannot go stale.
+ */
+async function checkMigrationBanners(root: string, findings: Finding[]): Promise<void> {
+  const migrationsRoot = join(root, 'supabase', 'migrations');
+  if (!(await pathExists(migrationsRoot))) return;
+
+  const files = (await listFiles(migrationsRoot))
+    .filter((path) => path.endsWith('.sql'))
+    .sort(compareCodepoints);
+
+  for (const path of files) {
+    const relativePath = relative(root, path).split(sep).join('/');
+    const claims = findAppliedStateClaims(relativePath, await readFile(path, 'utf8'));
+    for (const claim of claims) {
+      findings.push(
+        blocking('control.migration_claims_applied_state', relativePath, bannerMessage(claim)),
+      );
+    }
+  }
+}
+
 export async function verifyStatic(
   root: string,
   options: VerifyStaticOptions = {},
@@ -341,6 +371,8 @@ export async function verifyStatic(
   const researchLedgerPath = join(controlRoot, 'RESEARCH_LEDGER.yaml');
   const candidatesPath = join(controlRoot, 'CAPABILITY_CANDIDATES.yaml');
   const findings: Finding[] = [];
+
+  await checkMigrationBanners(root, findings);
 
   let queue: WorkQueue | undefined;
   let environments: EnvironmentFile | undefined;
