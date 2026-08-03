@@ -10,6 +10,12 @@
  * rather than the pipeline.
  */
 
+/** One site's approved build, as it must be served. */
+export interface SiteFile {
+  slug: string;
+  html: string;
+}
+
 export interface PublishTarget {
   /** Stable per-site key, used as the project or path segment. */
   slug: string;
@@ -17,6 +23,19 @@ export interface PublishTarget {
   html: string;
   buildHash: string;
   version: number;
+  /**
+   * Every other site that must remain served after this publish.
+   *
+   * Providers that deploy a whole-site snapshot — Cloudflare Pages among them —
+   * replace everything each time, so a deployment carrying one site silently
+   * takes every other one offline. That happened: publishing a second fixture
+   * left the first answering 404 while its deployment row still read `live`.
+   *
+   * The caller supplies the set because only it can know which deployments are
+   * live and re-derive their approved bytes. The adapter stays a boundary that
+   * decides where things land, not what is live.
+   */
+  alsoServe: readonly SiteFile[];
 }
 
 export interface PublishedSite {

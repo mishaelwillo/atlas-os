@@ -463,6 +463,38 @@ Two follow-ups, neither taken unilaterally:
    a transactional dry run against the real database before it ships; the fake
    proves handler logic and nothing about SQL.
 
+### The fixtures are taken down, and taking them down found more
+
+Both fixture sites were removed at the operator's request: Cloudflare Pages was
+rolled back to `fe747724`, its pre-fixture placeholder from 2026-07-28, and both
+`site_deployments` rows moved from `live` to `rolled_back` with an audit row
+each. No live deployment remains.
+
+That write went straight to the database, because **there is no rollback
+capability in the registry** — `planRollback` is a tested pure function that
+nothing routes to. Each change was audited so the trail is not silent, but a
+direct write is a weaker thing than a governed one.
+
+**A Pages deployment is a whole-site snapshot, not a patch.** The adapter built
+each deployment's manifest from the one site being promoted, so every publish
+silently deleted every previously published site. It was found by loading the
+first fixture after the second was published: 404, while its deployment row
+still read `live`. The adapter's comment claimed "one project can host many
+businesses"; it could host exactly one.
+
+Fixed by carrying every already-live site into each deployment. The dispatcher
+re-derives their bytes by re-rendering each stored descriptor, and requires each
+re-render to reproduce the hash that site's deployment recorded. When one does
+not, the publish is **refused** — dropping the site takes a paying customer
+offline, and shipping the new bytes publishes something nobody approved, so a
+refusal that blocks until someone looks is the least-bad of the three.
+
+Still unclosed: nothing re-checks a site after its own publish. The read-back
+proves the deployment being made; a previously-live site going dark stays
+invisible until someone loads it. A sweep comparing every live deployment's
+recorded fingerprint against what its address serves would have caught this
+immediately.
+
 ### What the run left in production
 
 In the `studio` space: two sites, two approvals, two deployments — one `queued`

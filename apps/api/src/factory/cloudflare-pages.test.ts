@@ -62,7 +62,13 @@ describe('pages file hash', () => {
 });
 
 describe('publishing to Pages', () => {
-  const target = { slug: 'acme-plumbing-1a2b3c4d', html: '<html>Acme</html>', buildHash: 'a'.repeat(64), version: 1 };
+  const target = {
+    slug: 'acme-plumbing-1a2b3c4d',
+    html: '<html>Acme</html>',
+    buildHash: 'a'.repeat(64),
+    version: 1,
+    alsoServe: [],
+  };
 
   it('uploads the build and creates a deployment at the site path', async () => {
     const { impl, calls } = recordingFetch();
@@ -85,6 +91,53 @@ describe('publishing to Pages', () => {
     expect(Object.keys(manifest)).toEqual(['/acme-plumbing-1a2b3c4d/index.html']);
     expect(result.url).toBe('https://sites.example.com/acme-plumbing-1a2b3c4d');
     expect(result.providerRef).toBe('dep-abc');
+  });
+
+  /**
+   * A Pages deployment is a whole-site snapshot, so a manifest carrying only
+   * the promoted site deletes every other one. That happened in production:
+   * publishing a second fixture left the first answering 404 while its
+   * deployment row still read `live`.
+   */
+  it('keeps every already-live site in the deployment', async () => {
+    const { impl, calls } = recordingFetch();
+    await new CloudflarePagesHosting(CONFIG, impl).publish({
+      ...target,
+      alsoServe: [
+        { slug: 'bravo-plumbing-2b3c4d5e', html: '<html>Bravo</html>' },
+        { slug: 'charlie-roofing-3c4d5e6f', html: '<html>Charlie</html>' },
+      ],
+    });
+
+    const manifest = JSON.parse(String((calls[2].body as FormData).get('manifest'))) as Record<string, string>;
+    expect(Object.keys(manifest).sort()).toEqual([
+      '/acme-plumbing-1a2b3c4d/index.html',
+      '/bravo-plumbing-2b3c4d5e/index.html',
+      '/charlie-roofing-3c4d5e6f/index.html',
+    ]);
+
+    // Every file is uploaded, or the manifest would reference bytes Pages does
+    // not have.
+    const uploaded = JSON.parse(String(calls[1].body)) as Array<{ key: string; value: string }>;
+    expect(uploaded).toHaveLength(3);
+    expect(uploaded.map((u) => Buffer.from(u.value, 'base64').toString('utf8')).sort()).toEqual([
+      '<html>Acme</html>',
+      '<html>Bravo</html>',
+      '<html>Charlie</html>',
+    ]);
+  });
+
+  /** The promoted build wins if a sibling somehow carries the same slug. */
+  it('promotes the new build when a sibling repeats its slug', async () => {
+    const { impl, calls } = recordingFetch();
+    await new CloudflarePagesHosting(CONFIG, impl).publish({
+      ...target,
+      alsoServe: [{ slug: target.slug, html: '<html>stale</html>' }],
+    });
+
+    const uploaded = JSON.parse(String(calls[1].body)) as Array<{ value: string }>;
+    expect(uploaded).toHaveLength(1);
+    expect(Buffer.from(uploaded[0].value, 'base64').toString('utf8')).toBe('<html>Acme</html>');
   });
 
   /**

@@ -263,6 +263,73 @@ describe('deploy on approval', () => {
     });
   });
 
+  /**
+   * A Pages deployment is a whole-site snapshot, so every already-live site has
+   * to ride along or it goes dark. Publishing a second fixture in production
+   * left the first answering 404 while its row still read `live`.
+   */
+  describe('keeping already-live sites served', () => {
+    /** A second site that is live, with a descriptor that still renders. */
+    function withLiveSibling(db: FakeDb, options: { drifted?: boolean } = {}): FakeDb {
+      const other = descriptor('555-0177');
+      const rendered = renderSite(other);
+      if (!rendered.rendered) throw new Error('fixture must render');
+      db.when(/from site_deployments d\s+join sites s/i, [
+        {
+          site_id: 'site-other',
+          build_hash: options.drifted ? 'f'.repeat(64) : rendered.hash,
+          business_name: 'Bravo Plumbing',
+          descriptor: other,
+        },
+      ]);
+      return db;
+    }
+
+    it('hands the provider every live site, not just the promoted one', async () => {
+      const db = withLiveSibling(dbFor({ approvedHash: liveHash() }));
+      const host = publishingHost();
+      await approve(db, host, async () => ({ status: 200, body: '' }));
+
+      expect(host.published).toHaveLength(1);
+      const target = host.published[0] as unknown as {
+        slug: string;
+        alsoServe: Array<{ slug: string }>;
+      };
+      expect(target.alsoServe.map((s) => s.slug)).toEqual(['bravo-plumbing-siteothe']);
+      expect(target.slug).toBe('acme-plumbing-99999999');
+    });
+
+    it('sends an empty set when nothing else is live', async () => {
+      const db = dbFor({ approvedHash: liveHash() });
+      const host = publishingHost();
+      await approve(db, host, async () => ({ status: 200, body: '' }));
+
+      const target = host.published[0] as unknown as { alsoServe: unknown[] };
+      expect(target.alsoServe).toEqual([]);
+    });
+
+    /** Refusing beats dropping a live customer or serving unapproved bytes. */
+    it('refuses when a live site no longer reproduces its approved build', async () => {
+      const db = withLiveSibling(dbFor({ approvedHash: liveHash() }), { drifted: true });
+      const host = publishingHost();
+      const dispatched = await approve(db, host, async () => ({ status: 200, body: '' }));
+
+      expect(dispatched.executed).toBe(false);
+      expect(dispatched.code).toBe('sibling_build_drifted');
+      expect(host.published).toHaveLength(0);
+      expect(deployInsert(db)).toBeUndefined();
+    });
+
+    it('audits that refusal with the sites that caused it', async () => {
+      const db = withLiveSibling(dbFor({ approvedHash: liveHash() }), { drifted: true });
+      await approve(db, publishingHost(), async () => ({ status: 200, body: '' }));
+      const audit = db
+        .auditInserts()
+        .find((a) => (a.params ?? []).includes('factory.deploy_refused'));
+      expect(String(audit?.params?.[4])).toContain('sibling_build_drifted');
+    });
+  });
+
   it('audits a refusal so a blocked publish is not silent', async () => {
     const db = dbFor({ approvedHash: liveHash('555-0100'), stored: descriptor('555-0199') });
     await approve(db);
