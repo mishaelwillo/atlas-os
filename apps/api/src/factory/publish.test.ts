@@ -114,10 +114,55 @@ const dep = (over: Partial<DeploymentRecord>): DeploymentRecord => ({
   buildHash: HASH_A,
   status: 'superseded',
   wentLive: true,
+  html: '<html>a</html>',
   ...over,
 });
 
 describe('rollback planning', () => {
+  /**
+   * A hash cannot be republished, and re-rendering the descriptor does not
+   * recover the old build — the descriptor is the thing that changed, which is
+   * usually why someone is rolling back.
+   */
+  it('restores the bytes the target actually published', () => {
+    const plan = planRollback(
+      [
+        dep({ deploymentId: 'dep-1', version: 1, buildHash: HASH_A, html: '<html>one</html>' }),
+        dep({ deploymentId: 'dep-2', version: 2, buildHash: HASH_B, status: 'live' }),
+      ],
+      2,
+    );
+    expect(plan).toMatchObject({ ok: true, html: '<html>one</html>' });
+    if (!plan.ok) throw new Error('expected a plan');
+    expect(plan.target.deploymentId).toBe('dep-1');
+  });
+
+  /** Rendering something else would republish a build nobody approved. */
+  it('refuses when the healthy predecessor predates build retention', () => {
+    const refusal = planRollback(
+      [
+        dep({ deploymentId: 'dep-1', version: 1, buildHash: HASH_A, html: null }),
+        dep({ deploymentId: 'dep-2', version: 2, buildHash: HASH_B, status: 'live' }),
+      ],
+      2,
+    );
+    expect(refusal).toMatchObject({ ok: false, code: 'no_stored_build' });
+  });
+
+  it('skips a predecessor with no bytes for one that has them', () => {
+    const plan = planRollback(
+      [
+        dep({ deploymentId: 'dep-1', version: 1, buildHash: HASH_A, html: '<html>one</html>' }),
+        dep({ deploymentId: 'dep-2', version: 2, buildHash: HASH_C, html: null }),
+        dep({ deploymentId: 'dep-3', version: 3, buildHash: HASH_B, status: 'live' }),
+      ],
+      3,
+    );
+    expect(plan).toMatchObject({ ok: true });
+    if (!plan.ok) throw new Error('expected a plan');
+    expect(plan.target.deploymentId).toBe('dep-1');
+  });
+
   it('restores the most recent previously-live build', () => {
     const plan = planRollback(
       [

@@ -129,6 +129,14 @@ export const registry = [
     taskClass: 'quick', requiresApproval: true, scopes: [], method: 'POST', execution: 'handler',
   },
   {
+    id: 'factory.rollback',
+    name: 'Roll a site back',
+    description: 'Restore the last build that was observed serving. ALWAYS approval-gated. Only a deployment that actually went live and whose exact bytes were retained qualifies; the restore is a new version, never a revived row.',
+    input: { type: 'object', required: ['siteId'], properties: { siteId: { type: 'string' } } },
+    output: { type: 'object', properties: { approvalId: { type: 'string' } } },
+    taskClass: 'quick', requiresApproval: true, scopes: [], method: 'POST', execution: 'handler',
+  },
+  {
     id: 'leads.find',
     name: 'Find leads',
     description: 'Industry + location + criteria → scored lead table (active GBP, no website).',

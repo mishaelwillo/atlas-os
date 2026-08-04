@@ -479,6 +479,22 @@ ledgers is not executable and does not appear here.
 - Scopes: `factory:write`
 - Description: Re\-render a stored descriptor and return the immutable build\. Access\-controlled, expiring, noindex — never public\.
 
+### `factory.rollback` — Roll a site back
+- Stage: candidate
+- Phase: P2B
+- Monetization: hosting
+- Autonomy: shadow
+- Implementation: build
+- Regions: `global`
+- Entitlements: `website-hosting`
+- Evidence: none
+- Specification: `docs/specs/p2/website-factory.md`
+- Method: POST
+- Task class: quick
+- Approval required: yes
+- Scopes: none
+- Description: Restore the last build that was observed serving\. ALWAYS approval\-gated\. Only a deployment that actually went live and whose exact bytes were retained qualifies; the restore is a new version, never a revived row\.
+
 ### `factory.verify_live` — Verify live sites
 - Stage: candidate
 - Phase: P2B
