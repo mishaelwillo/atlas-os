@@ -6,7 +6,7 @@ environments:
       branch: main
     supabase:
       project_ref: yyyspvralawnvhtmuyvg
-      expected_migration: 0008_run_answered_by_handler
+      expected_migration: 0009_deployment_build_html
       required_tables:
         - spaces
         - api_tokens
