@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `revise-and-unpublish`
+**Handoff ID:** `pin-migration-0010`
 **Status:** active
-**Started:** 2026-08-04T20:14:50.206Z
-**Updated:** 2026-08-04T20:14:50.206Z
+**Started:** 2026-08-04T20:40:07.194Z
+**Updated:** 2026-08-04T20:40:07.194Z
 **Actor:** Claude
-**Objective:** Make rollback reachable and give withdrawal a capability
+**Objective:** Pin the applied 0010 schema across the control plane
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `feat/revise-and-unpublish`
+- Branch: `chore/pin-migration-0010`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `fa5ce4494c22a12a87b8578cab30fb7bdffd25ae`
+- Head commit: `4b01fe4f93c7038385aef9854455f45aea5488f7`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- factory.revise_site and factory.unpublish added; siblings republish from retained bytes rather than re-rendering; executable count 31 to 33
+- Not supplied.
 
 ## Current working tree
 
@@ -25,17 +25,17 @@
 
 ## Verification evidence
 
-- pnpm build, pnpm test (937 tests) and pnpm lint exit 0; the collateral-damage guard and the empty-revision guard each mutation-tested
+- The status check now lists unpublished; the insert that would previously have violated it succeeded and was rolled back
 
 ## Database actions
 
-- Migration 0010_deployment_unpublished written and NOT applied; expected_migration still pins 0009_deployment_build_html
-- Observed Supabase status: ok (live-read-only at 2026-08-04T03:42:40.880Z).
+- Operator applied 0010_deployment_unpublished; verified through control:status and by inserting an unpublished deployment inside a rolled-back transaction
+- Observed Supabase status: ok (live-read-only at 2026-08-04T20:38:21.554Z).
 
 ## Hosting actions
 
-- No external action reported.
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-04T03:42:40.880Z).
+- Set ATLAS_SCHEMA_VERSION=0010_deployment_unpublished on the Railway api and os services
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-04T20:38:21.554Z).
 
 ## External side effects
 
@@ -43,12 +43,12 @@
 
 ## Blockers
 
-- Until 0010 is applied a withdrawal will fail the status check constraint
+- Not supplied.
 
 ## Next exact action
 
-Apply migration 0010_deployment_unpublished, then run the timed P2B acceptance through Mission Control
+Exercise the full factory loop against production — publish, revise, publish again, roll back, withdraw — then run the timed P2B acceptance through Mission Control
 
 ## Definition of done
 
-A site can reach a second version, and a live site can be withdrawn without a direct database write
+Expected and observed migration identity agree, and a withdrawal can record what it is
