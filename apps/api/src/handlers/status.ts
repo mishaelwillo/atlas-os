@@ -8,6 +8,13 @@ import type { CapabilityHandler } from '../pipeline.js';
 import { TEMPLATE_LIBRARY } from '../factory/templates.js';
 import { isMissingTable, readFunnel } from './analytics.js';
 import { buildFunnel } from '../revenue/funnel.js';
+import {
+  PROSPECTING_VOCABULARY,
+  REVENUE_VOCABULARY,
+  SEQUENCE_VOCABULARY,
+  readPipeline,
+  type Pipeline,
+} from './revenue-cards.js';
 
 /** The migration identity the drift collector reads, asked of the live database. */
 const MIGRATION_QUERY = `select version || '_' || name as migration_identity
@@ -166,6 +173,23 @@ export const statusMissionControl: CapabilityHandler = async (ctx) => {
     };
   }
 
+  /*
+   * The P2C pipeline is read the same way and for the same reason: it spans
+   * the tables migrations 0004-0006 create, and if any is absent every card
+   * built from it has to say so. A prospect list rendered without demo or
+   * offer state would read as a pilot where nothing had ever been queued or
+   * offered, rather than as one whose schema is behind the code.
+   */
+  let pipeline: Pipeline | null = null;
+  let pipelineNote: string | null = null;
+  try {
+    pipeline = await readPipeline(ctx.q, space);
+  } catch (err) {
+    if (!isMissingTable(err)) throw err;
+    pipelineNote =
+      'the revenue pilot spans tables migrations 0004 to 0006 create; some are not applied, so nothing was read';
+  }
+
   const rungCounts: Record<string, number> = {};
   let modelCost = 0;
   let modelRuns = 0;
@@ -314,6 +338,63 @@ export const statusMissionControl: CapabilityHandler = async (ctx) => {
         kind: 'funnel',
         title: 'Revenue pilot funnel',
         data: funnel,
+      },
+      /*
+       * Three cards from one pipeline read. They are separate because they are
+       * separate operator jobs — qualifying a prospect, running a sequence,
+       * and settling a deal — but they must not disagree about the state of a
+       * lead, so they are projections of the same rows rather than three reads.
+       */
+      {
+        id: 'prospects',
+        kind: 'prospects',
+        title: 'Prospects and demo queue',
+        data: {
+          available: pipeline !== null,
+          ...(pipelineNote === null ? {} : { note: pipelineNote }),
+          ...PROSPECTING_VOCABULARY,
+          queue: pipeline?.queue ?? null,
+          items: (pipeline?.leads ?? []).map((l) => ({
+            leadId: l.leadId,
+            businessName: l.businessName,
+            leadStatus: l.leadStatus,
+            qualification: l.qualification,
+            demo: l.demo,
+          })),
+        },
+      },
+      {
+        id: 'sequences',
+        kind: 'sequences',
+        title: 'Outreach sequences',
+        data: {
+          available: pipeline !== null,
+          ...(pipelineNote === null ? {} : { note: pipelineNote }),
+          ...SEQUENCE_VOCABULARY,
+          items: (pipeline?.leads ?? []).map((l) => ({
+            leadId: l.leadId,
+            businessName: l.businessName,
+            leadStatus: l.leadStatus,
+            sequence: l.sequence,
+          })),
+        },
+      },
+      {
+        id: 'revenue_ops',
+        kind: 'revenue_ops',
+        title: 'Offers, deals and hosting',
+        data: {
+          available: pipeline !== null,
+          ...(pipelineNote === null ? {} : { note: pipelineNote }),
+          ...REVENUE_VOCABULARY,
+          items: (pipeline?.leads ?? []).map((l) => ({
+            leadId: l.leadId,
+            businessName: l.businessName,
+            offer: l.offer,
+            deal: l.deal,
+            entitlement: l.entitlement,
+          })),
+        },
       },
       {
         id: 'schedules',

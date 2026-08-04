@@ -11,6 +11,9 @@ import { QaVerdict, type QaSummary } from './QaVerdict';
 import styles from './MissionControl.module.css';
 import { SignIn } from './SignIn.js';
 import { SiteBuilderCard, type TemplateOption } from './SiteBuilderCard.js';
+import { ProspectsCard } from './ProspectsCard.js';
+import { SequenceCard } from './SequenceCard.js';
+import { RevenueOpsCard } from './RevenueOpsCard.js';
 import {
   SIGNED_OUT,
   clearLegacyToken,
@@ -50,7 +53,20 @@ interface RunItem {
 }
 interface StatusCard {
   id: string;
-  kind: 'approvals' | 'runs' | 'model_chain' | 'cache' | 'schedules' | 'memory' | 'deployment' | 'sites' | 'leads' | 'funnel';
+  kind:
+    | 'approvals'
+    | 'runs'
+    | 'model_chain'
+    | 'cache'
+    | 'schedules'
+    | 'memory'
+    | 'deployment'
+    | 'sites'
+    | 'leads'
+    | 'funnel'
+    | 'prospects'
+    | 'sequences'
+    | 'revenue_ops';
   title: string;
   data: Record<string, unknown>;
 }
@@ -872,6 +888,36 @@ export function MissionControlLive() {
               );
             case 'funnel':
               return <FunnelCard key={card.id} data={card.data} />;
+            case 'prospects':
+              return (
+                <ProspectsCard
+                  key={card.id}
+                  data={card.data}
+                  client={client}
+                  hasSpace={spaceId !== null}
+                  onChanged={() => void refresh()}
+                />
+              );
+            case 'sequences':
+              return (
+                <SequenceCard
+                  key={card.id}
+                  data={card.data}
+                  client={client}
+                  hasSpace={spaceId !== null}
+                  onChanged={() => void refresh()}
+                />
+              );
+            case 'revenue_ops':
+              return (
+                <RevenueOpsCard
+                  key={card.id}
+                  data={card.data}
+                  client={client}
+                  hasSpace={spaceId !== null}
+                  onChanged={() => void refresh()}
+                />
+              );
             case 'leads':
               return (
                 <OutreachDraftCard
