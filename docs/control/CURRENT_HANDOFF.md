@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `p2c-operator-surface`
+**Handoff ID:** `p2c-operator-surface-built`
 **Status:** active
-**Started:** 2026-08-04T20:54:58.552Z
-**Updated:** 2026-08-04T20:54:58.552Z
+**Started:** 2026-08-04T22:05:52.832Z
+**Updated:** 2026-08-04T22:05:52.832Z
 **Actor:** Claude
-**Objective:** Build the Mission Control surface for the P2C capabilities
+**Objective:** Mission Control surface for the twelve P2C revenue capabilities
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `docs/p2c-surface-handoff`
+- Branch: `feat/p2c-operator-surface`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `6ce4d8f9e187b396ae1247e10441fd71b688b8ec`
+- Head commit: `102e9b7cbe2c4bff050fb3edd8905090e1670e29`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Rewrote NEW_SESSION_PROMPT.md for the operator-surface work item and corrected the work queue, which recorded build-now scope as complete when only the API half was
+- Added prospects, sequences and revenue_ops cards to status.mission_control and their Mission Control components; derived the offered demo and touch moves from planAdvance and planTouchAdvance
 
 ## Current working tree
 
@@ -25,7 +25,7 @@
 
 ## Verification evidence
 
-- status.mission_control emits ten card kinds and none covers the twelve P2C capabilities
+- build, lint, 990 tests and control:verify green; both derived-move guards and the card routing mutation-tested; pipeline SQL dry-run against production inside a rolled-back transaction with fixture rows
 
 ## Database actions
 
@@ -43,11 +43,11 @@
 
 ## Blockers
 
-- Not supplied.
+- The cards were not exercised in a signed-in browser: Mission Control's operator password is not available to Claude
 
 ## Next exact action
 
-Add status.mission_control cards and Mission Control components for prospecting and qualification, the demo queue, sequence state, and offers with hosting state
+Exercise the three P2C cards in a signed-in browser: walk one prospect from assessment through demo slot, sequence, offer and deal decision to a hosting activation request
 
 ## Definition of done
 
