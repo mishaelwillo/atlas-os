@@ -118,6 +118,32 @@ export type FactoryDeploySiteOutput = {
   deployUrl?: string;
 };
 
+export type FactoryReviseSiteInput = {
+  siteId: string;
+  facts: Array<unknown>;
+  template?: string;
+  stylePack?: string;
+  region?: string;
+};
+export type FactoryReviseSiteOutput = {
+  siteId?: string;
+  revised?: boolean;
+  status?: string;
+  factCount?: number;
+  blocked?: Array<unknown>;
+  buildHash?: string;
+  renderIssues?: Array<unknown>;
+  qa?: Record<string, unknown>;
+  note?: string;
+};
+
+export type FactoryUnpublishInput = {
+  siteId: string;
+};
+export type FactoryUnpublishOutput = {
+  approvalId?: string;
+};
+
 export type FactoryRollbackInput = {
   siteId: string;
 };
@@ -438,6 +464,16 @@ export class AtlasGeneratedClient {
   /** Deploy site live — POST /v1/factory/deploy_site (approval-gated: returns {approvalId, status:"review"}) */
   factoryDeploySite(input: FactoryDeploySiteInput): Promise<FactoryDeploySiteOutput | ApprovalPending> {
     return this.request<FactoryDeploySiteOutput>("POST", "/v1/factory/deploy_site", input);
+  }
+
+  /** Revise a site — POST /v1/factory/revise_site */
+  factoryReviseSite(input: FactoryReviseSiteInput): Promise<FactoryReviseSiteOutput | ApprovalPending> {
+    return this.request<FactoryReviseSiteOutput>("POST", "/v1/factory/revise_site", input);
+  }
+
+  /** Withdraw a live site — POST /v1/factory/unpublish (approval-gated: returns {approvalId, status:"review"}) */
+  factoryUnpublish(input: FactoryUnpublishInput): Promise<FactoryUnpublishOutput | ApprovalPending> {
+    return this.request<FactoryUnpublishOutput>("POST", "/v1/factory/unpublish", input);
   }
 
   /** Roll a site back — POST /v1/factory/rollback (approval-gated: returns {approvalId, status:"review"}) */

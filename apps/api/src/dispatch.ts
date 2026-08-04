@@ -216,7 +216,7 @@ const factoryDeploySite: ApprovalDispatcher = async (ctx, payload) => {
    * deployment recorded.
    */
   const liveRows = await ctx.q.query(
-    `select d.site_id, d.build_hash, s.business_name, s.descriptor
+    `select d.site_id, d.build_hash, d.build_html, s.business_name, s.descriptor
        from site_deployments d
        join sites s on s.site_id = d.site_id
       where d.status = 'live' and d.environment = 'production' and d.site_id <> $1`,
@@ -224,6 +224,26 @@ const factoryDeploySite: ApprovalDispatcher = async (ctx, payload) => {
   );
   const siblings: LiveSibling[] = liveRows.rows.map((r) => {
     const siblingId = String(r.site_id);
+    /*
+     * Prefer the bytes that deployment actually published. They ARE the
+     * approved build, so they cannot drift — and re-rendering would, the
+     * moment someone revises that site's descriptor. Re-rendering is the
+     * fallback for rows that predate build retention, and those still have to
+     * reproduce their recorded hash.
+     */
+    // Loose check on purpose: a column that is absent from the row reads as
+    // undefined, not null, and treating that as retained bytes would publish
+    // the string "undefined" as a customer's site.
+    const retained = typeof r.build_html === 'string' && r.build_html !== '';
+    if (retained) {
+      return {
+        siteId: siblingId,
+        slug: siteSlug(String(r.business_name ?? ''), siblingId),
+        recordedBuildHash: String(r.build_hash),
+        renderedHash: String(r.build_hash),
+        html: String(r.build_html),
+      };
+    }
     const rendered = renderSite(r.descriptor as Descriptor);
     return {
       siteId: siblingId,
@@ -684,6 +704,118 @@ const factoryRollback: ApprovalDispatcher = async (ctx, payload) => {
   };
 };
 
+/**
+ * factory.unpublish — withdraw a live site.
+ *
+ * Rollback restores an earlier version; it cannot take a site down, and there
+ * was no capability that could. Both fixture takedowns so far were direct
+ * database writes recorded as `rolled_back`, which reads as a restore that
+ * never happened.
+ *
+ * The provider deploys a whole-site snapshot, so withdrawing one site means
+ * republishing every other live site without it. Their bytes come from what
+ * each actually published, so nothing is re-rendered and nothing can drift.
+ */
+const factoryUnpublish: ApprovalDispatcher = async (ctx, payload) => {
+  const input = (payload.input ?? {}) as Record<string, unknown>;
+  const siteId = typeof input.siteId === 'string' ? input.siteId.trim() : '';
+  if (siteId === '') return { executed: false, note: 'factory.unpublish: siteId is required' };
+
+  const live = await ctx.q.query(
+    `select deployment_id, version, domain from site_deployments
+      where site_id = $1 and status = 'live' and environment = 'production' limit 1`,
+    [siteId],
+  );
+  const row = live.rows[0];
+  if (!row) {
+    await insertAudit(ctx.q, ctx.spaceId, ctx.auth.actor, 'factory.unpublish_refused', siteId, {
+      code: 'not_live',
+    });
+    return { executed: false, code: 'not_live', note: 'this site has no live deployment to withdraw' };
+  }
+
+  const remaining = await ctx.q.query(
+    `select d.site_id, d.build_html, s.business_name
+       from site_deployments d
+       join sites s on s.site_id = d.site_id
+      where d.status = 'live' and d.environment = 'production' and d.site_id <> $1`,
+    [siteId],
+  );
+  const missing = remaining.rows.filter(
+    (r) => typeof r.build_html !== 'string' || r.build_html === '',
+  );
+  if (missing.length > 0) {
+    /*
+     * Republishing without a site's retained bytes would take it down as
+     * collateral. Refusing keeps the withdrawal to the one site it names.
+     */
+    await insertAudit(ctx.q, ctx.spaceId, ctx.auth.actor, 'factory.unpublish_refused', siteId, {
+      code: 'sibling_no_stored_build',
+      sites: missing.map((r) => String(r.site_id)),
+    });
+    return {
+      executed: false,
+      code: 'sibling_no_stored_build',
+      note: 'another live site predates build retention, so withdrawing this one would take it down too',
+    };
+  }
+
+  const keep = remaining.rows.map((r) => ({
+    slug: siteSlug(String(r.business_name ?? ''), String(r.site_id)),
+    html: String(r.build_html),
+  }));
+
+  let publishError: string | null = null;
+  try {
+    if (keep.length > 0) {
+      // Re-deploy the survivors as the whole site.
+      await ctx.deps.hosting.publish({
+        slug: keep[0].slug,
+        html: keep[0].html,
+        buildHash: 'unpublish',
+        version: 0,
+        alsoServe: keep.slice(1),
+      });
+    } else {
+      await ctx.deps.hosting.withdrawAll();
+    }
+  } catch (err) {
+    publishError = err instanceof Error ? err.message : String(err);
+  }
+
+  if (publishError !== null) {
+    await insertAudit(ctx.q, ctx.spaceId, ctx.auth.actor, 'factory.unpublish_refused', siteId, {
+      code: 'provider_refused',
+      detail: publishError,
+    });
+    return {
+      executed: false,
+      code: 'provider_refused',
+      note: `the site is still serving: ${publishError}`,
+    };
+  }
+
+  await ctx.q.query(
+    `update site_deployments set status = 'unpublished', superseded_at = now()
+      where deployment_id = $1`,
+    [String(row.deployment_id)],
+  );
+  await insertAudit(ctx.q, ctx.spaceId, ctx.auth.actor, 'factory.unpublished', String(row.deployment_id), {
+    siteId,
+    version: Number(row.version),
+    domain: row.domain,
+    stillServing: keep.length,
+  });
+
+  return {
+    executed: true,
+    deploymentId: String(row.deployment_id),
+    version: Number(row.version),
+    stillServing: keep.length,
+    note: `withdrawn; ${keep.length} other live site(s) remain served`,
+  };
+};
+
 export const dispatchers: Record<string, ApprovalDispatcher> = {
   'outreach.send': outreachSend,
   'memory.adjudicate': memoryAdjudicate,
@@ -692,4 +824,5 @@ export const dispatchers: Record<string, ApprovalDispatcher> = {
   'hosting.activate': hostingActivate,
   'hosting.cancel': hostingCancel,
   'factory.rollback': factoryRollback,
+  'factory.unpublish': factoryUnpublish,
 };

@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `fingerprint-readback-race`
+**Handoff ID:** `revise-and-unpublish`
 **Status:** active
-**Started:** 2026-08-04T19:51:13.124Z
-**Updated:** 2026-08-04T19:51:13.124Z
+**Started:** 2026-08-04T20:14:50.206Z
+**Updated:** 2026-08-04T20:14:50.206Z
 **Actor:** Claude
-**Objective:** Stop the read-back recording a propagation artefact as a mismatch
+**Objective:** Make rollback reachable and give withdrawal a capability
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `fix/fingerprint-readback-race`
+- Branch: `feat/revise-and-unpublish`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `d5b111c4afa488ff8e6e6b806a1ca4e2f32f4184`
+- Head commit: `fa5ce4494c22a12a87b8578cab30fb7bdffd25ae`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- readBackUntilSettled retries a non-match; the retry policy is injected through deps
+- factory.revise_site and factory.unpublish added; siblings republish from retained bytes rather than re-rendering; executable count 31 to 33
 
 ## Current working tree
 
@@ -25,11 +25,11 @@
 
 ## Verification evidence
 
-- The production mismatch observed 5442c033, which is exactly the Pages placeholder hash; the address served the approved build e3acc9bc seconds later
+- pnpm build, pnpm test (937 tests) and pnpm lint exit 0; the collateral-damage guard and the empty-revision guard each mutation-tested
 
 ## Database actions
 
-- No external action reported.
+- Migration 0010_deployment_unpublished written and NOT applied; expected_migration still pins 0009_deployment_build_html
 - Observed Supabase status: ok (live-read-only at 2026-08-04T03:42:40.880Z).
 
 ## Hosting actions
@@ -39,16 +39,16 @@
 
 ## External side effects
 
-- Published a verification fixture at sites.andtronai.com/atlas-fingerprint-proof-plumbing-cecb30dc, still live
+- No external action reported.
 
 ## Blockers
 
-- factory.rollback cannot fire in the product: nothing updates a descriptor, so a site never reaches version 2
+- Until 0010 is applied a withdrawal will fail the status check constraint
 
 ## Next exact action
 
-Take the verification fixture down, then run the timed P2B acceptance through Mission Control
+Apply migration 0010_deployment_unpublished, then run the timed P2B acceptance through Mission Control
 
 ## Definition of done
 
-A publish whose address settles to the approved build records a match, not a mismatch
+A site can reach a second version, and a live site can be withdrawn without a direct database write
