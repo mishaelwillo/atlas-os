@@ -220,6 +220,85 @@ export function detectDrift(
     }
   }
 
+  /*
+   * Site hosting. Until this existed, hosting configuration had no schema and
+   * no detector: the Pages project, account and public address lived as prose,
+   * so pointing the publisher at a different project — or losing the
+   * credential entirely — was invisible until someone noticed sites were not
+   * appearing. The hourly factory.verify_live sweep catches the symptom; these
+   * catch the cause.
+   *
+   * All of this is skipped when the observation is `unknown`, because a
+   * collector that could not read the API environment must not be turned into
+   * evidence of a mismatch.
+   */
+  const hosting = observed.hosting.value;
+  if (observed.hosting.status !== 'unknown' && hosting) {
+    const configured = hosting.configured;
+    if (configured?.accountId !== undefined && configured.accountId !== hosting.declared.accountId) {
+      findings.push(
+        finding(
+          'blocking',
+          'hosting.account_mismatch',
+          `The API publishes to Cloudflare account ${configured.accountId} but ${hosting.declared.accountId} is declared.`,
+        ),
+      );
+    }
+    if (
+      configured?.pagesProject !== undefined &&
+      configured.pagesProject !== hosting.declared.pagesProject
+    ) {
+      findings.push(
+        finding(
+          'blocking',
+          'hosting.pages_project_mismatch',
+          `The API publishes to Pages project ${configured.pagesProject} but ${hosting.declared.pagesProject} is declared.`,
+        ),
+      );
+    }
+    /*
+     * A base-URL mismatch is blocking because the address is RECORDED on the
+     * deployment row and read back to produce a fingerprint. Publishing
+     * against the wrong base means every recorded address, and every
+     * fingerprint taken from it, describes somewhere the site is not.
+     */
+    if (
+      configured?.baseUrl !== undefined &&
+      configured.baseUrl.replace(/\/+$/, '') !==
+        hosting.declared.publicBaseUrl.replace(/\/+$/, '')
+    ) {
+      findings.push(
+        finding(
+          'blocking',
+          'hosting.base_url_mismatch',
+          `The API records published addresses under ${configured.baseUrl} but ${hosting.declared.publicBaseUrl} is declared.`,
+        ),
+      );
+    }
+    const unset = Object.entries(hosting.variablesSet)
+      .filter(([, set]) => !set)
+      .map(([name]) => name)
+      .sort(compareCodepoints);
+    if (unset.length > 0) {
+      findings.push(
+        finding(
+          'blocking',
+          'hosting.variables_unset',
+          `Hosting variables are not set, so an approved publish is recorded as queued rather than going live: ${unset.join(', ')}.`,
+        ),
+      );
+    }
+    if (!hosting.publicReachable) {
+      findings.push(
+        finding(
+          'blocking',
+          'hosting.public_address_unreachable',
+          `The declared public address ${hosting.declared.publicBaseUrl} did not answer, so no published site is being served from it.`,
+        ),
+      );
+    }
+  }
+
   if (desired.phaseComplete && desired.acceptanceEvidence.length === 0) {
     findings.push(
       finding(
@@ -285,6 +364,15 @@ export function detectDrift(
         'warning',
         'registry.state_unknown',
         'Local registry version or generated-route state is unknown.',
+      ),
+    );
+  }
+  if (observed.hosting.status === 'unknown') {
+    findings.push(
+      finding(
+        'warning',
+        'hosting.configuration_unknown',
+        'Site hosting configuration is unknown; run the collector with the API environment injected.',
       ),
     );
   }
@@ -366,6 +454,7 @@ export function renderDriftReport(
     evidenceLine('Supabase', observed.supabase.status, observed.supabase.evidence),
     evidenceLine('Railway API', observed.railwayApi.status, observed.railwayApi.evidence),
     evidenceLine('Railway OS', observed.railwayOs.status, observed.railwayOs.evidence),
+    evidenceLine('Site hosting', observed.hosting.status, observed.hosting.evidence),
     evidenceLine('Registry', observed.registry.status, observed.registry.evidence),
     '',
     `Collector: ${observed.provenance.collector} (${observed.provenance.mode})`,

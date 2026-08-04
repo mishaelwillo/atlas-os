@@ -60,6 +60,33 @@ export interface ObservedState {
     status?: number;
     fingerprint?: BuildFingerprint;
   }>;
+  /**
+   * Site hosting as the running API sees it, plus whether the declared public
+   * address answers at all.
+   *
+   * `variablesSet` records presence per variable NAME and never a value, so a
+   * credential cannot reach the generated artifacts through this path. The
+   * three configured values are echoed because they are already declared in
+   * ENVIRONMENTS.yaml — comparing them is the entire point.
+   */
+  hosting: Observation<{
+    declared: {
+      provider: string;
+      accountId: string;
+      pagesProject: string;
+      publicBaseUrl: string;
+    };
+    /** Absent when the collector ran without the API's environment injected. */
+    configured?: {
+      accountId?: string;
+      pagesProject?: string;
+      baseUrl?: string;
+    };
+    variablesSet: Record<string, boolean>;
+    /** Status of a GET against the declared public base URL, if it answered. */
+    publicStatus?: number;
+    publicReachable: boolean;
+  }>;
   registry: Observation<{
     version: number;
     capabilityCount: number;

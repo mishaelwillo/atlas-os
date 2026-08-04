@@ -70,6 +70,45 @@ const PublicEndpointSchema = z
   })
   .strict();
 
+/**
+ * Where published customer sites are actually served from.
+ *
+ * Atlas itself runs on Railway; generated business sites do not, and that
+ * distinction is the whole reason a hosting adapter exists. Until this section
+ * existed the provider, project, account and public address were prose in
+ * CURRENT_STATE.md — which meant hosting configuration had no schema, the
+ * collector could not observe it, and drift in it had no detector at all. The
+ * hourly `factory.verify_live` sweep caught the symptom afterwards; nothing
+ * caught the cause.
+ *
+ * Required, not optional. An optional section is one a future environment can
+ * silently omit, which is exactly how the gap appeared the first time.
+ *
+ * NO CREDENTIAL LIVES HERE. `required_variable_names` holds variable NAMES,
+ * and the collector only ever reports whether each is set.
+ */
+const HostingSchema = z
+  .object({
+    provider: z.literal('cloudflare-pages'),
+    /** Cloudflare account identifier: 32 lowercase hex characters. */
+    account_id: z.string().regex(/^[0-9a-f]{32}$/),
+    pages_project: z.string().min(1),
+    /**
+     * The provider's own address for the project — the origin the public
+     * address fronts. Kept separately because the two serving different bytes
+     * is a real, previously-observed failure: a zone setting once rewrote the
+     * public response while the origin served the approved build exactly.
+     */
+    provider_url: z.string().url(),
+    /** Where a published site's recorded address actually points. */
+    public_base_url: z.string().url(),
+    zone: z.string().min(1),
+    /** Path-based (`/<slug>`) or per-site subdomain; `publicUrl` implements it. */
+    layout: z.enum(['path', 'subdomain']),
+    required_variable_names: z.array(z.string().min(1)),
+  })
+  .strict();
+
 const EnvironmentSchema = z
   .object({
     github: z
@@ -91,6 +130,7 @@ const EnvironmentSchema = z
         os: PublicEndpointSchema,
       })
       .strict(),
+    hosting: HostingSchema,
     required_variable_names: z.array(z.string().min(1)),
     expected_secret_names: z.array(z.string().min(1)).optional(),
   })
