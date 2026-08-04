@@ -487,7 +487,7 @@ Wiring it exposed that nothing kept those bytes. A deployment recorded the
 sha256 of what it published and nothing else, and a hash cannot be republished.
 Re-rendering the descriptor does not recover the old build either: the
 descriptor is the thing that changed, which is usually why someone is rolling
-back. Migration `0009` retains `build_html` with each deployment, and a
+back. Migration `0009` — applied — retains `build_html` with each deployment, and a
 predecessor without it is refused with `no_stored_build` rather than having
 something rendered in its place — that would republish a build nobody approved
 under the name of one that was.
@@ -496,6 +496,11 @@ The restore is a new version pointing at what it restored, never a revived row,
 so history stays append-only. It carries every other live site along, reads the
 address back, and retains its own bytes so the restore is itself
 rollback-able.
+
+All three deployment rows that predate `0009` carry no bytes, so rollback
+becomes usable for a site one publish after the migration rather than
+immediately. That is the honest state, not a defect: those bytes were never
+retained and nothing can invent them.
 
 **A Pages deployment is a whole-site snapshot, not a patch.** The adapter built
 each deployment's manifest from the one site being promoted, so every publish
