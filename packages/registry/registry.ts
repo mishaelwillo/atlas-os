@@ -129,6 +129,22 @@ export const registry = [
     taskClass: 'quick', requiresApproval: true, scopes: [], method: 'POST', execution: 'handler',
   },
   {
+    id: 'factory.revise_site',
+    name: 'Revise a site',
+    description: 'Replace a site descriptor with a new set of facts. Touches the draft only: the live deployment keeps serving the bytes it published. Every sourcing and QA rule applies again, because new facts deserve the same scrutiny as the first ones.',
+    input: { type: 'object', required: ['siteId', 'facts'], properties: { siteId: { type: 'string' }, facts: { type: 'array' }, template: { type: 'string' }, stylePack: { type: 'string' }, region: { type: 'string' } } },
+    output: { type: 'object', properties: { siteId: { type: 'string' }, revised: { type: 'boolean' }, status: { type: 'string' }, factCount: { type: 'number' }, blocked: { type: 'array' }, buildHash: { type: 'string' }, renderIssues: { type: 'array' }, qa: { type: 'object' }, note: { type: 'string' } } },
+    taskClass: 'do', requiresApproval: false, scopes: ['factory:write'], method: 'POST', execution: 'handler',
+  },
+  {
+    id: 'factory.unpublish',
+    name: 'Withdraw a live site',
+    description: 'Take a published site down. ALWAYS approval-gated. Every other live site is republished from the bytes it published, so withdrawing one cannot take another with it; if any of those bytes were never retained, the withdrawal is refused rather than risking that.',
+    input: { type: 'object', required: ['siteId'], properties: { siteId: { type: 'string' } } },
+    output: { type: 'object', properties: { approvalId: { type: 'string' } } },
+    taskClass: 'quick', requiresApproval: true, scopes: [], method: 'POST', execution: 'handler',
+  },
+  {
     id: 'factory.rollback',
     name: 'Roll a site back',
     description: 'Restore the last build that was observed serving. ALWAYS approval-gated. Only a deployment that actually went live and whose exact bytes were retained qualifies; the restore is a new version, never a revived row.',

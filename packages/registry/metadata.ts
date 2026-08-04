@@ -164,6 +164,32 @@ export const capabilityMetadata: Record<CapabilityId, CapabilityMetadata> = {
     ],
     specification: P2_FACTORY_SPECIFICATION,
   },
+  'factory.revise_site': {
+    stage: 'candidate',
+    phase: 'P2B',
+    menuGroup: 'Website Factory',
+    regions: ['global'],
+    entitlements: ['website-factory'],
+    monetization: 'hosting',
+    implementation: 'build',
+    // Changes a draft only; publishing it is a separate approved step.
+    autonomy: 'manual',
+    evidenceIds: [],
+    specification: P2_FACTORY_SPECIFICATION,
+  },
+  'factory.unpublish': {
+    stage: 'candidate',
+    phase: 'P2B',
+    menuGroup: 'Website Factory',
+    regions: ['global'],
+    entitlements: ['website-hosting'],
+    monetization: 'hosting',
+    implementation: 'build',
+    // Privileged and audited, like publishing and rollback.
+    autonomy: 'shadow',
+    evidenceIds: [],
+    specification: P2_FACTORY_SPECIFICATION,
+  },
   'factory.rollback': {
     stage: 'candidate',
     phase: 'P2B',

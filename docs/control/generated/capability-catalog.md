@@ -479,6 +479,22 @@ ledgers is not executable and does not appear here.
 - Scopes: `factory:write`
 - Description: Re\-render a stored descriptor and return the immutable build\. Access\-controlled, expiring, noindex — never public\.
 
+### `factory.revise_site` — Revise a site
+- Stage: candidate
+- Phase: P2B
+- Monetization: hosting
+- Autonomy: manual
+- Implementation: build
+- Regions: `global`
+- Entitlements: `website-factory`
+- Evidence: none
+- Specification: `docs/specs/p2/website-factory.md`
+- Method: POST
+- Task class: do
+- Approval required: no
+- Scopes: `factory:write`
+- Description: Replace a site descriptor with a new set of facts\. Touches the draft only: the live deployment keeps serving the bytes it published\. Every sourcing and QA rule applies again, because new facts deserve the same scrutiny as the first ones\.
+
 ### `factory.rollback` — Roll a site back
 - Stage: candidate
 - Phase: P2B
@@ -494,6 +510,22 @@ ledgers is not executable and does not appear here.
 - Approval required: yes
 - Scopes: none
 - Description: Restore the last build that was observed serving\. ALWAYS approval\-gated\. Only a deployment that actually went live and whose exact bytes were retained qualifies; the restore is a new version, never a revived row\.
+
+### `factory.unpublish` — Withdraw a live site
+- Stage: candidate
+- Phase: P2B
+- Monetization: hosting
+- Autonomy: shadow
+- Implementation: build
+- Regions: `global`
+- Entitlements: `website-hosting`
+- Evidence: none
+- Specification: `docs/specs/p2/website-factory.md`
+- Method: POST
+- Task class: quick
+- Approval required: yes
+- Scopes: none
+- Description: Take a published site down\. ALWAYS approval\-gated\. Every other live site is republished from the bytes it published, so withdrawing one cannot take another with it; if any of those bytes were never retained, the withdrawal is refused rather than risking that\.
 
 ### `factory.verify_live` — Verify live sites
 - Stage: candidate

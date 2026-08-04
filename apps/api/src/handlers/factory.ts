@@ -202,3 +202,101 @@ export const factoryPreview: CapabilityHandler = async (ctx, input) => {
     qa: qaSummary(qa),
   };
 };
+
+/**
+ * factory.revise_site — replace a site's descriptor with a new set of facts.
+ *
+ * Until this existed a site had exactly one descriptor for ever: build_site
+ * only ever inserted. That made a second version impossible, which in turn made
+ * `factory.rollback` unreachable — it had nothing to restore.
+ *
+ * Revising touches the draft only. The live deployment keeps serving the bytes
+ * it published, because those are retained with it; a revision is a proposal
+ * until someone approves a deploy of it. Every sourcing rule applies again,
+ * because new facts deserve the same scrutiny as the first ones.
+ */
+export const factoryReviseSite: CapabilityHandler = async (ctx, input) => {
+  const siteId = typeof input.siteId === 'string' ? input.siteId.trim() : '';
+  if (siteId === '') throw new CapabilityError(400, 'factory.revise_site: siteId is required');
+
+  const found = await ctx.q.query(
+    `select site_id, descriptor, template, style_pack, source_profile from sites where site_id = $1`,
+    [siteId],
+  );
+  const row = found.rows[0];
+  if (!row) throw new CapabilityError(404, 'factory.revise_site: site not found');
+
+  const current = row.descriptor as Descriptor;
+  const rawFacts: RawFact[] = Array.isArray(input.facts) ? (input.facts as RawFact[]) : [];
+  if (rawFacts.length === 0) {
+    // A revision with no facts would silently blank the page rather than change
+    // it, which is not something anyone means to ask for.
+    throw new CapabilityError(400, 'factory.revise_site: facts are required; supply the full set the page should show');
+  }
+
+  const template =
+    typeof input.template === 'string' && input.template.trim() !== ''
+      ? input.template.trim()
+      : current.template;
+  const stylePack =
+    typeof input.stylePack === 'string' && input.stylePack.trim() !== ''
+      ? input.stylePack.trim()
+      : current.stylePack;
+  const region =
+    typeof input.region === 'string' && input.region.trim() !== ''
+      ? input.region.trim()
+      : current.region;
+
+  const dossier = buildDossier(rawFacts);
+  const businessName = businessNameFrom(dossier);
+  if (businessName === null) {
+    return {
+      revised: false,
+      status: 'facts_pending_review',
+      note: 'no sourced businessName in the revision: supply one with a source URL or mark it owner-provided',
+      blocked: dossier.blocked,
+    };
+  }
+
+  const descriptor = buildDescriptor({
+    profileUrl: current.profileUrl,
+    region,
+    template,
+    stylePack,
+    dossier,
+  });
+  const render = template === null ? null : renderSite(descriptor);
+  const qa =
+    render?.rendered === true
+      ? runQa({ html: render.html, descriptor, tokens: render.tokens })
+      : null;
+
+  await ctx.q.query(
+    `update sites set descriptor = $2::jsonb, business_name = $3, template = $4, style_pack = $5, updated_at = now()
+      where site_id = $1`,
+    [siteId, JSON.stringify(descriptor), businessName, template, stylePack],
+  );
+
+  await insertAudit(ctx.q, ctx.spaceId, ctx.auth.actor, 'factory.site_revised', siteId, {
+    facts: dossier.facts.length,
+    blocked: dossier.blocked.length,
+    buildHash: render?.rendered ? render.hash : null,
+  });
+
+  return {
+    revised: true,
+    siteId,
+    status: render === null
+      ? 'descriptor_draft'
+      : render.rendered
+        ? qa?.passed === false
+          ? 'qa_failed'
+          : 'preview_built'
+        : 'template_unsatisfied',
+    factCount: dossier.facts.length,
+    blocked: dossier.blocked,
+    buildHash: render?.rendered ? render.hash : undefined,
+    renderIssues: render && !render.rendered ? render.issues : undefined,
+    qa: qa ? qaSummary(qa) : undefined,
+  };
+};

@@ -48,6 +48,14 @@ export interface PublishedSite {
 export interface HostingAdapter {
   readonly name: string;
   publish(target: PublishTarget): Promise<PublishedSite>;
+  /**
+   * Serve nothing at all.
+   *
+   * Withdrawing the last live site cannot be expressed as a publish, because
+   * there is nothing left to publish. Providers that deploy a whole-site
+   * snapshot need an explicit empty one.
+   */
+  withdrawAll(): Promise<void>;
 }
 
 /**
@@ -65,6 +73,10 @@ export class UnconfiguredHosting implements HostingAdapter {
     return Promise.reject(
       new Error('no hosting adapter is configured; the build is verified and recorded but not served'),
     );
+  }
+
+  withdrawAll(): Promise<void> {
+    return Promise.reject(new Error('no hosting adapter is configured; nothing is served to withdraw'));
   }
 }
 

@@ -147,9 +147,9 @@ export function assertTraceabilityIntegrity(
   );
   // Pinned deliberately: adding an executable capability is a governance
   // event, so the count must be changed knowingly rather than drifting.
-  // 31 as of factory.rollback.
-  if (executable.size !== 31) {
-    throw new Error(`expected exactly 31 executable capabilities, found ${executable.size}`);
+  // 33 as of factory.revise_site and factory.unpublish.
+  if (executable.size !== 33) {
+    throw new Error(`expected exactly 33 executable capabilities, found ${executable.size}`);
   }
   if (candidate.size !== 31) {
     throw new Error(`expected exactly 31 capability candidates, found ${candidate.size}`);

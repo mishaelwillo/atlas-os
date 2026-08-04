@@ -505,6 +505,35 @@ This is the second time the same mistake was made in this codebase: the
 benchmark runner's own check treated any 200 as success and read the
 placeholder too. Both are now encoded rather than remembered.
 
+## Revising and withdrawing
+
+Two gaps the production verification run exposed, both now closed.
+
+**A site had exactly one descriptor for ever.** `factory.build_site` only ever
+inserted, so a site could never reach version 2 and `factory.rollback` had
+nothing to restore — the capability was correct and unreachable.
+`factory.revise_site` replaces a descriptor with a new fact set. It touches the
+draft only: the live deployment keeps serving the bytes it published, because
+those are retained with it. Every sourcing and QA rule applies again, since new
+facts deserve the same scrutiny as the first ones.
+
+**Nothing could take a site down.** Rollback restores an earlier version; it
+cannot withdraw one. Both fixture takedowns were direct database writes
+recorded as `rolled_back`, which reads as a restore that never happened.
+`factory.unpublish` is approval-gated like publishing, and migration `0010`
+gives withdrawal a state of its own rather than borrowing a misleading one.
+
+Because the provider deploys a whole-site snapshot, withdrawing one site means
+republishing every other live site without it. Their bytes come from what each
+actually published — never re-rendered — so nothing can drift, and if any of
+those bytes were never retained the withdrawal is **refused** rather than
+taking another site down as collateral. Withdrawing the last live site needs an
+explicit empty snapshot, which is what the adapter's `withdrawAll` is for.
+
+That byte-preference also fixed a latent trap: siblings used to be re-rendered,
+so revising one site's descriptor would have made its live deployment look
+drifted and blocked every other site's publish.
+
 ## Rollback
 
 `factory.rollback` is approval-gated, like publishing: the specification makes

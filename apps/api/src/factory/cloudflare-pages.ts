@@ -167,6 +167,27 @@ export class CloudflarePagesHosting implements HostingAdapter {
       providerRef: deployment.id === undefined ? null : String(deployment.id),
     };
   }
+
+  /**
+   * Deploy an empty manifest, which is how Pages expresses "serve nothing".
+   *
+   * A deployment is a whole-site snapshot, so an empty one withdraws
+   * everything. This is only reached when the last live site is withdrawn;
+   * while any remain, they are republished as the snapshot instead.
+   */
+  async withdrawAll(): Promise<void> {
+    const form = new FormData();
+    form.append('manifest', JSON.stringify({}));
+
+    await cfJson(
+      await this.fetchImpl(`${this.base}/deployments`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${this.config.apiToken}` },
+        body: form,
+      }),
+      'withdrawing every published site',
+    );
+  }
 }
 
 /** Kept local so the adapter has no import cycle with the boundary module. */

@@ -22,6 +22,7 @@ export const factoryDeploySite = todo('factory.deploy_site', 'deploy fires via d
 export const leadsFind = todo('leads.find', 'lead scoring pipeline lands in P2');
 export const outreachSend = todo('outreach.send', 'send fires via dispatch.ts after approval (log-only stub)');
 export const benchRun = todo('bench.run', 'model bench harness lands in P2');
+export const factoryUnpublish = todo('factory.unpublish', 'withdrawal fires via dispatch.ts after approval');
 export const factoryRollback = todo('factory.rollback', 'rollback fires via dispatch.ts after approval');
 export const hostingActivate = todo('hosting.activate', 'activation fires via dispatch.ts after approval');
 export const hostingCancel = todo('hosting.cancel', 'cancellation fires via dispatch.ts after approval');

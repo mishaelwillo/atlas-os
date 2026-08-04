@@ -16,6 +16,8 @@ export const GENERATED_CAPABILITY_IDS = [
   "factory.build_site",
   "factory.preview",
   "factory.deploy_site",
+  "factory.revise_site",
+  "factory.unpublish",
   "factory.rollback",
   "leads.find",
   "prospecting.qualify",
@@ -398,6 +400,103 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
       "type": "object",
       "properties": {
         "deployUrl": {
+          "type": "string"
+        }
+      }
+    },
+    "execution": "handler"
+  } as const satisfies CapabilityRouteMeta, deps);
+  registerCapabilityRoute(app, {
+    "id": "factory.revise_site",
+    "name": "Revise a site",
+    "path": "/v1/factory/revise_site",
+    "method": "POST",
+    "taskClass": "do",
+    "requiresApproval": false,
+    "scopes": [
+      "factory:write"
+    ],
+    "input": {
+      "type": "object",
+      "required": [
+        "siteId",
+        "facts"
+      ],
+      "properties": {
+        "siteId": {
+          "type": "string"
+        },
+        "facts": {
+          "type": "array"
+        },
+        "template": {
+          "type": "string"
+        },
+        "stylePack": {
+          "type": "string"
+        },
+        "region": {
+          "type": "string"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "siteId": {
+          "type": "string"
+        },
+        "revised": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string"
+        },
+        "factCount": {
+          "type": "number"
+        },
+        "blocked": {
+          "type": "array"
+        },
+        "buildHash": {
+          "type": "string"
+        },
+        "renderIssues": {
+          "type": "array"
+        },
+        "qa": {
+          "type": "object"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "execution": "handler"
+  } as const satisfies CapabilityRouteMeta, deps);
+  registerCapabilityRoute(app, {
+    "id": "factory.unpublish",
+    "name": "Withdraw a live site",
+    "path": "/v1/factory/unpublish",
+    "method": "POST",
+    "taskClass": "quick",
+    "requiresApproval": true,
+    "scopes": [],
+    "input": {
+      "type": "object",
+      "required": [
+        "siteId"
+      ],
+      "properties": {
+        "siteId": {
+          "type": "string"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "approvalId": {
           "type": "string"
         }
       }
