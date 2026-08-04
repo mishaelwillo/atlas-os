@@ -533,9 +533,9 @@ failed run rather than an invented answer.
 The field is required, not defaulted. A default would put the next capability
 back in the same hole; declaring it is the point.
 
-A handler-executed run records `answered_by = 'handler'` (migration `0008`
-widens the token-ladder check) and no tokens or cost, because no model was
-called. Recording a deterministic run as `model` would put a model's name
+A handler-executed run records `answered_by = 'handler'` (migration `0008`,
+applied, widens the token-ladder check — confirmed by inserting such a row and
+rolling it back) and no tokens or cost, because no model was called. Recording a deterministic run as `model` would put a model's name
 against work no model did.
 
 **Two capabilities had no handler entry at all.** `hosting.activate` and
