@@ -441,12 +441,24 @@ script nobody approved, which is precisely what the QA gate's
 prevent. The CSP the renderer emits (`default-src 'none'`) would stop it
 executing, which is luck rather than design.
 
-Two follow-ups, neither taken unilaterally:
+The zone setting is now fixed, and the cause was not what it looked like.
+Bot Fight Mode was a red herring: with `fight_mode` already false the injection
+continued, because the responsible setting is **`enable_js`** — Cloudflare's
+JavaScript Detections — which the dashboard renders as read-only text inside
+the Bot Fight Mode card with no toggle of its own.
 
-1. **Zone setting.** Disabling Bot Fight Mode, or scoping a configuration rule
-   to `sites.andtronai.com`, would stop the injection. That is a security
-   trade-off for the whole zone and an operator's decision.
-2. **Built.** The dispatcher now reads the published address back and records
+It also cannot be changed by API token on this zone. A token scoped to Zone
+Settings Edit is refused with `10000 Authentication error` on
+`/zones/{id}/bot_management`; only an authenticated dashboard session is
+accepted. It was set through that session with
+`PUT /api/v4/zones/{id}/bot_management {"enable_js": false}`.
+
+Measured immediately afterwards, `sites.andtronai.com` and the Pages origin
+serve **byte-identical** content — 785 bytes each. The acceptance "public
+fingerprint equals approved build" can now hold.
+
+One follow-up remains, not taken unilaterally:
+1. **Built.** The dispatcher now reads the published address back and records
    what it actually served: `public_fingerprint`, `fingerprint_checked_at` and
    `fingerprint_matches` on `site_deployments` (migration `0007`). An
    unreachable address records as unreadable, never as a match — a row carrying
