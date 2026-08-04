@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `p2c-operator-surface-built`
+**Handoff ID:** `hosting-environment-schema`
 **Status:** active
-**Started:** 2026-08-04T22:05:52.832Z
-**Updated:** 2026-08-04T22:05:52.832Z
+**Started:** 2026-08-04T22:53:39.411Z
+**Updated:** 2026-08-04T22:53:39.411Z
 **Actor:** Claude
-**Objective:** Mission Control surface for the twelve P2C revenue capabilities
+**Objective:** Give site hosting a schema in ENVIRONMENTS.yaml and a drift detector
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `feat/p2c-operator-surface`
+- Branch: `feat/hosting-environment-schema`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `102e9b7cbe2c4bff050fb3edd8905090e1670e29`
+- Head commit: `addd1cf539cac0b8b4a4e1fa5184a186c5b0845c`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Added prospects, sequences and revenue_ops cards to status.mission_control and their Mission Control components; derived the offered demo and touch moves from planAdvance and planTouchAdvance
+- Added a required hosting section to ENVIRONMENTS.yaml, hosting observation to the collector, and five blocking drift detectors
 
 ## Current working tree
 
@@ -25,17 +25,17 @@
 
 ## Verification evidence
 
-- build, lint, 990 tests and control:verify green; both derived-move guards and the card routing mutation-tested; pipeline SQL dry-run against production inside a rolled-back transaction with fixture rows
+- control:status against production reported hosting ok; declaring a different Pages project produced a blocking mismatch; both guards mutation-tested
 
 ## Database actions
 
 - No external action reported.
-- Observed Supabase status: ok (live-read-only at 2026-08-04T20:38:21.554Z).
+- Observed Supabase status: ok (live-read-only at 2026-08-04T22:52:17.311Z).
 
 ## Hosting actions
 
-- No external action reported.
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-04T20:38:21.554Z).
+- Read-only: one GET against the declared public address and the API service's own configuration; no hosting change was made
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-04T22:52:17.311Z).
 
 ## External side effects
 
@@ -43,7 +43,7 @@
 
 ## Blockers
 
-- The cards were not exercised in a signed-in browser: Mission Control's operator password is not available to Claude
+- Not supplied.
 
 ## Next exact action
 
@@ -51,4 +51,4 @@ Exercise the three P2C cards in a signed-in browser: walk one prospect from asse
 
 ## Definition of done
 
-An operator can qualify a prospect, queue a demo, plan and advance a sequence, publish an offer, record a deal decision and see hosting state from Mission Control
+Hosting configuration is declared, observed against the running API, and drift in it produces blocking findings
