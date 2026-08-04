@@ -69,6 +69,11 @@ export interface PipelineDeps {
    * rather than assumed. Injected so tests never touch the network.
    */
   readPublic: (url: string) => Promise<{ status: number; body: string }>;
+  /**
+   * How persistently a published address is re-read before a non-match is
+   * believed. Injected so tests do not sleep through real propagation waits.
+   */
+  readBack: { attempts: number; delayMs: number };
   router: AtlasRouter;
   /** registry meta keyed by capability id — runs.execute routes through this */
   capabilities: Record<string, CapabilityRouteMeta>;

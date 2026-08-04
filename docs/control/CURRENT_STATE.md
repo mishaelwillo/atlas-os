@@ -488,6 +488,23 @@ to. Each change was audited so the trail was not silent, but a direct write is
 a weaker thing than a governed one. `factory.rollback` now exists, so the next
 takedown goes through the capability surface.
 
+### The read-back raced the CDN
+
+The first read-back to run after the zone was fixed still recorded a mismatch —
+and its observed hash was **exactly the Pages placeholder's**. A freshly
+created deployment is not instantly reachable, so reading once, immediately
+after publishing, hashes whatever the provider serves in the meantime.
+
+A non-match is now retried — six attempts, two seconds apart — before it is
+believed. A match returns at once, because a matching hash cannot be a
+propagation artefact, and exhausting the attempts records the last result
+honestly rather than giving up into a pretend success. The policy is injected,
+so tests do not sleep through it.
+
+This is the second time the same mistake was made in this codebase: the
+benchmark runner's own check treated any 200 as success and read the
+placeholder too. Both are now encoded rather than remembered.
+
 ## Rollback
 
 `factory.rollback` is approval-gated, like publishing: the specification makes

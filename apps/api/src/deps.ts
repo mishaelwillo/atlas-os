@@ -6,6 +6,7 @@ import { dispatchers } from './dispatch.js';
 import { loadEnv, type Env } from './env.js';
 import { loadBuildInfo, type BuildInfo } from './build-info.js';
 import { UnconfiguredHosting, type HostingAdapter } from './factory/hosting.js';
+import { READ_BACK_ATTEMPTS, READ_BACK_DELAY_MS } from './factory/fingerprint.js';
 import { pagesHostingFromEnv } from './factory/cloudflare-pages.js';
 import { handlers } from './handlers/index.js';
 import type { CapabilityRouteMeta, PipelineDeps } from './pipeline.js';
@@ -36,6 +37,7 @@ export interface BuildDepsOptions {
   buildInfo?: BuildInfo;
   hosting?: HostingAdapter;
   readPublic?: (url: string) => Promise<{ status: number; body: string }>;
+  readBack?: { attempts: number; delayMs: number };
   log?: PipelineDeps['log'];
 }
 
@@ -72,6 +74,7 @@ export function buildDeps(opts: BuildDepsOptions = {}): PipelineDeps {
         const res = await fetch(url, { redirect: 'follow' });
         return { status: res.status, body: await res.text() };
       }),
+    readBack: opts.readBack ?? { attempts: READ_BACK_ATTEMPTS, delayMs: READ_BACK_DELAY_MS },
     router,
     capabilities: capabilityMetaMap(),
     handlers,

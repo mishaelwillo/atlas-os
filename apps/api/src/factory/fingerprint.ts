@@ -92,3 +92,58 @@ export function classifyFingerprint(args: {
     message: `the public address serves ${observed.slice(0, 12)}, not the approved ${approved.slice(0, 12)}; something between the build and the reader changed the bytes`,
   };
 }
+
+/** Attempts before a non-matching read is believed. */
+export const READ_BACK_ATTEMPTS = 6;
+/** Gap between attempts. */
+export const READ_BACK_DELAY_MS = 2000;
+
+export interface ReadBackOutcome extends FingerprintResult {
+  /** How many reads it took; 1 means it matched immediately. */
+  attempts: number;
+}
+
+/**
+ * Read the published address back, retrying until it settles.
+ *
+ * A freshly created deployment is not instantly reachable. Reading once,
+ * immediately after publishing, catches the provider mid-propagation and hashes
+ * whatever it serves in the meantime — for Cloudflare Pages that is the
+ * project's fallback page. This happened in production: a publish recorded a
+ * mismatch whose "observed" hash was exactly the placeholder's, while the
+ * address served the approved build correctly seconds later.
+ *
+ * So a non-match is retried before it is believed. A match is returned at once,
+ * because a matching hash cannot be a propagation artefact. Exhausting the
+ * attempts records the last result honestly rather than giving up into a
+ * pretend success.
+ */
+export async function readBackUntilSettled(args: {
+  approved: string;
+  url: string;
+  read: (url: string) => Promise<ReadPublicResult>;
+  attempts?: number;
+  delayMs?: number;
+  sleep?: (ms: number) => Promise<void>;
+}): Promise<ReadBackOutcome> {
+  const attempts = Math.max(1, args.attempts ?? READ_BACK_ATTEMPTS);
+  const delayMs = args.delayMs ?? READ_BACK_DELAY_MS;
+  const sleep = args.sleep ?? ((ms: number) => new Promise((r) => setTimeout(r, ms)));
+
+  let last: FingerprintResult = classifyFingerprint({ approved: args.approved, read: null });
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const read = await args.read(args.url);
+      last = classifyFingerprint({ approved: args.approved, read });
+    } catch (err) {
+      last = classifyFingerprint({
+        approved: args.approved,
+        read: null,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+    if (last.matches) return { ...last, attempts: attempt };
+    if (attempt < attempts) await sleep(delayMs);
+  }
+  return { ...last, attempts };
+}
