@@ -41,6 +41,22 @@ environments:
       os:
         public_url: https://os-production-8faf.up.railway.app
         health_path: /build-info.json
+    # Published customer sites are hosted separately from Atlas itself. These
+    # are identifiers and addresses only; the credential is a variable name
+    # below, and the collector reports only whether it is set.
+    hosting:
+      provider: cloudflare-pages
+      account_id: fd486ea72e20f31937e059f3d14ff0c2
+      pages_project: atlas-sites
+      provider_url: https://atlas-sites-2np.pages.dev
+      public_base_url: https://sites.andtronai.com
+      zone: andtronai.com
+      layout: path
+      required_variable_names:
+        - CLOUDFLARE_ACCOUNT_ID
+        - CLOUDFLARE_API_TOKEN
+        - CLOUDFLARE_PAGES_PROJECT
+        - ATLAS_SITES_BASE_URL
     required_variable_names:
       - DATABASE_URL
       - SUPABASE_URL

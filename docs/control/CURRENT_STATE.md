@@ -148,12 +148,41 @@ Until the credential exists, an approved publish is verified, versioned and
 recorded as `queued`, and the adapter refuses rather than reporting an address
 that does not serve.
 
-### Recorded but not yet schema-backed
+### Hosting is now schema-backed and observed
 
-`ENVIRONMENTS.yaml` is a strict schema with no hosting section, so the values
-above are prose rather than validated configuration. Extending the schema so
-the collector can observe the Pages deployment is a genuine follow-up; until
-then hosting drift is not detected.
+`ENVIRONMENTS.yaml` has a `hosting` section — provider, account, Pages project,
+provider and public addresses, zone, layout, and the variable *names* the
+publisher needs. It is required on every environment rather than optional,
+because an optional section is one a future environment can silently omit,
+which is how the gap appeared in the first place.
+
+The collector reads what the running API is actually configured with and
+compares it, producing five blocking findings that previously had no detector
+at all: `hosting.account_mismatch`, `hosting.pages_project_mismatch`,
+`hosting.base_url_mismatch`, `hosting.variables_unset` and
+`hosting.public_address_unreachable`. The base-URL check matters most — the
+address is recorded on the deployment row and read back to produce a
+fingerprint, so publishing against the wrong base makes every recorded address
+and every fingerprint taken from it describe somewhere the site is not.
+
+The hourly `factory.verify_live` sweep catches the symptom of a live site not
+serving its approved build. These catch the cause.
+
+**No credential is in the file or the output.** Only variable names are
+declared, and the collector reports presence per name, never a value.
+
+**Unobserved is unknown, not agreement.** Run without the API environment
+injected, hosting reports `hosting.configuration_unknown` as a warning rather
+than manufacturing four mismatches against undefined. That costs one detector
+honestly: removing *every* hosting variable at once is indistinguishable from
+not looking. Removing any one of them, the realistic regression, is still
+caught.
+
+Verified against production on 2026-08-04: `railway run --service api pnpm
+control:status` reported hosting `ok` with all four variables set and
+`sites.andtronai.com` answering 200. The detector was then made to fail —
+declaring a different Pages project produced
+`BLOCKING hosting.pages_project_mismatch` naming both values — and restored.
 
 ## Build QA
 

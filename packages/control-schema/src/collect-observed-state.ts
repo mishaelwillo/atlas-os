@@ -59,6 +59,16 @@ export interface CollectorEnvironment {
     api: { public_url: string; health_path: string };
     os: { public_url: string; health_path: string };
   };
+  hosting: {
+    provider: string;
+    account_id: string;
+    pages_project: string;
+    provider_url: string;
+    public_base_url: string;
+    zone: string;
+    layout: string;
+    required_variable_names: string[];
+  };
   required_variable_names: string[];
 }
 
@@ -71,6 +81,13 @@ export interface CollectObservedStateOptions {
   queryTables?: QueryTables;
   databaseUrl?: string;
   timeoutMs?: number;
+  /**
+   * The API service's environment, when the collector was run with it injected
+   * (`railway run --service api pnpm control:status`). Absent means hosting
+   * configuration is unobserved, which is reported as unknown — never as
+   * agreement, and never as a mismatch against nothing.
+   */
+  processEnv?: Record<string, string | undefined>;
 }
 
 export interface RunStatusCliOptions extends CollectObservedStateOptions {
@@ -559,6 +576,107 @@ async function collectRailwayOs(
   }
 }
 
+/**
+ * Observe site hosting: what the running API is configured with, and whether
+ * the declared public address answers.
+ *
+ * Two disciplines this shares with the migration observation. An unreadable
+ * environment is `unknown`, never agreement — a collector run without the API
+ * environment injected knows nothing about hosting and must say so rather than
+ * reporting a mismatch against undefined. And the credential is only ever
+ * reported as present or absent; its value is not read, echoed or stored.
+ *
+ * The public probe deliberately accepts any HTTP status. A 404 at the base
+ * address is normal — Pages serves a `noindex` placeholder that lists nothing —
+ * so what is being established is that the host resolves and answers at all.
+ * Whether an individual site serves its approved bytes is the hourly
+ * `factory.verify_live` sweep's job, and duplicating it here would produce a
+ * second, weaker answer to a question that already has a good one.
+ */
+async function collectHosting(
+  fetcher: CollectorFetch,
+  checkedAt: string,
+  timeoutMs: number,
+  environment: CollectorEnvironment,
+  processEnv: Record<string, string | undefined> | undefined,
+): Promise<ObservedState['hosting']> {
+  const hosting = environment.hosting;
+  const declared = {
+    provider: hosting.provider,
+    accountId: hosting.account_id,
+    pagesProject: hosting.pages_project,
+    publicBaseUrl: hosting.public_base_url,
+  };
+
+  let publicStatus: number | undefined;
+  let publicReachable = false;
+  let probeError: unknown;
+  try {
+    const response = await fetcher(hosting.public_base_url, {
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    publicStatus = response.status;
+    publicReachable = true;
+  } catch (error) {
+    probeError = error;
+  }
+
+  const source = processEnv ?? {};
+  const variablesSet = Object.fromEntries(
+    hosting.required_variable_names.map((name) => [
+      name,
+      (source[name] ?? '').trim() !== '',
+    ]),
+  );
+
+  /*
+   * None of the declared variables set means the API environment was not
+   * injected — `pnpm control:status` run without `railway run` knows nothing
+   * about hosting. Reporting unknown is the conservative reading, and it costs
+   * one detector honestly: removing EVERY hosting variable at once is
+   * indistinguishable here from not looking. Removing any one of them, which
+   * is the realistic regression, is still reported.
+   */
+  if (!Object.values(variablesSet).some(Boolean)) {
+    return {
+      status: 'unknown',
+      checkedAt,
+      value: { declared, variablesSet, publicStatus, publicReachable },
+      evidence: `Hosting configuration was not observed: no declared hosting variable is set, so the API environment was probably not injected. Declared public address ${hosting.public_base_url} ${publicReachable ? `answered ${publicStatus}` : 'did not answer'}.`,
+      ...(probeError === undefined ? {} : { error: safeError(probeError) }),
+    };
+  }
+  const read = (name: string): string | undefined => {
+    const value = source[name]?.trim();
+    return value === undefined || value === '' ? undefined : value;
+  };
+  const configured = {
+    accountId: read('CLOUDFLARE_ACCOUNT_ID'),
+    pagesProject: read('CLOUDFLARE_PAGES_PROJECT'),
+    baseUrl: read('ATLAS_SITES_BASE_URL'),
+  };
+
+  const value = { declared, configured, variablesSet, publicStatus, publicReachable };
+  const unset = Object.entries(variablesSet)
+    .filter(([, set]) => !set)
+    .map(([name]) => name)
+    .sort(compareCodepoints);
+  const agrees =
+    configured.accountId === declared.accountId &&
+    configured.pagesProject === declared.pagesProject &&
+    configured.baseUrl?.replace(/\/+$/, '') === declared.publicBaseUrl.replace(/\/+$/, '');
+
+  const evidence = `Hosting ${hosting.provider} project ${hosting.pages_project}; declared public address ${hosting.public_base_url} ${publicReachable ? `answered ${publicStatus}` : 'did not answer'}; ${unset.length === 0 ? 'every required variable is set' : `unset: ${unset.join(', ')}`}.`;
+
+  return {
+    status: agrees && unset.length === 0 && publicReachable ? 'ok' : 'drift',
+    checkedAt,
+    value,
+    evidence,
+    ...(probeError === undefined ? {} : { error: safeError(probeError) }),
+  };
+}
+
 async function collectRegistry(
   root: string,
   checkedAt: string,
@@ -608,7 +726,7 @@ export async function collectObservedState(
   const queryTables = options.queryTables ?? defaultQueryTables;
   const injected = Boolean(options.run || options.fetch || options.queryTables);
 
-  const [localGit, github, supabase, railwayApi, railwayOs, registry] =
+  const [localGit, github, supabase, railwayApi, railwayOs, hosting, registry] =
     await Promise.all([
       collectLocalGit(run, options.root, checkedAt, timeoutMs),
       collectGithub(run, options.root, checkedAt, timeoutMs, options.environment),
@@ -620,6 +738,13 @@ export async function collectObservedState(
       ),
       collectRailwayApi(fetcher, checkedAt, timeoutMs, options.environment),
       collectRailwayOs(fetcher, checkedAt, timeoutMs, options.environment),
+      collectHosting(
+        fetcher,
+        checkedAt,
+        timeoutMs,
+        options.environment,
+        options.processEnv,
+      ),
       collectRegistry(options.root, checkedAt),
     ]);
 
@@ -635,6 +760,7 @@ export async function collectObservedState(
         'Supabase information_schema.tables and supabase_migrations.schema_migrations',
         'Railway API public probes',
         'Railway OS build-info.json',
+        'Site hosting configuration and a public-address probe',
         'packages/registry/registry.ts and apps/api/src/routes.gen.ts',
       ],
     },
@@ -643,6 +769,7 @@ export async function collectObservedState(
     supabase,
     railwayApi,
     railwayOs,
+    hosting,
     registry,
   };
 }
@@ -693,6 +820,7 @@ async function main(): Promise<void> {
     root,
     environment,
     databaseUrl: process.env.DATABASE_URL,
+    processEnv: process.env,
     desired,
   });
 }

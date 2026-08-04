@@ -262,8 +262,10 @@ None of these blocks the active work item.
 - **A model credential** for `playbooks.author`, without which it records the
   operator's brief rather than running a frontier session.
 - **Promoting `agents.logs`** from candidate — evidence-gated.
-- **`ENVIRONMENTS.yaml` has no hosting section**, so hosting config drift has no
-  schema. The hourly `factory.verify_live` sweep now catches the symptom.
+- **Closed.** `ENVIRONMENTS.yaml` now has a required `hosting` section, and the
+  collector compares it against what the running API is configured with — five
+  blocking detectors where there were none. Unobserved hosting reports unknown
+  rather than a mismatch against nothing.
 - **P2B's timed acceptance** needs an operator session.
 - **The full factory loop is unproven end to end** — publish → revise → publish v2
   → roll back → withdraw. Every part is unit-tested, but `factory.rollback` and

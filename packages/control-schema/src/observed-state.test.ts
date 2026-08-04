@@ -84,9 +84,17 @@ function injectedFetch(options: {
   missionControlBody?: unknown;
   osStatus?: number;
   osBody?: unknown;
+  /** The declared public sites address; 'unreachable' throws like a DNS failure. */
+  sitesStatus?: number | 'unreachable';
 }): CollectorFetch {
   return async (input, init) => {
     const url = String(input);
+    if (url.startsWith('https://sites.example.test')) {
+      if (options.sitesStatus === 'unreachable') throw new Error('getaddrinfo ENOTFOUND');
+      // 404 is the normal answer: Pages serves a noindex placeholder that
+      // lists nothing, so what is established is that the host answers.
+      return new Response('', { status: options.sitesStatus ?? 404 });
+    }
     if (url.endsWith('/healthz')) {
       return jsonResponse(
         options.healthStatus ?? 200,
@@ -173,6 +181,21 @@ const environment = {
       public_url: 'https://os.example.test',
       health_path: '/build-info.json',
     },
+  },
+  hosting: {
+    provider: 'cloudflare-pages',
+    account_id: '0'.repeat(32),
+    pages_project: 'atlas-sites',
+    provider_url: 'https://atlas-sites.pages.dev',
+    public_base_url: 'https://sites.example.test',
+    zone: 'example.test',
+    layout: 'path',
+    required_variable_names: [
+      'CLOUDFLARE_ACCOUNT_ID',
+      'CLOUDFLARE_API_TOKEN',
+      'CLOUDFLARE_PAGES_PROJECT',
+      'ATLAS_SITES_BASE_URL',
+    ],
   },
   required_variable_names: ['DATABASE_URL'],
 };
@@ -480,6 +503,9 @@ describe('observed-state collection and drift', () => {
       'supabase.required_tables_missing',
       'control.handoff_stale',
       'control.observed_state_stale',
+      // No API environment was injected here, so hosting is unknown — which is
+      // a warning, never a claim that it is wrong.
+      'hosting.configuration_unknown',
     ]);
   });
 

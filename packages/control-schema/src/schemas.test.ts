@@ -38,6 +38,16 @@ const validEnvironment = {
         api: { public_url: 'https://api.example.test', health_path: '/healthz' },
         os: { public_url: 'https://os.example.test', health_path: '/build-info.json' },
       },
+      hosting: {
+        provider: 'cloudflare-pages',
+        account_id: '0'.repeat(32),
+        pages_project: 'atlas-sites',
+        provider_url: 'https://atlas-sites.pages.dev',
+        public_base_url: 'https://sites.example.test',
+        zone: 'example.test',
+        layout: 'path',
+        required_variable_names: ['CLOUDFLARE_API_TOKEN'],
+      },
       required_variable_names: ['DATABASE_URL'],
     },
   },
@@ -482,6 +492,16 @@ environments:
       os:
         public_url: https://os.example.test
         health_path: /build-info.json
+    hosting:
+      provider: cloudflare-pages
+      account_id: '00000000000000000000000000000000'
+      pages_project: atlas-sites
+      provider_url: https://atlas-sites.pages.dev
+      public_base_url: https://sites.example.test
+      zone: example.test
+      layout: path
+      required_variable_names:
+        - CLOUDFLARE_API_TOKEN
     required_variable_names:
       - DATABASE_URL
 `,
