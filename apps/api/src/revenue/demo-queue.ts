@@ -182,6 +182,19 @@ export function isDemoState(value: string): value is DemoState {
   return (DEMO_STATES as readonly string[]).includes(value);
 }
 
+/**
+ * Every state this demo may actually be moved to, derived by asking
+ * `planAdvance` rather than by restating the transition table.
+ *
+ * The operator surface offers exactly this list. Deriving it is the point: a
+ * hand-written second copy would be a claim about the rules that nothing
+ * checks, and the first time the two disagreed an operator would be offered a
+ * move the API refuses.
+ */
+export function permittedDemoMoves(from: string): DemoState[] {
+  return DEMO_STATES.filter((to) => planAdvance(from, to).ok);
+}
+
 /** When a demo queued at this moment stops being shareable. */
 export function demoExpiry(queuedAt: Date, ttlDays = DEMO_TTL_DAYS): Date {
   return new Date(queuedAt.getTime() + ttlDays * 24 * 60 * 60 * 1000);

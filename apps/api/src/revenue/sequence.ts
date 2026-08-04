@@ -365,6 +365,36 @@ export function nextEligibleTouch(args: {
  * Derived rather than stored independently, so the summary can never disagree
  * with the touches it summarises.
  */
+/**
+ * Every state an operator may actually move this touch to, derived by asking
+ * `planTouchAdvance` rather than by restating the transition table.
+ *
+ * `viaDispatcher` is never set, so `sent` can never appear here — which is the
+ * whole point. The operator surface offers exactly this list, so it cannot
+ * offer a move the API would refuse, and it cannot grow a path to recording a
+ * send that no approved dispatch performed.
+ *
+ * `approved` does appear, because an operator can supply the approval that
+ * justifies it; `requiresApproval` below says so rather than leaving the
+ * caller to discover the refusal.
+ */
+export function permittedTouchMoves(args: {
+  sequenceState: string;
+  from: string;
+}): Array<{ state: TouchState; requiresApproval: boolean }> {
+  return TOUCH_STATES.filter(
+    (to) =>
+      planTouchAdvance({
+        sequenceState: args.sequenceState,
+        from: args.from,
+        to,
+        // A recorded approval is what the operator would supply; probing with
+        // one keeps `approved` offerable while `sent` stays unreachable.
+        approvalId: 'probe',
+      }).ok,
+  ).map((state) => ({ state, requiresApproval: state === 'approved' }));
+}
+
 export function sequenceStateFrom(touches: readonly TouchRecord[]): SequenceState {
   if (touches.some((t) => stopsSequence(t.state))) return 'stopped';
   if (touches.length > 0 && touches.every((t) => isTerminal(t.state))) return 'completed';

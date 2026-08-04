@@ -74,4 +74,4 @@ items:
     specification: docs/specs/p2/revenue-pilot.md
     acceptance_checks:
       - One real hosting-paying customer completes an approval-gated sequence
-    next_action: The twelve P2C capabilities are built and applied but Mission Control has cards for none of them, so the pilot cannot be run through the product; build that operator surface, after which the exit criterion blocks on a directory adapter for lead sourcing
+    next_action: The operator surface is built — three Mission Control cards cover all twelve P2C capabilities, so the pilot can be run through the product; the exit criterion now blocks only on a directory adapter for lead sourcing, and the surface has not been exercised in a signed-in browser because Mission Control's password is not available to Claude

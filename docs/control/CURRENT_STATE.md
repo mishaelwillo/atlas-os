@@ -55,9 +55,10 @@ blocking finding.
   created. Prospect qualification and the demo queue are built and live, with
   migrations `0004` and `0005` applied and verified against the ledger, and
   outreach sequence state, offers, terms and hosting activation live alongside
-  them — though Mission Control has cards for none of them, so the pilot cannot
-  yet be run through the product — migrations `0004` through `0006` applied and verified against the
-  ledger — and funnel analytics complete the build-now scope. The funnel is
+  them — migrations `0004` through `0006` applied and verified against the
+  ledger — and funnel analytics complete the build-now scope. Mission Control
+  now has cards covering all twelve, so the pilot can be run through the
+  product. The funnel is
   empty because lead sourcing still needs a directory adapter that does not
   exist, which is what now blocks the pilot's exit criterion.
 
@@ -235,9 +236,10 @@ migration comment, in either direction, and `expected_migration` is left as the
 single authority. Removing the banners touched comment lines only — the
 non-comment content of each file hashes identically before and after.
 
-There is no operator UI for these yet. Wiring Mission Control to endpoints that
-currently report `schema_pending` would put a surface in front of an operator
-that cannot do anything; it belongs with the funnel analytics work.
+The operator UI for these now exists — see *The P2C operator surface* below.
+It was deliberately built after the migrations were applied: wiring Mission
+Control to endpoints still reporting `schema_pending` would have put a surface
+in front of an operator that could not do anything.
 
 ## Outreach sequence state
 
@@ -638,6 +640,74 @@ attributed to a source that did not say it), the page carries `noindex`, and it
 is still serving at
 `https://sites.andtronai.com/atlas-acceptance-test-plumbing-5bb7da70`.
 
+## The P2C operator surface
+
+The twelve revenue capabilities were built, migrated and deployed with Mission
+Control cards for none of them, so the pilot could only be run through the API.
+Three cards close that: **prospects and the demo queue**, **outreach
+sequences**, and **offers, deals and hosting**. An operator can now qualify a
+prospect, queue and move a demo, plan and advance a sequence, publish an offer
+version, record a deal decision, and see hosting state without leaving the
+product.
+
+They follow the same doctrine as every other card. The data arrives in
+`status.mission_control`; the components call capabilities only to *act*, never
+to read what they display. One pipeline read feeds all three, so they cannot
+disagree about the state of a lead — three separate reads could, and the lead
+they disagreed about would be the one someone was mid-decision on.
+
+### What is derived rather than restated
+
+A second hand-written copy of a rule is a claim nothing checks, so three things
+are published by the API instead:
+
+- The moves a demo may make come from `planAdvance`.
+- The moves a touch may make come from `planTouchAdvance`, probed *without* the
+  dispatcher flag. `sent` therefore cannot appear in any control, and a
+  `scheduled` touch — whose only transition is to `sent` — arrives with no
+  operator move at all, which the card states in those terms.
+- The rubric thresholds, outreach channels, deal states, offer periods and the
+  twelve required disclosures.
+
+Both derivations are mutation-tested: replacing either with a fixed list fails
+tests, and asserting the dispatcher flag makes `sent` offerable and fails three.
+
+### Two distinctions the forms keep
+
+**Unknown is not false.** Every rubric field that can be unanswered is a
+three-way control, and an unanswered one is omitted from the request rather
+than sent as `false`. The rubric disqualifies on a settled `false` and only
+sends to review on an unknown, so a checkbox would have quietly disqualified
+prospects nobody had checked.
+
+**Blank is not zero.** The offer form has no default price and no default
+currency, and a blank price is refused by name. Zero is a real price — the
+pitch is a free site with hosting-only payment — so it must be possible to send
+and impossible to send by accident.
+
+### What the cards refuse to claim
+
+`demos.enqueue`, `demos.advance`, `automation.sequence`, `sequence.advance`,
+`offers.publish` and `deals.decide` all answer 200 with a `false` flag and a
+reason when they refuse. Reporting only the absence of an exception would show
+an operator a queued demo that was never queued, so every refusal is rendered
+as one, with its code. `hosting.activate` and `hosting.cancel` are
+approval-gated and report as queued for approval — never as an activation.
+
+### Verification
+
+The pipeline SQL was dry-run against production inside one rolled-back
+transaction, with fixture rows inserted first: an empty result proves the
+statements parse and nothing else. That run confirmed `distinct on` picks the
+newer of two assessments, the touches join their sequence, a `scheduled` touch
+is offered no move, and the payment reference does not reach the card. Every
+P2C table was verified empty afterwards, so the rollback left nothing behind.
+
+**Not verified.** The cards were not exercised in a signed-in browser. Mission
+Control needs an operator password Claude has never had, so verification
+stopped at the API payload, component tests driving the real component tree,
+the card-routing test, and the built bundle.
+
 ## Awaiting a decision
 
 None of these is blocked on code:
@@ -650,6 +720,8 @@ None of these is blocked on code:
 
 ## Next exact action
 
-Run the operator half of P1 acceptance through Mission Control: sign in, select
-the `atlas` Space, draft an outreach touch, and approve it. Then continue the
-revenue-pilot build-now scope, or resolve one of the decisions above.
+Exercise the P2C cards in a signed-in browser: sign in, select a Space, and
+walk one prospect from assessment through demo slot, sequence, offer and deal
+decision to a hosting activation request. That needs an operator session Claude
+does not have. Then resolve one of the decisions above — the directory adapter
+is what still blocks the pilot's exit criterion.
