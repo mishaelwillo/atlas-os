@@ -55,7 +55,8 @@ blocking finding.
   created. Prospect qualification and the demo queue are built and live, with
   migrations `0004` and `0005` applied and verified against the ledger, and
   outreach sequence state, offers, terms and hosting activation live alongside
-  them — migrations `0004` through `0006` applied and verified against the
+  them — though Mission Control has cards for none of them, so the pilot cannot
+  yet be run through the product — migrations `0004` through `0006` applied and verified against the
   ledger — and funnel analytics complete the build-now scope. The funnel is
   empty because lead sourcing still needs a directory adapter that does not
   exist, which is what now blocks the pilot's exit criterion.

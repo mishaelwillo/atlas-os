@@ -74,4 +74,4 @@ items:
     specification: docs/specs/p2/revenue-pilot.md
     acceptance_checks:
       - One real hosting-paying customer completes an approval-gated sequence
-    next_action: Build-now scope is complete; the pilot's exit criterion now blocks on a directory adapter for lead sourcing, which is an undecided integration
+    next_action: The twelve P2C capabilities are built and applied but Mission Control has cards for none of them, so the pilot cannot be run through the product; build that operator surface, after which the exit criterion blocks on a directory adapter for lead sourcing
