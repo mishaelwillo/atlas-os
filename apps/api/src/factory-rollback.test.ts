@@ -130,6 +130,23 @@ describe('rolling a site back', () => {
     expect((down?.params ?? [])).toContain('dep-2');
   });
 
+  /**
+   * Same ordering requirement as a publish, and it had the same defect: the
+   * step-down sat below the insert, so `site_deployments_one_live` would
+   * reject the restored row before anything stepped down. `factory.rollback`
+   * had never run against a real database, so nothing had ever hit it.
+   */
+  it('steps the current deployment down BEFORE inserting the restore', async () => {
+    const db = dbFor([CURRENT, PREVIOUS]);
+    await approve(db, publishingHost(), async () => ({ status: 200, body: OLD_HTML }));
+
+    const downAt = db.calls.findIndex((c) => /set status = 'rolled_back'/i.test(c.sql));
+    const insertAt = db.calls.findIndex((c) => /insert into site_deployments/i.test(c.sql));
+    expect(downAt).toBeGreaterThanOrEqual(0);
+    expect(insertAt).toBeGreaterThanOrEqual(0);
+    expect(downAt).toBeLessThan(insertAt);
+  });
+
   it('verifies the restored address serves what it restored', async () => {
     const db = dbFor([CURRENT, PREVIOUS]);
     const dispatched = await approve(db, publishingHost(), async () => ({ status: 200, body: OLD_HTML }));

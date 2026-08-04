@@ -304,6 +304,28 @@ const factoryDeploySite: ApprovalDispatcher = async (ctx, payload) => {
     : null;
 
   const status = published ? 'live' : 'queued';
+
+  /*
+   * The predecessor steps down BEFORE the new row arrives, not after.
+   *
+   * `site_deployments_one_live` is a partial unique index on (site_id) where
+   * status = 'live', so inserting a second live row fires it immediately —
+   * the step-down that used to sit below the insert could never run. That made
+   * every second publish of a site fail with a 500, which is why no site had
+   * ever reached version 2. Found against production, not in review.
+   *
+   * Both statements share the request's transaction, so if the insert still
+   * fails the step-down rolls back with it and the previous deployment stays
+   * live rather than being demoted for a publish that never landed.
+   */
+  if (published && plan.supersedes) {
+    await ctx.q.query(
+      `update site_deployments set status = 'superseded', superseded_at = now()
+        where deployment_id = $1 and status = 'live'`,
+      [plan.supersedes],
+    );
+  }
+
   const inserted = await ctx.q.query(
     `insert into site_deployments
        (space_id, site_id, version, environment, domain, build_hash, renderer_sha, status, approved_by, went_live_at,
@@ -331,16 +353,6 @@ const factoryDeploySite: ApprovalDispatcher = async (ctx, payload) => {
     ],
   );
   const deploymentId = String(inserted.rows[0]?.deployment_id ?? '');
-
-  // Exactly one live production deployment per site is enforced by a partial
-  // unique index, so the previous one must step down as this one arrives.
-  if (published && plan.supersedes) {
-    await ctx.q.query(
-      `update site_deployments set status = 'superseded', superseded_at = now()
-        where deployment_id = $1 and status = 'live'`,
-      [plan.supersedes],
-    );
-  }
 
   await insertAudit(ctx.q, ctx.spaceId, ctx.auth.actor, `factory.deploy_${status}`, deploymentId, {
     siteId,
@@ -646,6 +658,22 @@ const factoryRollback: ApprovalDispatcher = async (ctx, payload) => {
     : null;
 
   const status = published ? 'live' : 'queued';
+
+  /*
+   * The same ordering the deploy dispatcher needs, for the same reason: the
+   * partial unique index fires on the insert, so the deployment being replaced
+   * has to step down first. A rollback restoring a build while another was
+   * live would otherwise always fail — `factory.rollback` had never run
+   * against a real database, and this is what it would have done.
+   */
+  if (published && plan.supersedes) {
+    await ctx.q.query(
+      `update site_deployments set status = 'rolled_back', superseded_at = now()
+        where deployment_id = $1 and status = 'live'`,
+      [plan.supersedes],
+    );
+  }
+
   const inserted = await ctx.q.query(
     `insert into site_deployments
        (space_id, site_id, version, environment, domain, build_hash, renderer_sha, status, approved_by,
@@ -670,14 +698,6 @@ const factoryRollback: ApprovalDispatcher = async (ctx, payload) => {
     ],
   );
   const deploymentId = String(inserted.rows[0]?.deployment_id ?? '');
-
-  if (published) {
-    await ctx.q.query(
-      `update site_deployments set status = 'rolled_back', superseded_at = now()
-        where deployment_id = $1 and status = 'live'`,
-      [plan.supersedes],
-    );
-  }
 
   await insertAudit(ctx.q, ctx.spaceId, ctx.auth.actor, `factory.rollback_${status}`, deploymentId, {
     siteId,

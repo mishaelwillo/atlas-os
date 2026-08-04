@@ -388,6 +388,35 @@ describe('deploy on approval', () => {
     expect((supersede?.params ?? []).includes('dep-1')).toBe(true);
   });
 
+  /**
+   * Order matters, and nothing checked it. `site_deployments_one_live` is a
+   * partial unique index on (site_id) where status = 'live', so a second live
+   * row is rejected the moment it is inserted — the step-down has to happen
+   * first or it can never run at all.
+   *
+   * This shipped the wrong way round: the step-down sat below the insert, so
+   * every second publish of a site failed with a 500 and no site could reach
+   * version 2. Found by running the loop against production, not in review.
+   *
+   * A test double records statements without enforcing indexes, so only the
+   * order is assertable here; the transactional dry run against the real
+   * database is what proves the constraint itself.
+   */
+  it('steps the previous deployment down BEFORE inserting the new one', async () => {
+    const db = dbFor({
+      approvedHash: liveHash(),
+      latestVersion: 1,
+      live: { id: 'dep-1', version: 1, hash: 'b'.repeat(64) },
+    });
+    await approve(db, publishingHost());
+
+    const supersedeAt = db.calls.findIndex((c) => /set status = 'superseded'/i.test(c.sql));
+    const insertAt = db.calls.findIndex((c) => /insert into site_deployments/i.test(c.sql));
+    expect(supersedeAt).toBeGreaterThanOrEqual(0);
+    expect(insertAt).toBeGreaterThanOrEqual(0);
+    expect(supersedeAt).toBeLessThan(insertAt);
+  });
+
   it('does not step anything down when the publish failed', async () => {
     const db = dbFor({
       approvedHash: liveHash(),
