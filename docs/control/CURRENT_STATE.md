@@ -470,10 +470,32 @@ rolled back to `fe747724`, its pre-fixture placeholder from 2026-07-28, and both
 `site_deployments` rows moved from `live` to `rolled_back` with an audit row
 each. No live deployment remains.
 
-That write went straight to the database, because **there is no rollback
-capability in the registry** — `planRollback` is a tested pure function that
-nothing routes to. Each change was audited so the trail is not silent, but a
-direct write is a weaker thing than a governed one.
+That write went straight to the database, because at the time there was no
+rollback capability — `planRollback` was a tested pure function nothing routed
+to. Each change was audited so the trail was not silent, but a direct write is
+a weaker thing than a governed one. `factory.rollback` now exists, so the next
+takedown goes through the capability surface.
+
+## Rollback
+
+`factory.rollback` is approval-gated, like publishing: the specification makes
+publish and rollback privileged and audited. It restores the last deployment
+that was **observed serving** — `went_live_at` is set, not merely a row saying
+`live` — and whose exact bytes were retained.
+
+Wiring it exposed that nothing kept those bytes. A deployment recorded the
+sha256 of what it published and nothing else, and a hash cannot be republished.
+Re-rendering the descriptor does not recover the old build either: the
+descriptor is the thing that changed, which is usually why someone is rolling
+back. Migration `0009` retains `build_html` with each deployment, and a
+predecessor without it is refused with `no_stored_build` rather than having
+something rendered in its place — that would republish a build nobody approved
+under the name of one that was.
+
+The restore is a new version pointing at what it restored, never a revived row,
+so history stays append-only. It carries every other live site along, reads the
+address back, and retains its own bytes so the restore is itself
+rollback-able.
 
 **A Pages deployment is a whole-site snapshot, not a patch.** The adapter built
 each deployment's manifest from the one site being promoted, so every publish

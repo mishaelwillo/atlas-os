@@ -6,7 +6,13 @@
 import { insertAudit, type ApprovalDispatcher } from './pipeline.js';
 import type { Descriptor } from './factory/dossier.js';
 import { renderSite } from './factory/render.js';
-import { planPublish, planSiblings, type LiveSibling } from './factory/publish.js';
+import {
+  planPublish,
+  planRollback,
+  planSiblings,
+  type DeploymentRecord,
+  type LiveSibling,
+} from './factory/publish.js';
 import { runQa } from './factory/qa.js';
 import { classifyFingerprint } from './factory/fingerprint.js';
 import { planTouchAdvance } from './revenue/sequence.js';
@@ -285,12 +291,12 @@ const factoryDeploySite: ApprovalDispatcher = async (ctx, payload) => {
   const inserted = await ctx.q.query(
     `insert into site_deployments
        (space_id, site_id, version, environment, domain, build_hash, renderer_sha, status, approved_by, went_live_at,
-        public_fingerprint, fingerprint_checked_at, fingerprint_matches)
+        public_fingerprint, fingerprint_checked_at, fingerprint_matches, build_html)
      values ($1, $2, $3, 'production', $4, $5, $6, $7, $8, case when $7 = 'live' then now() else null end,
              -- Cast explicitly: $9 appears in a null test that gives Postgres no
              -- type to infer from, and an uncast parameter there fails the whole
              -- statement with 42P08 rather than defaulting to the column's type.
-             $9::text, case when $9::text is null then null else now() end, $10::boolean)
+             $9::text, case when $9::text is null then null else now() end, $10::boolean, $11::text)
      returning deployment_id`,
     [
       ctx.spaceId,
@@ -303,6 +309,9 @@ const factoryDeploySite: ApprovalDispatcher = async (ctx, payload) => {
       ctx.auth.actor,
       fingerprint?.observed ?? null,
       fingerprint === null ? null : fingerprint.matches,
+      // Retained so a later rollback can republish exactly these bytes: a hash
+      // cannot be republished, and re-rendering would not recover them.
+      render.rendered ? render.html : null,
     ],
   );
   const deploymentId = String(inserted.rows[0]?.deployment_id ?? '');
@@ -533,6 +542,156 @@ const hostingCancel: ApprovalDispatcher = async (ctx, payload) => {
   };
 };
 
+/**
+ * factory.rollback — restore the last build that was proven healthy.
+ *
+ * The specification's acceptance is that a rollback "proves previous
+ * fingerprint healthy", so only a deployment that was actually observed serving
+ * qualifies, and only one whose exact bytes were retained. Rendering something
+ * in its place would republish a build nobody approved under the name of one
+ * that was.
+ *
+ * The restore is recorded as a new version rather than by reviving the old row,
+ * so history stays append-only and the sequence of what was public stays
+ * readable.
+ */
+const factoryRollback: ApprovalDispatcher = async (ctx, payload) => {
+  const input = (payload.input ?? {}) as Record<string, unknown>;
+  const siteId = typeof input.siteId === 'string' ? input.siteId.trim() : '';
+  if (siteId === '') return { executed: false, note: 'factory.rollback: siteId is required' };
+
+  const site = await ctx.q.query(`select site_id, business_name from sites where site_id = $1`, [siteId]);
+  if (!site.rows[0]) return { executed: false, note: 'factory.rollback: site not found' };
+
+  const rows = await ctx.q.query(
+    `select deployment_id, version, build_hash, status, went_live_at, build_html
+       from site_deployments
+      where site_id = $1 and environment = 'production'
+      order by version desc`,
+    [siteId],
+  );
+  const history: DeploymentRecord[] = rows.rows.map((r) => ({
+    deploymentId: String(r.deployment_id),
+    version: Number(r.version),
+    buildHash: String(r.build_hash),
+    status: String(r.status),
+    // Proven healthy means observed serving, not merely recorded.
+    wentLive: r.went_live_at !== null,
+    html: r.build_html === null ? null : String(r.build_html),
+  }));
+  const latestVersion = history[0]?.version ?? 0;
+
+  const plan = planRollback(history, latestVersion);
+  if (!plan.ok) {
+    await insertAudit(ctx.q, ctx.spaceId, ctx.auth.actor, 'factory.rollback_refused', siteId, {
+      code: plan.code,
+    });
+    return { executed: false, note: plan.message, code: plan.code };
+  }
+
+  // Every other live site rides along, for the same reason a publish does.
+  const liveRows = await ctx.q.query(
+    `select d.site_id, d.build_hash, d.build_html, s.business_name
+       from site_deployments d
+       join sites s on s.site_id = d.site_id
+      where d.status = 'live' and d.environment = 'production' and d.site_id <> $1`,
+    [siteId],
+  );
+  const alsoServe = liveRows.rows
+    .filter((r) => r.build_html !== null)
+    .map((r) => ({
+      slug: siteSlug(String(r.business_name ?? ''), String(r.site_id)),
+      html: String(r.build_html),
+    }));
+
+  const slug = siteSlug(String(site.rows[0].business_name ?? ''), siteId);
+  let published: { url: string; providerRef: string | null } | null = null;
+  let publishError: string | null = null;
+  try {
+    published = await ctx.deps.hosting.publish({
+      slug,
+      html: plan.html,
+      buildHash: plan.target.buildHash,
+      version: plan.version,
+      alsoServe,
+    });
+  } catch (err) {
+    publishError = err instanceof Error ? err.message : String(err);
+  }
+
+  let fingerprint = null;
+  if (published) {
+    try {
+      const read = await ctx.deps.readPublic(published.url);
+      fingerprint = classifyFingerprint({ approved: plan.target.buildHash, read });
+    } catch (err) {
+      fingerprint = classifyFingerprint({
+        approved: plan.target.buildHash,
+        read: null,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  const status = published ? 'live' : 'queued';
+  const inserted = await ctx.q.query(
+    `insert into site_deployments
+       (space_id, site_id, version, environment, domain, build_hash, renderer_sha, status, approved_by,
+        went_live_at, rolled_back_to, build_html, public_fingerprint, fingerprint_checked_at, fingerprint_matches)
+     values ($1, $2, $3, 'production', $4, $5, $6, $7, $8,
+             case when $7 = 'live' then now() else null end, $9, $10::text,
+             $11::text, case when $11::text is null then null else now() end, $12::boolean)
+     returning deployment_id`,
+    [
+      ctx.spaceId,
+      siteId,
+      plan.version,
+      published?.url ?? null,
+      plan.target.buildHash,
+      ctx.deps.buildInfo.gitSha,
+      status,
+      ctx.auth.actor,
+      plan.target.deploymentId,
+      plan.html,
+      fingerprint?.observed ?? null,
+      fingerprint === null ? null : fingerprint.matches,
+    ],
+  );
+  const deploymentId = String(inserted.rows[0]?.deployment_id ?? '');
+
+  if (published) {
+    await ctx.q.query(
+      `update site_deployments set status = 'rolled_back', superseded_at = now()
+        where deployment_id = $1 and status = 'live'`,
+      [plan.supersedes],
+    );
+  }
+
+  await insertAudit(ctx.q, ctx.spaceId, ctx.auth.actor, `factory.rollback_${status}`, deploymentId, {
+    siteId,
+    version: plan.version,
+    restored: plan.target.deploymentId,
+    restoredVersion: plan.target.version,
+    buildHash: plan.target.buildHash,
+    fingerprint: fingerprint?.verdict ?? null,
+  });
+
+  return {
+    executed: true,
+    deploymentId,
+    version: plan.version,
+    restored: plan.target.deploymentId,
+    restoredVersion: plan.target.version,
+    buildHash: plan.target.buildHash,
+    status,
+    url: published?.url ?? null,
+    fingerprint: fingerprint?.verdict ?? null,
+    note: published
+      ? `rolled back to version ${plan.target.version}`
+      : `rollback verified and recorded, but not serving: ${publishError ?? 'no hosting target is configured'}`,
+  };
+};
+
 export const dispatchers: Record<string, ApprovalDispatcher> = {
   'outreach.send': outreachSend,
   'memory.adjudicate': memoryAdjudicate,
@@ -540,4 +699,5 @@ export const dispatchers: Record<string, ApprovalDispatcher> = {
   'playbooks.author': playbooksAuthor,
   'hosting.activate': hostingActivate,
   'hosting.cancel': hostingCancel,
+  'factory.rollback': factoryRollback,
 };

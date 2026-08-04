@@ -16,6 +16,7 @@ export const GENERATED_CAPABILITY_IDS = [
   "factory.build_site",
   "factory.preview",
   "factory.deploy_site",
+  "factory.rollback",
   "leads.find",
   "prospecting.qualify",
   "prospecting.workspace",
@@ -397,6 +398,35 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
       "type": "object",
       "properties": {
         "deployUrl": {
+          "type": "string"
+        }
+      }
+    },
+    "execution": "handler"
+  } as const satisfies CapabilityRouteMeta, deps);
+  registerCapabilityRoute(app, {
+    "id": "factory.rollback",
+    "name": "Roll a site back",
+    "path": "/v1/factory/rollback",
+    "method": "POST",
+    "taskClass": "quick",
+    "requiresApproval": true,
+    "scopes": [],
+    "input": {
+      "type": "object",
+      "required": [
+        "siteId"
+      ],
+      "properties": {
+        "siteId": {
+          "type": "string"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "approvalId": {
           "type": "string"
         }
       }

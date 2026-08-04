@@ -19,6 +19,7 @@ import { verifyLiveSites } from './verify-live.js';
 import {
   benchRun,
   factoryDeploySite,
+  factoryRollback,
   hostingActivate,
   hostingCancel,
   leadsFind,
@@ -57,6 +58,7 @@ export const handlers: Record<string, CapabilityHandler> = {
   'factory.deploy_site': factoryDeploySite,
   'leads.find': leadsFind,
   'outreach.send': outreachSend,
+  'factory.rollback': factoryRollback,
   'hosting.activate': hostingActivate,
   'hosting.cancel': hostingCancel,
   'bench.run': benchRun,

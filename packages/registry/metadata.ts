@@ -164,6 +164,19 @@ export const capabilityMetadata: Record<CapabilityId, CapabilityMetadata> = {
     ],
     specification: P2_FACTORY_SPECIFICATION,
   },
+  'factory.rollback': {
+    stage: 'candidate',
+    phase: 'P2B',
+    menuGroup: 'Website Factory',
+    regions: ['global'],
+    entitlements: ['website-hosting'],
+    monetization: 'hosting',
+    implementation: 'build',
+    // Privileged and audited, like publishing.
+    autonomy: 'shadow',
+    evidenceIds: [],
+    specification: P2_FACTORY_SPECIFICATION,
+  },
   'leads.find': {
     stage: 'candidate',
     phase: 'P2C',

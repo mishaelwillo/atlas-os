@@ -118,6 +118,13 @@ export type FactoryDeploySiteOutput = {
   deployUrl?: string;
 };
 
+export type FactoryRollbackInput = {
+  siteId: string;
+};
+export type FactoryRollbackOutput = {
+  approvalId?: string;
+};
+
 export type LeadsFindInput = {
   industry: string;
   location: string;
@@ -431,6 +438,11 @@ export class AtlasGeneratedClient {
   /** Deploy site live — POST /v1/factory/deploy_site (approval-gated: returns {approvalId, status:"review"}) */
   factoryDeploySite(input: FactoryDeploySiteInput): Promise<FactoryDeploySiteOutput | ApprovalPending> {
     return this.request<FactoryDeploySiteOutput>("POST", "/v1/factory/deploy_site", input);
+  }
+
+  /** Roll a site back — POST /v1/factory/rollback (approval-gated: returns {approvalId, status:"review"}) */
+  factoryRollback(input: FactoryRollbackInput): Promise<FactoryRollbackOutput | ApprovalPending> {
+    return this.request<FactoryRollbackOutput>("POST", "/v1/factory/rollback", input);
   }
 
   /** Find leads — POST /v1/leads/find */

@@ -108,7 +108,10 @@ export function planPublish(input: PublishInput): PublishPlan | PublishRefusal {
   };
 }
 
-export type RollbackRefusalCode = 'no_live_deployment' | 'no_healthy_predecessor';
+export type RollbackRefusalCode =
+  | 'no_live_deployment'
+  | 'no_healthy_predecessor'
+  | 'no_stored_build';
 
 export interface RollbackRefusal {
   ok: false;
@@ -121,6 +124,8 @@ export interface RollbackPlan {
   version: number;
   /** The deployment whose build is being restored. */
   target: LiveDeployment;
+  /** The bytes to republish; the target is only chosen when it has them. */
+  html: string;
   supersedes: string;
 }
 
@@ -131,6 +136,14 @@ export interface DeploymentRecord {
   status: string;
   /** True when this deployment was observed serving while it was live. */
   wentLive: boolean;
+  /**
+   * The exact bytes this deployment published, when they were retained.
+   *
+   * A rollback republishes these. A hash cannot be republished, and
+   * re-rendering the descriptor does not recover them — the descriptor is the
+   * thing that changed, which is usually why someone is rolling back.
+   */
+  html: string | null;
 }
 
 /**
@@ -154,15 +167,31 @@ export function planRollback(
     return { ok: false, code: 'no_live_deployment', message: 'nothing is live to roll back from' };
   }
 
-  const healthy = history
+  const candidates = history
     .filter((d) => d.deploymentId !== live.deploymentId && d.wentLive && d.buildHash !== live.buildHash)
-    .sort((a, b) => b.version - a.version)[0];
+    .sort((a, b) => b.version - a.version);
 
-  if (!healthy) {
+  if (candidates.length === 0) {
     return {
       ok: false,
       code: 'no_healthy_predecessor',
       message: 'no earlier deployment was ever live, so no previous fingerprint is proven healthy',
+    };
+  }
+
+  /*
+   * A candidate whose bytes were never retained cannot be restored. Rendering
+   * something in its place would republish a build that was never approved
+   * under the name of one that was, so it is skipped and, if none remains, the
+   * rollback is refused with that reason rather than a misleading one.
+   */
+  const healthy = candidates.find((d) => d.html !== null && d.html !== '');
+  if (!healthy) {
+    return {
+      ok: false,
+      code: 'no_stored_build',
+      message:
+        'the healthy predecessors predate build retention, so their exact bytes are gone and cannot be restored',
     };
   }
 
@@ -174,6 +203,7 @@ export function planRollback(
       version: healthy.version,
       buildHash: healthy.buildHash,
     },
+    html: healthy.html as string,
     supersedes: live.deploymentId,
   };
 }
