@@ -91,6 +91,9 @@ export function buildTestDeps(db: FakeDb, env: Env = testEnv()): PipelineDeps {
     readPublic: async () => {
       throw new Error('readPublic not stubbed in this test');
     },
+    // One attempt, no waiting: the retry itself is covered in
+    // factory/fingerprint.test.ts, and tests must not sleep.
+    readBack: { attempts: 1, delayMs: 0 },
     router: stubRouter,
     capabilities: capabilityMetaMap(),
     handlers,

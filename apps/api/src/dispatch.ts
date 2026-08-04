@@ -14,7 +14,7 @@ import {
   type LiveSibling,
 } from './factory/publish.js';
 import { runQa } from './factory/qa.js';
-import { classifyFingerprint } from './factory/fingerprint.js';
+import { readBackUntilSettled } from './factory/fingerprint.js';
 import { planTouchAdvance } from './revenue/sequence.js';
 import { readActivationFacts } from './revenue/activation-read.js';
 import { planCancellation, planHostingTransition } from './revenue/hosting-activation.js';
@@ -273,19 +273,15 @@ const factoryDeploySite: ApprovalDispatcher = async (ctx, payload) => {
    * This never fails the publish. The site is serving; refusing to record that
    * because a read-back stumbled would be its own inaccuracy.
    */
-  let fingerprint = null;
-  if (published) {
-    try {
-      const read = await ctx.deps.readPublic(published.url);
-      fingerprint = classifyFingerprint({ approved: plan.buildHash, read });
-    } catch (err) {
-      fingerprint = classifyFingerprint({
+  const fingerprint = published
+    ? await readBackUntilSettled({
         approved: plan.buildHash,
-        read: null,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
-  }
+        url: published.url,
+        read: ctx.deps.readPublic,
+        attempts: ctx.deps.readBack.attempts,
+        delayMs: ctx.deps.readBack.delayMs,
+      })
+    : null;
 
   const status = published ? 'live' : 'queued';
   const inserted = await ctx.q.query(
@@ -619,19 +615,15 @@ const factoryRollback: ApprovalDispatcher = async (ctx, payload) => {
     publishError = err instanceof Error ? err.message : String(err);
   }
 
-  let fingerprint = null;
-  if (published) {
-    try {
-      const read = await ctx.deps.readPublic(published.url);
-      fingerprint = classifyFingerprint({ approved: plan.target.buildHash, read });
-    } catch (err) {
-      fingerprint = classifyFingerprint({
+  const fingerprint = published
+    ? await readBackUntilSettled({
         approved: plan.target.buildHash,
-        read: null,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
-  }
+        url: published.url,
+        read: ctx.deps.readPublic,
+        attempts: ctx.deps.readBack.attempts,
+        delayMs: ctx.deps.readBack.delayMs,
+      })
+    : null;
 
   const status = published ? 'live' : 'queued';
   const inserted = await ctx.q.query(

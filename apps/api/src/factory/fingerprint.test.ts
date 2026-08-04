@@ -6,7 +6,7 @@
  * deployment recorded as `live` carrying a fingerprint nothing had verified.
  */
 import { describe, expect, it } from 'vitest';
-import { classifyFingerprint, sha256 } from './fingerprint.js';
+import { classifyFingerprint, readBackUntilSettled, sha256 } from './fingerprint.js';
 
 const HTML = '<!doctype html>\n<html lang="en"><body>Acme</body></html>\n';
 const APPROVED = sha256(HTML);
@@ -77,5 +77,104 @@ describe('sha256', () => {
   it('is the same digest the renderer produces for the same bytes', () => {
     expect(sha256(HTML)).toBe(APPROVED);
     expect(sha256(HTML)).toMatch(/^[0-9a-f]{64}$/);
+  });
+});
+
+/**
+ * A freshly created deployment is not instantly reachable. Reading once,
+ * immediately after publishing, catches the provider mid-propagation — in
+ * production that recorded a mismatch whose observed hash was exactly the
+ * Pages placeholder's, while the address served the approved build seconds
+ * later.
+ */
+describe('readBackUntilSettled', () => {
+  const never = async () => undefined;
+
+  it('returns at once when the first read matches', async () => {
+    let reads = 0;
+    const out = await readBackUntilSettled({
+      approved: APPROVED,
+      url: 'https://x/a',
+      read: async () => {
+        reads += 1;
+        return { status: 200, body: HTML };
+      },
+      sleep: never,
+    });
+    expect(out).toMatchObject({ verdict: 'match', attempts: 1 });
+    expect(reads).toBe(1);
+  });
+
+  /** The real case: the placeholder first, the build once it propagates. */
+  it('keeps reading until the address serves the approved build', async () => {
+    let reads = 0;
+    const out = await readBackUntilSettled({
+      approved: APPROVED,
+      url: 'https://x/a',
+      read: async () => {
+        reads += 1;
+        return reads < 3 ? { status: 200, body: '<html>placeholder</html>' } : { status: 200, body: HTML };
+      },
+      sleep: never,
+    });
+    expect(out).toMatchObject({ verdict: 'match', attempts: 3 });
+  });
+
+  it('retries a 404 while the deployment is still landing', async () => {
+    let reads = 0;
+    const out = await readBackUntilSettled({
+      approved: APPROVED,
+      url: 'https://x/a',
+      read: async () => {
+        reads += 1;
+        return reads < 2 ? { status: 404, body: '' } : { status: 200, body: HTML };
+      },
+      sleep: never,
+    });
+    expect(out).toMatchObject({ verdict: 'match', attempts: 2 });
+  });
+
+  /** A genuine mismatch is still a mismatch once the attempts are spent. */
+  it('believes a mismatch that never settles', async () => {
+    const injected = `${HTML}<script></script>`;
+    const out = await readBackUntilSettled({
+      approved: APPROVED,
+      url: 'https://x/a',
+      read: async () => ({ status: 200, body: injected }),
+      attempts: 3,
+      sleep: never,
+    });
+    expect(out).toMatchObject({ verdict: 'mismatch', attempts: 3 });
+    expect(out.observed).toBe(sha256(injected));
+  });
+
+  /** Exhausting attempts must not turn into a pretend success. */
+  it('reports unreadable rather than passing when nothing ever answers', async () => {
+    const out = await readBackUntilSettled({
+      approved: APPROVED,
+      url: 'https://x/a',
+      read: async () => {
+        throw new Error('ECONNRESET');
+      },
+      attempts: 2,
+      sleep: never,
+    });
+    expect(out).toMatchObject({ verdict: 'unreadable', matches: false, attempts: 2 });
+  });
+
+  it('waits between attempts', async () => {
+    const waits: number[] = [];
+    await readBackUntilSettled({
+      approved: APPROVED,
+      url: 'https://x/a',
+      read: async () => ({ status: 404, body: '' }),
+      attempts: 3,
+      delayMs: 1500,
+      sleep: async (ms) => {
+        waits.push(ms);
+      },
+    });
+    // Waits between attempts, not after the last one.
+    expect(waits).toEqual([1500, 1500]);
   });
 });
