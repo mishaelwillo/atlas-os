@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `hosting-environment-schema`
+**Handoff ID:** `deployment-supersede-order`
 **Status:** active
-**Started:** 2026-08-04T22:53:39.411Z
-**Updated:** 2026-08-04T22:53:39.411Z
+**Started:** 2026-08-04T23:56:25.963Z
+**Updated:** 2026-08-04T23:56:25.963Z
 **Actor:** Claude
-**Objective:** Give site hosting a schema in ENVIRONMENTS.yaml and a drift detector
+**Objective:** Prove the full factory loop against production and fix what it finds
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `feat/hosting-environment-schema`
+- Branch: `fix/deployment-supersede-order`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `addd1cf539cac0b8b4a4e1fa5184a186c5b0845c`
+- Head commit: `19de49d435787cef5a522796cbd6156264073a88`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Added a required hosting section to ENVIRONMENTS.yaml, hosting observation to the collector, and five blocking drift detectors
+- Moved the live step-down before the deployment insert in both the deploy and rollback dispatchers, and added ordering tests to each
 
 ## Current working tree
 
@@ -25,17 +25,17 @@
 
 ## Verification evidence
 
-- control:status against production reported hosting ok; declaring a different Pages project produced a blocking mismatch; both guards mutation-tested
+- transactional dry run against production: old order rejected with 23505 site_deployments_one_live, new order leaves exactly one live row; reverting the order fails both tests
 
 ## Database actions
 
 - No external action reported.
-- Observed Supabase status: ok (live-read-only at 2026-08-04T22:52:17.311Z).
+- Observed Supabase status: ok (live-read-only at 2026-08-04T22:57:39.336Z).
 
 ## Hosting actions
 
-- Read-only: one GET against the declared public address and the API service's own configuration; no hosting change was made
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-04T22:52:17.311Z).
+- Published a fictional fixture site to sites.andtronai.com to exercise the loop; still live and to be withdrawn when the loop completes
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-04T22:57:39.336Z).
 
 ## External side effects
 
@@ -43,12 +43,12 @@
 
 ## Blockers
 
-- Not supplied.
+- Production serves v2 of the fixture while its deployment row says v1; re-publishing on the fixed build reconciles it
 
 ## Next exact action
 
-Exercise the three P2C cards in a signed-in browser: walk one prospect from assessment through demo slot, sequence, offer and deal decision to a hosting activation request
+Resume the loop on the deployed fix: publish v2, roll back to v1, withdraw, and confirm nothing is left live
 
 ## Definition of done
 
-Hosting configuration is declared, observed against the running API, and drift in it produces blocking findings
+publish, revise, publish v2, rollback and unpublish all succeed against production with record and reality agreeing
