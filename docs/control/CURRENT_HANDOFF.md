@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `capability-execution-mode`
+**Handoff ID:** `pin-migration-0008`
 **Status:** active
-**Started:** 2026-08-03T20:16:56.661Z
-**Updated:** 2026-08-03T20:16:56.661Z
+**Started:** 2026-08-04T01:51:49.976Z
+**Updated:** 2026-08-04T01:51:49.976Z
 **Actor:** Claude
-**Objective:** Stop runs.execute answering deterministic capabilities with model prose
+**Objective:** Pin the applied 0008 schema across the control plane
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `feat/deterministic-capability-execution`
+- Branch: `chore/pin-migration-0008`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `67d6dc1cb773015e0f89dec5b46410c51ff2031d`
+- Head commit: `e671a72a1479334c78ce362437a298f543bb2672`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Every registry entry declares execution: handler or model; runs.execute branches on it; hosting.activate and hosting.cancel gained the handler entries they never had
+- Not supplied.
 
 ## Current working tree
 
@@ -25,17 +25,17 @@
 
 ## Verification evidence
 
-- pnpm build, pnpm test (902 tests) and pnpm lint exit 0; the handler branch mutation-tested, failing 4 tests
+- Constraint definition now lists handler; the insert that would previously have violated it succeeded and was rolled back
 
 ## Database actions
 
-- Migration 0008_run_answered_by_handler written and NOT applied; expected_migration still pins 0007_deployment_fingerprint
-- Observed Supabase status: ok (live-read-only at 2026-08-03T06:21:29.385Z).
+- Operator applied 0008_run_answered_by_handler; verified through control:status and by inserting a handler-answered run inside a rolled-back transaction
+- Observed Supabase status: ok (live-read-only at 2026-08-04T01:50:08.819Z).
 
 ## Hosting actions
 
-- No external action reported.
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-03T06:21:29.385Z).
+- Set ATLAS_SCHEMA_VERSION=0008_run_answered_by_handler on the Railway api and os services
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-04T01:50:08.819Z).
 
 ## External side effects
 
@@ -43,12 +43,12 @@
 
 ## Blockers
 
-- Until 0008 is applied a handler-executed run will fail the answered_by check constraint
+- Not supplied.
 
 ## Next exact action
 
-Apply migration 0008_run_answered_by_handler and bump expected_migration, then decide the Cloudflare Bot Fight Mode setting and wire a rollback capability
+Decide the Cloudflare Bot Fight Mode setting for sites.andtronai.com and wire a rollback capability so takedowns stop needing direct database writes
 
 ## Definition of done
 
-A run of a deterministic capability invokes its handler and records no model cost
+Expected and observed migration identity agree, and a handler-executed run can record what it is
