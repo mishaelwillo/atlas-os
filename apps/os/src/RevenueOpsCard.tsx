@@ -46,6 +46,12 @@ export interface RevenueEntitlement {
   paymentRecorded: boolean;
   renewalEnabled: boolean;
   entitled: boolean;
+  /**
+   * Delivery moves the API derived from planAdvanceHosting. Never contains
+   * `entitlement_active` or `cancelled` — those are approval-gated and have
+   * buttons of their own.
+   */
+  moves?: string[];
   activatedAt: string | null;
   cancelledAt: string | null;
   servesUntil: string | null;
@@ -96,7 +102,12 @@ export function describeRevenueOutcome(result: Record<string, unknown>): string 
     const paid = result.paymentRecorded === true ? ' with a provider reference' : ' — no payment reference yet';
     return `Terms recorded on offer v${String(result.offerVersion)}${paid}. This entitles nobody to anything until an approved activation.`;
   }
-  if (result.published === false || result.decided === false || result.recorded === false) {
+  if (
+    result.published === false ||
+    result.decided === false ||
+    result.recorded === false ||
+    result.advanced === false
+  ) {
     const missing = Array.isArray(result.missing) && result.missing.length > 0
       ? ` · missing: ${(result.missing as string[]).join(', ')}`
       : '';
@@ -111,6 +122,14 @@ export function describeRevenueOutcome(result: Record<string, unknown>): string 
       Number(result.priceMinor),
       String(result.currency),
     )} ${String(result.period)}${supersedes}`;
+  }
+  /*
+   * A delivery move grants nothing — the customer was already entitled at
+   * `entitlement_active` — so this says what was recorded and not that
+   * anything was activated.
+   */
+  if (result.advanced === true) {
+    return `Recorded delivery ${String(result.from)} → ${String(result.state)}. The entitlement is unchanged; this records how far delivery has got.`;
   }
   if (result.decided === true) {
     const version =
@@ -425,6 +444,25 @@ export function RevenueOpsCard({
             >
               Request cancellation
             </button>
+            {/*
+              Delivery moves, rendered from what the API offered rather than a
+              list written here. `entitlement_active` and `cancelled` cannot
+              appear — the planner refuses them — so this control can never
+              become a way around either approval.
+            */}
+            {(item.entitlement?.moves ?? []).map((state) => (
+              <button
+                key={state}
+                type="button"
+                data-testid={`advance-hosting-${item.leadId}-${state}`}
+                disabled={busy}
+                onClick={() =>
+                  void act(() => client.hostingAdvance({ leadId: item.leadId, state }))
+                }
+              >
+                Mark {state}
+              </button>
+            ))}
           </div>
 
           {openLead === item.leadId && (

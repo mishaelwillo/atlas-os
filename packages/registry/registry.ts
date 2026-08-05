@@ -278,6 +278,14 @@ export const registry = [
     taskClass: 'quick', requiresApproval: true, scopes: [], method: 'POST', execution: 'handler',
   },
   {
+    id: 'hosting.advance',
+    name: 'Advance hosting delivery',
+    description: 'Move a served customer along the delivery chain: entitlement_active → onboarded → active. Operator-only and not approval-gated, because neither move grants anything — the customer is entitled from entitlement_active onward, so these record how far delivery has got. It refuses entitlement_active and cancelled by name: those belong to hosting.activate and hosting.cancel, and both are approval-gated.',
+    input: { type: 'object', required: ['leadId', 'state'], properties: { leadId: { type: 'string' }, state: { type: 'string' } } },
+    output: { type: 'object', properties: { entitlementId: { type: 'string' }, from: { type: 'string' }, state: { type: 'string' }, advanced: { type: 'boolean' }, code: { type: 'string' }, note: { type: 'string' }, status: { type: 'string' } } },
+    taskClass: 'quick', requiresApproval: false, scopes: [], method: 'POST', execution: 'handler',
+  },
+  {
     id: 'hosting.state',
     name: 'Hosting state',
     description: 'The standing offer, deal decision and hosting entitlement for one lead. Read-only, and it never returns the payment reference itself — only whether one exists.',

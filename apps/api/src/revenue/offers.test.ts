@@ -14,11 +14,14 @@ import {
   type OfferDraft,
 } from './offers.js';
 import {
+  DEFERRED_HOSTING_STATES,
   ENTITLED_STATES,
   HOSTING_STATES,
   isEntitled,
+  planAdvanceHosting,
   planCancellation,
   planHostingTransition,
+  reachableHostingStates,
   type ActivationInput,
 } from './hosting-activation.js';
 
@@ -264,6 +267,106 @@ describe('the hosting activation gate', () => {
     expect(isEntitled('entitlement_active')).toBe(true);
     expect(isEntitled('cancelled')).toBe(false);
     expect(ENTITLED_STATES.every((s) => HOSTING_STATES.includes(s))).toBe(true);
+  });
+});
+
+/**
+ * The chain the specification names has seven states. Before `hosting.advance`
+ * existed the product could reach four of them, while the transition table and
+ * this file's header both described the whole thing as though an entitlement
+ * walked it — the funnel even counted `onboarded` and `active` rows that no
+ * code path could create. This is the check that claim was missing.
+ */
+describe('hosting state reachability', () => {
+  it('leaves no state both unreachable and undeclared', () => {
+    const reachable = reachableHostingStates();
+    for (const state of HOSTING_STATES) {
+      const deferred = Object.prototype.hasOwnProperty.call(DEFERRED_HOSTING_STATES, state);
+      expect(
+        { state, reachable: reachable.has(state), deferred },
+        `${state} must be either reachable through a capability or declared in DEFERRED_HOSTING_STATES`,
+      ).toMatchObject({ state, reachable: !deferred, deferred });
+    }
+  });
+
+  /** A deferral with no reason is a to-do wearing a decision's clothes. */
+  it('gives every deferred state a reason', () => {
+    for (const [state, reason] of Object.entries(DEFERRED_HOSTING_STATES)) {
+      expect(HOSTING_STATES).toContain(state);
+      expect(reason.length, `${state} needs a stated reason`).toBeGreaterThan(40);
+    }
+  });
+
+  it('reaches the whole delivery chain from recorded terms', () => {
+    const reachable = reachableHostingStates();
+    for (const state of ['terms_approved', 'payment_pending', 'entitlement_active', 'onboarded', 'active', 'cancelled'] as const) {
+      expect(reachable.has(state), `${state} should be reachable`).toBe(true);
+    }
+  });
+});
+
+describe('advancing a served customer', () => {
+  const served: ActivationInput = {
+    from: 'entitlement_active',
+    to: 'onboarded',
+    dealState: 'accepted',
+    acceptedOfferVersion: 2,
+    entitlementOfferVersion: 2,
+    disclosuresComplete: true,
+    paymentReference: 'pi_3Q',
+  };
+
+  it('records onboarding and going live', () => {
+    expect(planAdvanceHosting(served)).toMatchObject({ ok: true, from: 'entitlement_active', to: 'onboarded' });
+    expect(planAdvanceHosting({ ...served, from: 'onboarded', to: 'active' })).toMatchObject({
+      ok: true,
+      to: 'active',
+    });
+  });
+
+  /** Neither move grants anything; the customer was already entitled. */
+  it('grants no new entitlement', () => {
+    expect(planAdvanceHosting(served)).toMatchObject({ grantsEntitlement: false });
+  });
+
+  /**
+   * The safety property. Both of these are approval-gated elsewhere, so an
+   * advance that passed its target straight through would be a route around
+   * the approval queue.
+   */
+  it('refuses the targets that belong to approval-gated capabilities', () => {
+    expect(
+      planAdvanceHosting({ ...served, from: 'payment_pending', to: 'entitlement_active' }),
+    ).toMatchObject({ ok: false, code: 'not_an_advance_target' });
+    expect(planAdvanceHosting({ ...served, to: 'cancelled' })).toMatchObject({
+      ok: false,
+      code: 'not_an_advance_target',
+    });
+  });
+
+  it('names the capability that owns a refused target', () => {
+    const refused = planAdvanceHosting({ ...served, from: 'payment_pending', to: 'entitlement_active' });
+    expect(refused).toMatchObject({ ok: false });
+    if (refused.ok) throw new Error('expected a refusal');
+    expect(refused.message).toContain('hosting.activate');
+  });
+
+  it('refuses a state that is not a hosting state at all', () => {
+    expect(planAdvanceHosting({ ...served, to: 'onboarding' })).toMatchObject({
+      ok: false,
+      code: 'not_an_advance_target',
+    });
+  });
+
+  it('still applies the transition table', () => {
+    expect(planAdvanceHosting({ ...served, from: 'terms_approved', to: 'active' })).toMatchObject({
+      ok: false,
+      code: 'not_a_permitted_transition',
+    });
+    expect(planAdvanceHosting({ ...served, from: 'cancelled', to: 'active' })).toMatchObject({
+      ok: false,
+      code: 'cancelled',
+    });
   });
 });
 

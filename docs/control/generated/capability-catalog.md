@@ -381,6 +381,22 @@ ledgers is not executable and does not appear here.
 - Scopes: none
 - Description: Grant a customer hosting\. ALWAYS approval\-gated\. Refused before an approval is created, and again before the entitlement moves, unless terms were accepted on this exact offer version with every required disclosure and a payment reference is recorded\. Atlas never confirms a payment itself\.
 
+### `hosting.advance` — Advance hosting delivery
+- Stage: candidate
+- Phase: P2C
+- Monetization: hosting
+- Autonomy: manual
+- Implementation: build
+- Regions: `global`
+- Entitlements: `website-hosting`
+- Evidence: none
+- Specification: `docs/specs/p2/revenue-pilot.md`
+- Method: POST
+- Task class: quick
+- Approval required: no
+- Scopes: none
+- Description: Move a served customer along the delivery chain: entitlement\_active → onboarded → active\. Operator\-only and not approval\-gated, because neither move grants anything — the customer is entitled from entitlement\_active onward, so these record how far delivery has got\. It refuses entitlement\_active and cancelled by name: those belong to hosting\.activate and hosting\.cancel, and both are approval\-gated\.
+
 ### `hosting.cancel` — Cancel hosting
 - Stage: candidate
 - Phase: P2C

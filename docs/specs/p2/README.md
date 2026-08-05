@@ -190,6 +190,7 @@ does not replace ownership without an approved registry migration.
 | `hosting.record_terms` | executable | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
 | `hosting.activate` | executable | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
 | `hosting.cancel` | executable | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
+| `hosting.advance` | executable | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
 | `hosting.state` | executable | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
 | `analytics.funnel` | executable | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
 | `platform.dashboard` | candidate | P2A | build now | `docs/specs/p2/intelligence-foundation.md` | — |

@@ -411,6 +411,22 @@ export const capabilityMetadata: Record<CapabilityId, CapabilityMetadata> = {
     evidenceIds: [],
     specification: P2_REVENUE_SPECIFICATION,
   },
+  'hosting.advance': {
+    stage: 'candidate',
+    phase: 'P2C',
+    menuGroup: 'Revenue Operations',
+    regions: ['global'],
+    entitlements: ['website-hosting'],
+    monetization: 'hosting',
+    implementation: 'build',
+    // An operator records how far delivery has got. Nothing is granted and no
+    // external effect follows, so there is nothing for a model to shadow.
+    autonomy: 'manual',
+    // Derived from the specification's hosting chain and from a reachability
+    // gap found by checking it, not from the video.
+    evidenceIds: [],
+    specification: P2_REVENUE_SPECIFICATION,
+  },
   'hosting.state': {
     stage: 'candidate',
     phase: 'P2C',

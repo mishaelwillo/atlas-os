@@ -9,6 +9,11 @@
  * the entrance to `entitlement_active`. Everything before it is preparation;
  * everything after it is a customer being served.
  *
+ * Which of those states the *product* can reach is a separate question from
+ * which the table permits, and it is answered by `reachableHostingStates`
+ * below rather than by this comment. `past_due` is deliberately out of reach —
+ * see `DEFERRED_HOSTING_STATES` for why.
+ *
  * A payment is never confirmed here. `billing.manage` is deferred to P3, so no
  * provider is integrated: a confirmed payment is a fact an operator records
  * with the provider's own reference, and that reference is all Atlas keeps. No
@@ -55,6 +60,68 @@ export const ENTITLED_STATES: readonly HostingState[] = [
 
 export function isHostingState(value: string): value is HostingState {
   return (HOSTING_STATES as readonly string[]).includes(value);
+}
+
+/**
+ * Which states a capability can actually put an entitlement into.
+ *
+ * `NEXT_HOSTING_STATES` says what the state machine permits. That is a
+ * different question from what the product can do, and the two had drifted
+ * apart: the table declared `entitlement_active → onboarded → active` while
+ * `hosting.activate` hardcoded `entitlement_active` as its only target and
+ * nothing else moved an entitlement forward. Three of the seven states could
+ * not be reached by any caller, and this file's own header described the whole
+ * chain as though it were traversable — one more claim nothing checked.
+ *
+ * The capabilities import these rather than restating a target inline, so the
+ * closure below is computed from what the code actually requests.
+ */
+export const TERMS_ENTRY_STATES = ['terms_approved', 'payment_pending'] as const;
+export const ACTIVATION_TARGET_STATE = 'entitlement_active' as const;
+export const ADVANCE_TARGET_STATES = ['onboarded', 'active'] as const;
+export const CANCELLATION_TARGET_STATE = 'cancelled' as const;
+
+export type AdvanceTargetState = (typeof ADVANCE_TARGET_STATES)[number];
+
+export function isAdvanceTarget(value: string): value is AdvanceTargetState {
+  return (ADVANCE_TARGET_STATES as readonly string[]).includes(value);
+}
+
+/**
+ * States no capability can reach, each with the reason it cannot.
+ *
+ * A state that is unreachable *and* undeclared is the defect. A state that is
+ * unreachable because the thing that would reach it is deferred is a decision,
+ * and saying so here is what keeps the two apart — the reachability test
+ * refuses any state that is neither.
+ */
+export const DEFERRED_HOSTING_STATES: Readonly<Partial<Record<HostingState, string>>> = {
+  past_due:
+    'a lapse is a payment fact, and Atlas confirms no payments: billing.manage is deferred to P3, so nothing can observe one. Reaching past_due by hand would record a lapse nobody detected.',
+};
+
+/**
+ * Every state an entitlement can actually arrive in, walked from the states
+ * `hosting.record_terms` creates through the targets the other capabilities
+ * may request. Both halves of each step are real: the transition table has to
+ * permit it and some capability has to ask for it.
+ */
+export function reachableHostingStates(): Set<HostingState> {
+  const targets: readonly HostingState[] = [
+    ACTIVATION_TARGET_STATE,
+    ...ADVANCE_TARGET_STATES,
+    CANCELLATION_TARGET_STATE,
+  ];
+  const reached = new Set<HostingState>(TERMS_ENTRY_STATES);
+  for (;;) {
+    const before = reached.size;
+    for (const from of [...reached]) {
+      for (const to of targets) {
+        if (NEXT_HOSTING_STATES[from].includes(to)) reached.add(to);
+      }
+    }
+    if (reached.size === before) return reached;
+  }
 }
 
 export function isEntitled(state: HostingState): boolean {
@@ -306,6 +373,77 @@ export function planHostingTransition(input: ActivationInput): ActivationPlan | 
     to: input.to,
     grantsEntitlement: !isEntitled(input.from) && isEntitled(input.to),
   };
+}
+
+export type AdvanceRefusalCode = ActivationRefusalCode | 'not_an_advance_target';
+
+/**
+ * Decide whether a served customer's entitlement may move along the delivery
+ * chain — `entitlement_active → onboarded → active`.
+ *
+ * These moves grant nothing. `isEntitled` is already true at
+ * `entitlement_active`, so onboarding and going live record how far delivery
+ * has got, not what the customer is owed. That is why this is operator-only
+ * rather than approval-gated: an approval exists for an action with an
+ * external effect or a commercial consequence, and asking for one to record
+ * bookkeeping teaches operators to click through the queue.
+ *
+ * **The target is restricted, and that restriction is the whole safety
+ * property.** `planHostingTransition` will happily permit `payment_pending →
+ * entitlement_active` — that is its job — so an advance capability that passed
+ * an arbitrary target through to it would be an unapproved route into
+ * activation, past both halves of the gate. It refuses any target that is not
+ * a delivery state, naming the capability that owns it instead.
+ */
+export function planAdvanceHosting(
+  input: ActivationInput,
+): ActivationPlan | (Omit<ActivationRefusal, 'code'> & { code: AdvanceRefusalCode }) {
+  if (!isAdvanceTarget(input.to)) {
+    const owner =
+      input.to === ACTIVATION_TARGET_STATE
+        ? 'hosting.activate'
+        : input.to === CANCELLATION_TARGET_STATE
+          ? 'hosting.cancel'
+          : null;
+    return {
+      ok: false,
+      code: 'not_an_advance_target',
+      message:
+        owner === null
+          ? `'${input.to}' is not a delivery state; this capability may only move an entitlement to ${ADVANCE_TARGET_STATES.join(' or ')}`
+          : `'${input.to}' is ${owner}'s to make, and it is approval-gated; this capability may only move an entitlement to ${ADVANCE_TARGET_STATES.join(' or ')}`,
+    };
+  }
+  return planHostingTransition(input);
+}
+
+/**
+ * The delivery moves an entitlement in this state may make, probed from
+ * `planAdvanceHosting` rather than restated.
+ *
+ * The card that renders these must not be able to offer a move the API
+ * refuses — that is the mistake the deal control made, offering four
+ * transitions the API would not take. `entitlement_active` and `cancelled`
+ * are absent from every result by construction, because the planner refuses
+ * them and this asks the planner.
+ *
+ * The commercial facts are supplied as satisfied, since none of them gate a
+ * delivery move: the entrance to `entitlement_active` is the only branch that
+ * reads them, and no advance target is that state.
+ */
+export function permittedHostingMoves(from: string): AdvanceTargetState[] {
+  return ADVANCE_TARGET_STATES.filter(
+    (to) =>
+      planAdvanceHosting({
+        from,
+        to,
+        dealState: 'accepted',
+        acceptedOfferVersion: 1,
+        entitlementOfferVersion: 1,
+        disclosuresComplete: true,
+        paymentReference: 'probe',
+      }).ok,
+  );
 }
 
 export interface CancellationPlan {

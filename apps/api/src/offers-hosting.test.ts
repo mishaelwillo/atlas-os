@@ -389,6 +389,94 @@ describe('hosting.cancel', () => {
   });
 });
 
+/**
+ * hosting.advance — the two states nothing could reach.
+ *
+ * `hosting.activate` hardcoded `entitlement_active` as its target and nothing
+ * went further, so `onboarded` and `active` were declared by the transition
+ * table and counted by the funnel's SQL while no caller could produce either.
+ */
+describe('hosting.advance', () => {
+  function dbWithEntitlement(state: string): FakeDb {
+    const db = new FakeDb();
+    db.when(/from hosting_entitlements where lead_id = \$1 order by/i, [
+      { entitlement_id: 'ent-1', state, offer_version: 2, payment_reference: 'pi_3Q' },
+    ]);
+    db.when(/from deal_decisions\s+where lead_id/i, [{ state: 'accepted', offer_version: 2 }]);
+    return db;
+  }
+
+  async function advance(db: FakeDb, state: string) {
+    const res = await app(db).inject({
+      method: 'POST',
+      url: '/v1/hosting/advance',
+      headers: headers(),
+      payload: { leadId: LEAD, state },
+    });
+    return { statusCode: res.statusCode, body: res.json() as Record<string, unknown> };
+  }
+
+  it('records onboarding', async () => {
+    const { body } = await advance(dbWithEntitlement('entitlement_active'), 'onboarded');
+    expect(body).toMatchObject({ advanced: true, from: 'entitlement_active', state: 'onboarded' });
+  });
+
+  it('records a customer going live', async () => {
+    const { body } = await advance(dbWithEntitlement('onboarded'), 'active');
+    expect(body).toMatchObject({ advanced: true, state: 'active' });
+  });
+
+  it('writes the new state and audits the move', async () => {
+    const db = dbWithEntitlement('entitlement_active');
+    await advance(db, 'onboarded');
+    expect(db.calls.some((c) => /update hosting_entitlements set state/i.test(c.sql))).toBe(true);
+    expect(db.calls.some((c) => /insert into audit_log/i.test(c.sql))).toBe(true);
+  });
+
+  /**
+   * The safety property, exercised through the route rather than the planner.
+   * Activation and cancellation are approval-gated; an advance that let either
+   * through would be a way past the approval queue entirely.
+   */
+  it('refuses to activate, and creates no approval either', async () => {
+    const db = dbWithEntitlement('payment_pending');
+    const { body } = await advance(db, 'entitlement_active');
+    expect(body).toMatchObject({ advanced: false, code: 'not_an_advance_target' });
+    expect(String(body.note)).toContain('hosting.activate');
+    expect(db.calls.some((c) => /update hosting_entitlements set state/i.test(c.sql))).toBe(false);
+    expect(db.calls.some((c) => /insert into approvals/i.test(c.sql))).toBe(false);
+  });
+
+  it('refuses to cancel', async () => {
+    const db = dbWithEntitlement('active');
+    const { body } = await advance(db, 'cancelled');
+    expect(body).toMatchObject({ advanced: false, code: 'not_an_advance_target' });
+    expect(db.calls.some((c) => /update hosting_entitlements set state/i.test(c.sql))).toBe(false);
+  });
+
+  it('refuses a move the transition table does not permit', async () => {
+    const { body } = await advance(dbWithEntitlement('terms_approved'), 'active');
+    expect(body).toMatchObject({ advanced: false, code: 'not_a_permitted_transition' });
+  });
+
+  it('refuses when there is no entitlement to move', async () => {
+    const db = new FakeDb();
+    db.when(/from hosting_entitlements where lead_id = \$1 order by/i, []);
+    const { body } = await advance(db, 'onboarded');
+    expect(body).toMatchObject({ advanced: false, code: 'no_entitlement' });
+  });
+
+  it('requires a target state', async () => {
+    const res = await app(dbWithEntitlement('entitlement_active')).inject({
+      method: 'POST',
+      url: '/v1/hosting/advance',
+      headers: headers(),
+      payload: { leadId: LEAD },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+});
+
 describe('before migration 0006 is applied', () => {
   function dbWithoutTables(): FakeDb {
     const db = new FakeDb();

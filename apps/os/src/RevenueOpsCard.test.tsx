@@ -97,6 +97,10 @@ function setup(data: RevenueOpsData = DATA, result: Record<string, unknown> = {}
       calls.push({ method: 'hostingCancel', input });
       return result.cancel ?? { approvalId: 'appr-87654321', status: 'review' };
     },
+    hostingAdvance: async (input: Record<string, unknown>) => {
+      calls.push({ method: 'hostingAdvance', input });
+      return result.advance ?? { advanced: true, from: 'entitlement_active', state: 'onboarded' };
+    },
   } as unknown as AtlasGeneratedClient;
 
   const onChanged = vi.fn();
@@ -279,6 +283,77 @@ describe('derived deal moves', () => {
     setup({ ...DATA, items: [{ ...DATA.items![0], dealMoves: [] }] });
     expect(screen.getByTestId(`no-deal-moves-${LEAD}`)).toHaveTextContent(/decided/);
     expect(screen.queryByTestId(`deal-state-${LEAD}`)).toBeNull();
+  });
+});
+
+/**
+ * The delivery controls, derived the same way the deal control is. Before
+ * `hosting.advance` existed the card had no move for an entitlement at all,
+ * and `onboarded`/`active` were unreachable through the product.
+ */
+describe('derived hosting moves', () => {
+  function withMoves(state: string, moves: string[]): RevenueOpsData {
+    return {
+      ...DATA,
+      items: [
+        { ...DATA.items![0], entitlement: { ...DATA.items![0].entitlement!, state, moves } },
+      ],
+    };
+  }
+
+  it('offers only the moves the payload carries', () => {
+    setup(withMoves('entitlement_active', ['onboarded']));
+    expect(screen.getByTestId(`advance-hosting-${LEAD}-onboarded`)).toBeTruthy();
+    expect(screen.queryByTestId(`advance-hosting-${LEAD}-active`)).toBeNull();
+  });
+
+  it('offers nothing when the payload carries nothing', () => {
+    setup(withMoves('payment_pending', []));
+    expect(screen.queryByTestId(`advance-hosting-${LEAD}-onboarded`)).toBeNull();
+    expect(screen.queryByTestId(`advance-hosting-${LEAD}-active`)).toBeNull();
+  });
+
+  /**
+   * The card must not become a second route to either approval-gated move.
+   * It does not filter the list to achieve that — a filter here would be a
+   * second copy of a rule the API already holds, and the first time the two
+   * disagreed the copy would be believed. The guarantee is that this control
+   * only ever reaches `hosting.advance`, which refuses both targets
+   * server-side (see offers-hosting.test.ts). Even handed a payload no real
+   * API would send, it cannot activate or cancel anything.
+   */
+  it('reaches only hosting.advance, never activate or cancel', async () => {
+    const { calls } = setup(withMoves('payment_pending', ['entitlement_active']), {
+      advance: { advanced: false, code: 'not_an_advance_target', note: "hosting.activate's" },
+    });
+    await userEvent.click(screen.getByTestId(`advance-hosting-${LEAD}-entitlement_active`));
+    await waitFor(() => expect(calls).toHaveLength(1));
+    expect(calls[0].method).toBe('hostingAdvance');
+    expect(calls.some((c) => c.method === 'hostingActivate' || c.method === 'hostingCancel')).toBe(
+      false,
+    );
+  });
+
+  it('sends the state it rendered', async () => {
+    const { calls } = setup(withMoves('onboarded', ['active']));
+    await userEvent.click(screen.getByTestId(`advance-hosting-${LEAD}-active`));
+    await waitFor(() => expect(calls).toHaveLength(1));
+    expect(calls[0]).toMatchObject({
+      method: 'hostingAdvance',
+      input: { leadId: LEAD, state: 'active' },
+    });
+  });
+
+  it('reports a refusal as one', async () => {
+    setup(withMoves('terms_approved', ['active']), {
+      advance: { advanced: false, code: 'not_a_permitted_transition', note: 'may only become …' },
+    });
+    await userEvent.click(screen.getByTestId(`advance-hosting-${LEAD}-active`));
+    await waitFor(() =>
+      expect(screen.getByTestId('revenue-outcome')).toHaveTextContent(
+        /not_a_permitted_transition/,
+      ),
+    );
   });
 });
 

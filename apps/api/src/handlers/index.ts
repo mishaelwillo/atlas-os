@@ -13,7 +13,13 @@ import {
   prospectingQualify,
   prospectingWorkspace,
 } from './prospecting.js';
-import { dealsDecide, hostingRecordTerms, hostingState, offersPublish } from './offers.js';
+import {
+  dealsDecide,
+  hostingAdvance,
+  hostingRecordTerms,
+  hostingState,
+  offersPublish,
+} from './offers.js';
 import { automationSequence, sequenceAdvance, sequenceState } from './sequence.js';
 import { statusMissionControl } from './status.js';
 import { verifyLiveSites } from './verify-live.js';
@@ -48,6 +54,7 @@ export const handlers: Record<string, CapabilityHandler> = {
   'offers.publish': offersPublish,
   'deals.decide': dealsDecide,
   'hosting.record_terms': hostingRecordTerms,
+  'hosting.advance': hostingAdvance,
   'hosting.state': hostingState,
   'analytics.funnel': analyticsFunnel,
   'factory.verify_live': verifyLiveSites,
