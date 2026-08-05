@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `withdrawal-verdict-persisted`
+**Handoff ID:** `regenerate-capability-catalog`
 **Status:** active
-**Started:** 2026-08-05T06:18:59.047Z
-**Updated:** 2026-08-05T06:18:59.047Z
+**Started:** 2026-08-05T06:24:10.327Z
+**Updated:** 2026-08-05T06:24:10.327Z
 **Actor:** Claude
-**Objective:** Pin migration 0011 and persist the withdrawal verdict
+**Objective:** Restore main to green by regenerating the committed capability catalog
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `feat/persist-withdrawal-verdict`
+- Branch: `fix/regenerate-capability-catalog`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `172fce4c5c6723a98a845a5bf2b46c1d2efd8462`
+- Head commit: `ff0876f2e30a63e6b5f2cafa61711cfb3e27b15a`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Pinned expected_migration and ATLAS_SCHEMA_VERSION to 0011, wrote the verdict from the unpublish dispatcher, and extended factory.verify_live to re-check unconfirmed withdrawals
+- Regenerated docs/control/generated/capability-catalog.md after factory.verify_live's description changed
 
 ## Current working tree
 
@@ -25,11 +25,11 @@
 
 ## Verification evidence
 
-- ledger, columns, constraints and index read from the live schema; control:status reports no migration or schema-claim drift; both write statements dry-run against the real schema and rolled back; 605 API tests pass
+- the catalog gate failed on PR 71 and on main; regenerated locally and the diff is the single description line
 
 ## Database actions
 
-- Operator applied 0011_deployment_withdrawal_verdict; Claude pinned expected_migration and set ATLAS_SCHEMA_VERSION on both services, then redeployed them
+- No external action reported.
 - Observed Supabase status: ok (live-read-only at 2026-08-05T06:12:01.756Z).
 
 ## Hosting actions
@@ -43,7 +43,7 @@
 
 ## Blockers
 
-- Not supplied.
+- PR 71 was merged while its CI was red because the merge was chained with ';' after gh run watch, and the main run reported green was a stale one
 
 ## Next exact action
 
@@ -51,4 +51,4 @@ Exercise the three P2C cards in a signed-in browser
 
 ## Definition of done
 
-0011 is pinned and verified, the dispatcher persists the verdict, and the sweep re-checks withdrawals not confirmed gone
+The generated catalog matches the registry and CI is green on main
