@@ -12,8 +12,10 @@ import {
   READ_BACK_MAX_DELAY_MS,
   backoffDelays,
   classifyFingerprint,
+  classifyWithdrawal,
   readBackUntilSettled,
   sha256,
+  withdrawUntilGone,
 } from './fingerprint.js';
 
 const HTML = '<!doctype html>\n<html lang="en"><body>Acme</body></html>\n';
@@ -242,5 +244,120 @@ describe('the shipped read-back budget', () => {
   it('never waits longer than the ceiling in one go', () => {
     const gaps = backoffDelays(20, READ_BACK_DELAY_MS, READ_BACK_MAX_DELAY_MS);
     expect(Math.max(...gaps)).toBe(READ_BACK_MAX_DELAY_MS);
+  });
+});
+
+/**
+ * Withdrawal propagates too, and until this existed nothing checked it: the
+ * dispatcher reported "withdrawn" the moment the provider accepted the
+ * snapshot, while the address kept serving for twenty to forty seconds in
+ * production. The hourly sweep cannot cover it either — it only walks
+ * deployments that are still `live`.
+ */
+describe('classifyWithdrawal', () => {
+  it('treats a non-200 as gone', () => {
+    const result = classifyWithdrawal({ withdrawn: APPROVED, read: { status: 404, body: '' } });
+    expect(result).toMatchObject({ verdict: 'withdrawn', gone: true, observed: null });
+  });
+
+  it('reports the withdrawn build still being served', () => {
+    const result = classifyWithdrawal({ withdrawn: APPROVED, read: { status: 200, body: HTML } });
+    expect(result).toMatchObject({ verdict: 'still_serving', gone: false, observed: APPROVED });
+    expect(result.message).toMatch(/has not applied the withdrawal/);
+  });
+
+  /** Other bytes may be fine, but that is not the same fact as being gone. */
+  it('does not count other bytes at the address as a withdrawal', () => {
+    const result = classifyWithdrawal({
+      withdrawn: APPROVED,
+      read: { status: 200, body: '<html>placeholder</html>' },
+    });
+    expect(result.verdict).toBe('serving_other');
+    expect(result.gone).toBe(false);
+  });
+
+  /**
+   * The refusal that matters most, and the opposite direction from the publish
+   * read-back: assuming a withdrawal worked because the address could not be
+   * read would record a site as taken down while it was still public.
+   */
+  it('refuses to call an unreadable address gone', () => {
+    const result = classifyWithdrawal({ withdrawn: APPROVED, read: null, error: 'ECONNRESET' });
+    expect(result).toMatchObject({ verdict: 'unreadable', gone: false });
+    expect(result.message).toMatch(/not confirmed gone/);
+  });
+});
+
+describe('withdrawUntilGone', () => {
+  const never = async () => undefined;
+
+  it('returns at once when the address has already stopped serving', async () => {
+    let reads = 0;
+    const out = await withdrawUntilGone({
+      withdrawn: APPROVED,
+      url: 'https://x/a',
+      read: async () => {
+        reads += 1;
+        return { status: 404, body: '' };
+      },
+      sleep: never,
+    });
+    expect(out).toMatchObject({ verdict: 'withdrawn', gone: true, attempts: 1 });
+    expect(reads).toBe(1);
+  });
+
+  /** The observed production case: still served, then gone. */
+  it('keeps reading while the withdrawal is still propagating', async () => {
+    let reads = 0;
+    const out = await withdrawUntilGone({
+      withdrawn: APPROVED,
+      url: 'https://x/a',
+      read: async () => {
+        reads += 1;
+        return reads < 3 ? { status: 200, body: HTML } : { status: 404, body: '' };
+      },
+      sleep: never,
+    });
+    expect(out).toMatchObject({ verdict: 'withdrawn', gone: true, attempts: 3 });
+  });
+
+  /** Exhausting the budget must report what is true, not what was wanted. */
+  it('reports a withdrawal that never took effect', async () => {
+    const out = await withdrawUntilGone({
+      withdrawn: APPROVED,
+      url: 'https://x/a',
+      read: async () => ({ status: 200, body: HTML }),
+      attempts: 3,
+      sleep: never,
+    });
+    expect(out).toMatchObject({ verdict: 'still_serving', gone: false, attempts: 3 });
+  });
+
+  it('never reports gone when the address cannot be read at all', async () => {
+    const out = await withdrawUntilGone({
+      withdrawn: APPROVED,
+      url: 'https://x/a',
+      read: async () => {
+        throw new Error('ECONNRESET');
+      },
+      attempts: 2,
+      sleep: never,
+    });
+    expect(out).toMatchObject({ verdict: 'unreadable', gone: false, attempts: 2 });
+  });
+
+  it('spends the same budget a publish does', async () => {
+    const waits: number[] = [];
+    await withdrawUntilGone({
+      withdrawn: APPROVED,
+      url: 'https://x/a',
+      read: async () => ({ status: 200, body: HTML }),
+      sleep: async (ms) => {
+        waits.push(ms);
+      },
+    });
+    expect(waits).toEqual(
+      backoffDelays(READ_BACK_ATTEMPTS, READ_BACK_DELAY_MS, READ_BACK_MAX_DELAY_MS),
+    );
   });
 });

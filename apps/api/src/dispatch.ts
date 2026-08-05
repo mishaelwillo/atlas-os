@@ -14,7 +14,7 @@ import {
   type LiveSibling,
 } from './factory/publish.js';
 import { runQa } from './factory/qa.js';
-import { readBackUntilSettled } from './factory/fingerprint.js';
+import { readBackUntilSettled, withdrawUntilGone } from './factory/fingerprint.js';
 import { planTouchAdvance } from './revenue/sequence.js';
 import { readActivationFacts } from './revenue/activation-read.js';
 import { planCancellation, planHostingTransition } from './revenue/hosting-activation.js';
@@ -744,7 +744,7 @@ const factoryUnpublish: ApprovalDispatcher = async (ctx, payload) => {
   if (siteId === '') return { executed: false, note: 'factory.unpublish: siteId is required' };
 
   const live = await ctx.q.query(
-    `select deployment_id, version, domain from site_deployments
+    `select deployment_id, version, domain, build_hash from site_deployments
       where site_id = $1 and status = 'live' and environment = 'production' limit 1`,
     [siteId],
   );
@@ -817,6 +817,32 @@ const factoryUnpublish: ApprovalDispatcher = async (ctx, payload) => {
     };
   }
 
+  /*
+   * Confirm the address actually stopped serving.
+   *
+   * The provider accepting a snapshot is not the same as the public no longer
+   * receiving the site: a committed withdrawal kept serving for twenty to
+   * forty seconds in production, and nothing checked. Nothing else can, either
+   * — the hourly sweep only walks deployments that are still `live`, so a
+   * withdrawn-but-still-serving site is invisible to every other check.
+   *
+   * This never fails the withdrawal. Atlas has told the provider to stop and
+   * the record says so; refusing to record that because the edge is still
+   * catching up would be its own inaccuracy. What it must not do is claim the
+   * site is gone when the address says otherwise.
+   */
+  const address = typeof row.domain === 'string' && row.domain.trim() !== '' ? row.domain.trim() : null;
+  const withdrawal = address
+    ? await withdrawUntilGone({
+        withdrawn: String(row.build_hash),
+        url: address,
+        read: ctx.deps.readPublic,
+        attempts: ctx.deps.readBack.attempts,
+        delayMs: ctx.deps.readBack.delayMs,
+        maxDelayMs: ctx.deps.readBack.maxDelayMs,
+      })
+    : null;
+
   await ctx.q.query(
     `update site_deployments set status = 'unpublished', superseded_at = now()
       where deployment_id = $1`,
@@ -827,14 +853,31 @@ const factoryUnpublish: ApprovalDispatcher = async (ctx, payload) => {
     version: Number(row.version),
     domain: row.domain,
     stillServing: keep.length,
+    // Recorded whichever way it went, so a withdrawal that did not take effect
+    // leaves a trail rather than looking identical to one that did.
+    withdrawal: withdrawal?.verdict ?? 'unchecked',
+    withdrawalAttempts: withdrawal?.attempts ?? null,
   });
+
+  if (withdrawal !== null && !withdrawal.gone) {
+    ctx.deps.log.error(
+      { siteId, deploymentId: String(row.deployment_id), verdict: withdrawal.verdict, url: address },
+      'withdrawal did not take effect at the public address',
+    );
+  }
 
   return {
     executed: true,
     deploymentId: String(row.deployment_id),
     version: Number(row.version),
     stillServing: keep.length,
-    note: `withdrawn; ${keep.length} other live site(s) remain served`,
+    withdrawal: withdrawal?.verdict ?? 'unchecked',
+    note:
+      withdrawal === null
+        ? `withdrawn; ${keep.length} other live site(s) remain served (the address was not recorded, so nothing was read back)`
+        : withdrawal.gone
+          ? `withdrawn and confirmed gone; ${keep.length} other live site(s) remain served`
+          : `withdrawn in Atlas, but ${withdrawal.message}; ${keep.length} other live site(s) remain served`,
   };
 };
 
