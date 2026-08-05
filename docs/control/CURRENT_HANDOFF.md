@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `hosting-record-terms`
+**Handoff ID:** `manual-and-continuation`
 **Status:** active
-**Started:** 2026-08-05T20:24:36.315Z
-**Updated:** 2026-08-05T20:24:36.315Z
+**Started:** 2026-08-05T20:41:02.943Z
+**Updated:** 2026-08-05T20:41:02.943Z
 **Actor:** Claude
-**Objective:** Give the hosting chain an entrance so the pilot can reach a paying customer
+**Objective:** Leave the project readable by someone with no context
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `feat/hosting-record-terms`
+- Branch: `docs/manual-and-handoff`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `53bdf020f87a832577de580bbb03cb5601c21b4c`
+- Head commit: `8ec71fa5bb5789d9bbc8a5922673d18252bfb49f`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Added hosting.record_terms with planRecordTerms, its card control, metadata and traceability; moved the executable pin from 34 to 35
+- Added docs/MANUAL.md, rewrote NEW_SESSION_PROMPT.md, refreshed the control index
 
 ## Current working tree
 
@@ -25,7 +25,7 @@
 
 ## Verification evidence
 
-- 628 API and 150 OS tests; removing the card-data guard fails a test; insert and the one-live index proven against the real schema and rolled back
+- counts, SHA and migration pin read from the repo and the live services rather than recalled
 
 ## Database actions
 
@@ -47,8 +47,8 @@
 
 ## Next exact action
 
-Record terms for the fixture in Mission Control, then approve the activation and watch the gate
+Clean up the pilot fixture in the atlas space, then resolve the directory adapter decision that blocks the pilot exit criterion
 
 ## Definition of done
 
-An operator can record accepted terms, creating the entitlement that hosting.activate needs
+A conceptual manual exists and the continuation prompt reflects current reality
