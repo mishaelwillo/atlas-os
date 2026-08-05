@@ -168,3 +168,108 @@ describe('the sweep rules', () => {
     expect(summariseSweep(entries)).toMatchObject({ checked: 1, matching: 0, healthy: false });
   });
 });
+
+/**
+ * Re-checking withdrawals (migration 0011).
+ *
+ * The dispatcher checks once, at withdrawal time. A withdrawal that never
+ * propagated would otherwise never be looked at again, and nothing else could
+ * see it: the live sweep only walks deployments that are still `live`, so a
+ * withdrawn-but-still-serving site was invisible to every check in the system.
+ */
+describe('re-checking withdrawals', () => {
+  const WITHDRAWN_A = {
+    deployment_id: 'dep-w',
+    site_id: 'site-w',
+    domain: 'https://sites.example/w',
+    build_hash: HASH_A,
+  };
+
+  function dbWithWithdrawn(rows: Array<Record<string, unknown>>, live: Array<Record<string, unknown>> = []): FakeDb {
+    const db = new FakeDb();
+    db.when(/from site_deployments\s+where status = 'live'/i, live);
+    db.when(/where status = 'unpublished'/i, rows);
+    return db;
+  }
+
+  it('records a withdrawal it can now confirm gone', async () => {
+    const db = dbWithWithdrawn([WITHDRAWN_A]);
+    const { body } = await sweep(db, async () => ({ status: 404, body: '' }));
+
+    expect(body).toMatchObject({
+      withdrawalsChecked: 1,
+      withdrawalsConfirmed: 1,
+      status: 'ok',
+      healthy: true,
+    });
+    const update = db.calls.find((c) => /set withdrawal_verdict/i.test(c.sql));
+    expect(update?.params).toEqual(['dep-w', 'withdrawn']);
+  });
+
+  /** The failure this exists to surface. */
+  it('reports a withdrawal whose address is still serving the withdrawn build', async () => {
+    const db = dbWithWithdrawn([WITHDRAWN_A]);
+    const { body } = await sweep(db, async () => ({ status: 200, body: HTML_A }));
+
+    expect(body).toMatchObject({ withdrawalsChecked: 1, withdrawalsConfirmed: 0, status: 'drifted' });
+    expect(body.healthy).toBe(false);
+    expect((body.withdrawalsUnconfirmed as Array<{ verdict: string }>)[0].verdict).toBe('still_serving');
+  });
+
+  /** An unreadable address establishes nothing, so it is not confirmed. */
+  it('does not confirm a withdrawal it could not read', async () => {
+    const db = dbWithWithdrawn([WITHDRAWN_A]);
+    const { body } = await sweep(db, async () => {
+      throw new Error('ECONNRESET');
+    });
+
+    expect(body).toMatchObject({ withdrawalsConfirmed: 0, healthy: false });
+    const update = db.calls.find((c) => /set withdrawal_verdict/i.test(c.sql));
+    expect(update?.params).toEqual(['dep-w', 'unreadable']);
+  });
+
+  it('audits every withdrawal it could not confirm', async () => {
+    const db = dbWithWithdrawn([WITHDRAWN_A]);
+    await sweep(db, async () => ({ status: 200, body: HTML_A }));
+
+    expect(
+      db.auditInserts().some((a) => (a.params ?? []).includes('factory.withdrawal_unconfirmed')),
+    ).toBe(true);
+  });
+
+  /** A clean sweep must not be buried under evidence that nothing happened. */
+  it('does not audit a withdrawal it confirmed', async () => {
+    const db = dbWithWithdrawn([WITHDRAWN_A]);
+    await sweep(db, async () => ({ status: 404, body: '' }));
+
+    expect(
+      db.auditInserts().some((a) => (a.params ?? []).includes('factory.withdrawal_unconfirmed')),
+    ).toBe(false);
+  });
+
+  /** Nothing to re-check must not make the sweep look unhealthy. */
+  it('stays healthy when there is nothing withdrawn to re-check', async () => {
+    const db = dbWithWithdrawn([], [LIVE_A]);
+    const { body } = await sweep(db, async () => ({ status: 200, body: HTML_A }));
+
+    expect(body).toMatchObject({ withdrawalsChecked: 0, healthy: true, status: 'ok' });
+  });
+
+  /** A withdrawal from nowhere cannot be confirmed, and is not written. */
+  it('writes no verdict for a withdrawal with no recorded address', async () => {
+    const db = dbWithWithdrawn([{ ...WITHDRAWN_A, domain: null }]);
+    const { body } = await sweep(db, async () => ({ status: 404, body: '' }));
+
+    expect(body).toMatchObject({ withdrawalsChecked: 1, withdrawalsConfirmed: 0 });
+    expect(db.calls.some((c) => /set withdrawal_verdict/i.test(c.sql))).toBe(false);
+  });
+
+  /** Only the unconfirmed are re-read; settled history is not spent on. */
+  it('asks only for withdrawals not already confirmed gone', async () => {
+    const db = dbWithWithdrawn([]);
+    await sweep(db, async () => ({ status: 404, body: '' }));
+
+    const query = db.calls.find((c) => /where status = 'unpublished'/i.test(c.sql));
+    expect(query?.sql).toMatch(/withdrawal_verdict is distinct from 'withdrawn'/);
+  });
+});

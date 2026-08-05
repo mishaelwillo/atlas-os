@@ -844,9 +844,18 @@ const factoryUnpublish: ApprovalDispatcher = async (ctx, payload) => {
     : null;
 
   await ctx.q.query(
-    `update site_deployments set status = 'unpublished', superseded_at = now()
+    `update site_deployments
+        set status = 'unpublished',
+            superseded_at = now(),
+            withdrawal_verdict = $2::text,
+            -- Cast explicitly: $2 appears in a null test that gives Postgres
+            -- nothing to infer a type from, which fails the whole statement
+            -- with 42P08 rather than defaulting to the column's type. The
+            -- pair is set together because the schema refuses a verdict with
+            -- no time and a time with no verdict.
+            withdrawal_checked_at = case when $2::text is null then null else now() end
       where deployment_id = $1`,
-    [String(row.deployment_id)],
+    [String(row.deployment_id), withdrawal?.verdict ?? null],
   );
   await insertAudit(ctx.q, ctx.spaceId, ctx.auth.actor, 'factory.unpublished', String(row.deployment_id), {
     siteId,

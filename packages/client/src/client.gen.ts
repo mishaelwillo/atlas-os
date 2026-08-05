@@ -348,6 +348,9 @@ export type FactoryVerifyLiveOutput = {
   healthy?: boolean;
   mismatched?: Array<unknown>;
   unreadable?: Array<unknown>;
+  withdrawalsChecked?: number;
+  withdrawalsConfirmed?: number;
+  withdrawalsUnconfirmed?: Array<unknown>;
   status?: string;
 };
 

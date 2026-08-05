@@ -1286,6 +1286,15 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
         "unreadable": {
           "type": "array"
         },
+        "withdrawalsChecked": {
+          "type": "number"
+        },
+        "withdrawalsConfirmed": {
+          "type": "number"
+        },
+        "withdrawalsUnconfirmed": {
+          "type": "array"
+        },
         "status": {
           "type": "string"
         }
