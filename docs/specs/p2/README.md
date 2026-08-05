@@ -187,6 +187,7 @@ does not replace ownership without an approved registry migration.
 | `sequence.state` | executable | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
 | `offers.publish` | executable | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
 | `deals.decide` | executable | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
+| `hosting.record_terms` | executable | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
 | `hosting.activate` | executable | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
 | `hosting.cancel` | executable | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
 | `hosting.state` | executable | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |

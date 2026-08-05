@@ -31,6 +31,7 @@ export const GENERATED_CAPABILITY_IDS = [
   "sequence.state",
   "offers.publish",
   "deals.decide",
+  "hosting.record_terms",
   "hosting.activate",
   "hosting.cancel",
   "hosting.state",
@@ -1156,6 +1157,59 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
           "type": "boolean"
         },
         "code": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "execution": "handler"
+  } as const satisfies CapabilityRouteMeta, deps);
+  registerCapabilityRoute(app, {
+    "id": "hosting.record_terms",
+    "name": "Record accepted terms",
+    "path": "/v1/hosting/record_terms",
+    "method": "POST",
+    "taskClass": "quick",
+    "requiresApproval": false,
+    "scopes": [],
+    "input": {
+      "type": "object",
+      "required": [
+        "leadId"
+      ],
+      "properties": {
+        "leadId": {
+          "type": "string"
+        },
+        "paymentReference": {
+          "type": "string"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "entitlementId": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "offerVersion": {
+          "type": "number"
+        },
+        "paymentRecorded": {
+          "type": "boolean"
+        },
+        "recorded": {
+          "type": "boolean"
+        },
+        "code": {
+          "type": "string"
+        },
+        "note": {
           "type": "string"
         },
         "status": {
