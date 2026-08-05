@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `regenerate-capability-catalog`
+**Handoff ID:** `leads-record`
 **Status:** active
-**Started:** 2026-08-05T06:24:10.327Z
-**Updated:** 2026-08-05T06:24:10.327Z
+**Started:** 2026-08-05T09:55:54.779Z
+**Updated:** 2026-08-05T09:55:54.779Z
 **Actor:** Claude
-**Objective:** Restore main to green by regenerating the committed capability catalog
+**Objective:** Give an operator a governed way to record a hand-sourced prospect
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `fix/regenerate-capability-catalog`
+- Branch: `feat/leads-record`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `ff0876f2e30a63e6b5f2cafa61711cfb3e27b15a`
+- Head commit: `c46cbac4ab1f0af6067942de569a1ac250687e40`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Regenerated docs/control/generated/capability-catalog.md after factory.verify_live's description changed
+- Added the leads.record capability, its handler, metadata, traceability row and the prospects card form; moved the executable capability pin from 33 to 34
 
 ## Current working tree
 
@@ -25,7 +25,7 @@
 
 ## Verification evidence
 
-- the catalog gate failed on PR 71 and on main; regenerated locally and the diff is the single description line
+- 612 API and 146 OS tests pass; SQL dry-run against the real schema and rolled back; control:verify clean apart from the expected post-merge branch mismatch
 
 ## Database actions
 
@@ -43,12 +43,12 @@
 
 ## Blockers
 
-- PR 71 was merged while its CI was red because the merge was chained with ';' after gh run watch, and the main run reported green was a stale one
+- Not supplied.
 
 ## Next exact action
 
-Exercise the three P2C cards in a signed-in browser
+Sign in to Mission Control, record a prospect, and walk it through qualification, demo queue, sequence, offer, deal decision and hosting state
 
 ## Definition of done
 
-The generated catalog matches the registry and CI is green on main
+An operator can record a prospect from Mission Control and the P2C cards have something to act on
