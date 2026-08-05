@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `factory-loop-proven`
+**Handoff ID:** `read-back-budget`
 **Status:** active
-**Started:** 2026-08-05T00:04:18.146Z
-**Updated:** 2026-08-05T00:04:50.403Z
+**Started:** 2026-08-05T00:13:58.420Z
+**Updated:** 2026-08-05T00:13:58.420Z
 **Actor:** Claude
-**Objective:** Prove the full factory loop against production
+**Objective:** Widen the post-publish read-back budget so a first publish does not record a false mismatch
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `docs/factory-loop-proven`
+- Branch: `fix/read-back-budget`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `00d7b0e6f85bdd50146f3d2d4cdd4be751679c7a`
+- Head commit: `449695c33f0a83871d6fec248da010e7ad735708`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Recorded the loop run, the ordering defect it found, and the read-back budget finding
+- Read-back gaps now double from 2s capped at 16s across seven reads; the budget is asserted by a test
 
 ## Current working tree
 
@@ -25,7 +25,7 @@
 
 ## Verification evidence
 
-- loop completed end to end; address now 404s; sweep reports checked 0 healthy true; no live deployment remains
+- 583 API tests pass; dropping one attempt fails the budget test; build, lint and control:verify green
 
 ## Database actions
 
@@ -34,7 +34,7 @@
 
 ## Hosting actions
 
-- Published, revised, republished, rolled back and withdrew a fictional fixture on sites.andtronai.com; the site is withdrawn and nothing is left serving
+- No external action reported.
 - Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-04T22:57:39.336Z).
 
 ## External side effects
@@ -47,8 +47,8 @@
 
 ## Next exact action
 
-Exercise the three P2C cards in a signed-in browser, and decide whether to widen the post-publish read-back budget
+Exercise the three P2C cards in a signed-in browser
 
 ## Definition of done
 
-publish, revise, publish v2, rollback and unpublish all succeed against production with record and reality agreeing, and nothing is left live
+A first publish to a fresh address records a match rather than a mismatch that the sweep later corrects
