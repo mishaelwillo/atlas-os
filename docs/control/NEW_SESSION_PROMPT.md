@@ -267,10 +267,13 @@ None of these blocks the active work item.
   blocking detectors where there were none. Unobserved hosting reports unknown
   rather than a mismatch against nothing.
 - **P2B's timed acceptance** needs an operator session.
-- **The full factory loop is unproven end to end** — publish → revise → publish v2
-  → roll back → withdraw. Every part is unit-tested, but `factory.rollback` and
-  `factory.unpublish` have never fired against production. Worth doing; it puts a
-  fixture on the live domain briefly, so ask first.
+- **Closed.** The full factory loop was run end to end against production on
+  2026-08-04 — publish → revise → publish v2 → roll back → withdraw. It found
+  that no site could ever be published twice: the live step-down ran after the
+  insert, so the one-live index rejected it first. Fixed. Nothing is left live.
+- **Widening the post-publish read-back budget** (six attempts, two seconds
+  apart) — a first publish records a false mismatch that the sweep later
+  corrects. Trades publish latency for an accurate first record.
 
 ## How the user wants you to work
 

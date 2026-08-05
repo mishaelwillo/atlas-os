@@ -737,6 +737,70 @@ Control needs an operator password Claude has never had, so verification
 stopped at the API payload, component tests driving the real component tree,
 the card-routing test, and the built bundle.
 
+## The full factory loop, proven end to end on 2026-08-04
+
+Publish → revise → publish v2 → roll back → withdraw, run against production
+with a fictional fixture (`atlas-loop-proof-plumbing-8a77aee4`, every fact
+owner-provided, `noindex`). `factory.rollback` and `factory.unpublish` had
+never fired against production before this; both now have.
+
+| step | result |
+| --- | --- |
+| `factory.build_site` | 28 QA checks passed, hash `8161608b` |
+| publish v1 | live; read-back recorded **mismatch** (see below) |
+| `factory.revise_site` | new draft `3af0543e`; the live deployment kept serving v1, confirmed by fetching it |
+| publish v2 | **failed with a 500** — the defect below |
+| publish v2, after the fix | live, supersedes v1, fingerprint **match** |
+| `factory.rollback` | v3 restoring v1's bytes, live; settled to a match |
+| `factory.unpublish` | withdrawn, `stillServing: 0` |
+
+Afterwards the address returns 404, the Pages placeholder still serves at the
+root, every version retains its bytes so the history stays rollback-able, and
+the sweep reports `checked: 0, healthy: true`. No live deployment remains.
+
+### It found a defect that made a second publish impossible
+
+`site_deployments_one_live` is a partial unique index on `(site_id) where
+status = 'live'`. Both the deploy and the rollback dispatchers ran the
+step-down **after** the insert, so it could never run — the insert violated the
+index first. **No site could ever be published twice.**
+
+Worse, the 500 arrived *after* the bytes had reached Cloudflare. The
+transaction rolled back, so the record still said v1 was live while the
+provider served v2, and the row carried `fingerprint_matches: true` for bytes
+that were no longer served. The hourly sweep detected exactly that and reported
+`drifted`, which is the compensating control working as designed.
+
+`factory.rollback` had the identical ordering and had never run against a real
+database, so nothing had hit it. The deploy dispatcher's own comment asserted
+the invariant its code violated — "the previous one must step down as this one
+arrives" — which is one more claim nothing checked.
+
+Fixed by moving the step-down above the insert in both dispatchers. They share
+the request's transaction, so a failing insert now rolls the step-down back
+with it rather than demoting a deployment for a publish that never landed.
+
+**A test double could not have caught this.** `FakeDb` records statements
+without enforcing indexes, and the existing test asserted the step-down
+happened but never that it happened *first*. Both dispatchers now have an
+ordering test, and the real constraint was exercised in a transactional dry
+run: the old order is rejected with `23505 site_deployments_one_live`, the new
+order leaves exactly one live row.
+
+### The read-back's retry budget is too short — open
+
+Two of the three publishes recorded a false `mismatch`. In both cases the
+address was serving the correct bytes within a minute, and the sweep
+subsequently recorded a match. The read-back retries six times two seconds
+apart — about twelve seconds — which is not enough for a first publish to a
+path Cloudflare has not served before.
+
+Nothing is wrong with the publish; the record is simply pessimistic, and a
+`fingerprint_matches: false` on a healthy site is the kind of false alarm that
+teaches an operator to ignore the field. Widening the budget trades publish
+latency for accuracy, so it is recorded here as a decision rather than taken
+unilaterally.
+
 ## Awaiting a decision
 
 None of these is blocked on code:
@@ -746,6 +810,9 @@ None of these is blocked on code:
 - **Promoting `agents.logs`** from candidate, which carries a recorded evidence
   gap for unreadable source material.
 - **A directory adapter** for lead sourcing, which keeps the leads list empty.
+- **Widening the post-publish read-back budget** past its current six attempts
+  two seconds apart, which currently records a false mismatch on a first
+  publish. It trades publish latency for an accurate first record.
 
 ## Next exact action
 

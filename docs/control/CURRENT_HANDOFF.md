@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `deployment-supersede-order`
+**Handoff ID:** `factory-loop-proven`
 **Status:** active
-**Started:** 2026-08-04T23:56:25.963Z
-**Updated:** 2026-08-04T23:56:25.963Z
+**Started:** 2026-08-05T00:04:18.146Z
+**Updated:** 2026-08-05T00:04:50.403Z
 **Actor:** Claude
-**Objective:** Prove the full factory loop against production and fix what it finds
+**Objective:** Prove the full factory loop against production
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `fix/deployment-supersede-order`
+- Branch: `docs/factory-loop-proven`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `19de49d435787cef5a522796cbd6156264073a88`
+- Head commit: `00d7b0e6f85bdd50146f3d2d4cdd4be751679c7a`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Moved the live step-down before the deployment insert in both the deploy and rollback dispatchers, and added ordering tests to each
+- Recorded the loop run, the ordering defect it found, and the read-back budget finding
 
 ## Current working tree
 
@@ -25,7 +25,7 @@
 
 ## Verification evidence
 
-- transactional dry run against production: old order rejected with 23505 site_deployments_one_live, new order leaves exactly one live row; reverting the order fails both tests
+- loop completed end to end; address now 404s; sweep reports checked 0 healthy true; no live deployment remains
 
 ## Database actions
 
@@ -34,7 +34,7 @@
 
 ## Hosting actions
 
-- Published a fictional fixture site to sites.andtronai.com to exercise the loop; still live and to be withdrawn when the loop completes
+- Published, revised, republished, rolled back and withdrew a fictional fixture on sites.andtronai.com; the site is withdrawn and nothing is left serving
 - Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-04T22:57:39.336Z).
 
 ## External side effects
@@ -43,12 +43,12 @@
 
 ## Blockers
 
-- Production serves v2 of the fixture while its deployment row says v1; re-publishing on the fixed build reconciles it
+- Not supplied.
 
 ## Next exact action
 
-Resume the loop on the deployed fix: publish v2, roll back to v1, withdraw, and confirm nothing is left live
+Exercise the three P2C cards in a signed-in browser, and decide whether to widen the post-publish read-back budget
 
 ## Definition of done
 
-publish, revise, publish v2, rollback and unpublish all succeed against production with record and reality agreeing
+publish, revise, publish v2, rollback and unpublish all succeed against production with record and reality agreeing, and nothing is left live
