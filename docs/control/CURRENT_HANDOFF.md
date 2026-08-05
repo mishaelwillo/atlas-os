@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `hosting-chain-reachability`
+**Handoff ID:** `state-reachability-sweep`
 **Status:** active
-**Started:** 2026-08-05T21:15:08.002Z
-**Updated:** 2026-08-05T21:15:08.002Z
+**Started:** 2026-08-05T23:49:55.265Z
+**Updated:** 2026-08-05T23:49:55.265Z
 **Actor:** Claude
-**Objective:** Make every hosting state either reachable through a capability or declared deferred with a reason
+**Objective:** Ask the reachability question of every revenue state machine, not just the one where the gap was found
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `feat/hosting-chain-reachability`
+- Branch: `feat/state-reachability-sweep`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `ea20d143ad696f38aad449c3067f9eede18bc2d3`
+- Head commit: `d8d1f4bdec2c6804db8e2915384dd88c8a33538d`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Added hosting.advance (executable count 35 to 36), reachableHostingStates and DEFERRED_HOSTING_STATES, derived hosting moves on the revenue card
+- Added reachability.ts and state-machines.ts, removed the hosting-only walk, declared interested with its reasoning
 
 ## Current working tree
 
@@ -25,17 +25,17 @@
 
 ## Verification evidence
 
-- Mutation-tested both guards; transactional dry run against production proved both statements and the 0006 constraint, then rolled back
+- Both findings mutation-tested; full suite green on rerun after one non-reproducing turbo flake
 
 ## Database actions
 
-- Read-only plus one rolled-back transaction; no schema change and no migration
-- Observed Supabase status: ok (live-read-only at 2026-08-05T06:12:01.756Z).
+- None
+- Observed Supabase status: ok (live-read-only at 2026-08-05T21:24:42.809Z).
 
 ## Hosting actions
 
 - No external action reported.
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-05T06:12:01.756Z).
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-05T21:24:42.809Z).
 
 ## External side effects
 
@@ -47,8 +47,8 @@
 
 ## Next exact action
 
-Clean up the pilot fixture in the atlas space, then resolve the directory adapter decision that blocks the pilot exit criterion
+Decide whether deals.decide should be able to record interested, then clean up the pilot fixture and resolve the directory adapter
 
 ## Definition of done
 
-A test fails on any hosting state that is unreachable and undeclared, hosting.advance reaches onboarded and active, and neither approval-gated target can be reached through it
+All four revenue state machines are declared and checked in both directions, with failing mutations for each finding

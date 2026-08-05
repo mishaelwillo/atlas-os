@@ -10,9 +10,9 @@
  * everything after it is a customer being served.
  *
  * Which of those states the *product* can reach is a separate question from
- * which the table permits, and it is answered by `reachableHostingStates`
- * below rather than by this comment. `past_due` is deliberately out of reach —
- * see `DEFERRED_HOSTING_STATES` for why.
+ * which the table permits, and it is answered by the reachability check over
+ * `hostingMachine` (state-machines.ts) rather than by this comment. `past_due`
+ * is deliberately out of reach — see `DEFERRED_HOSTING_STATES` for why.
  *
  * A payment is never confirmed here. `billing.manage` is deferred to P3, so no
  * provider is integrated: a confirmed payment is a fact an operator records
@@ -100,29 +100,13 @@ export const DEFERRED_HOSTING_STATES: Readonly<Partial<Record<HostingState, stri
     'a lapse is a payment fact, and Atlas confirms no payments: billing.manage is deferred to P3, so nothing can observe one. Reaching past_due by hand would record a lapse nobody detected.',
 };
 
-/**
- * Every state an entitlement can actually arrive in, walked from the states
- * `hosting.record_terms` creates through the targets the other capabilities
- * may request. Both halves of each step are real: the transition table has to
- * permit it and some capability has to ask for it.
+/*
+ * Which of these states the product can actually reach is answered by
+ * `hostingMachine` in state-machines.ts, walked by the shared reachability
+ * check that asks the same question of every revenue state machine. It lives
+ * there rather than here so there is one implementation to trust: a
+ * hosting-only copy would be a second answer to a question with one right one.
  */
-export function reachableHostingStates(): Set<HostingState> {
-  const targets: readonly HostingState[] = [
-    ACTIVATION_TARGET_STATE,
-    ...ADVANCE_TARGET_STATES,
-    CANCELLATION_TARGET_STATE,
-  ];
-  const reached = new Set<HostingState>(TERMS_ENTRY_STATES);
-  for (;;) {
-    const before = reached.size;
-    for (const from of [...reached]) {
-      for (const to of targets) {
-        if (NEXT_HOSTING_STATES[from].includes(to)) reached.add(to);
-      }
-    }
-    if (reached.size === before) return reached;
-  }
-}
 
 export function isEntitled(state: HostingState): boolean {
   return ENTITLED_STATES.includes(state);
