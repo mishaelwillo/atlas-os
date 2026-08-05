@@ -787,19 +787,35 @@ ordering test, and the real constraint was exercised in a transactional dry
 run: the old order is rejected with `23505 site_deployments_one_live`, the new
 order leaves exactly one live row.
 
-### The read-back's retry budget is too short — open
+### The read-back's retry budget was too short — widened
 
 Two of the three publishes recorded a false `mismatch`. In both cases the
 address was serving the correct bytes within a minute, and the sweep
-subsequently recorded a match. The read-back retries six times two seconds
-apart — about twelve seconds — which is not enough for a first publish to a
-path Cloudflare has not served before.
+subsequently recorded a match. The read-back retried six times two seconds
+apart — about ten seconds — which is not enough for a first publish to a path
+Cloudflare has not served before. Nothing was wrong with those publishes; the
+record was simply pessimistic, and a `fingerprint_matches: false` on a healthy
+site is the kind of false alarm that teaches an operator to ignore the field,
+wasting the one mechanism that detects real drift.
 
-Nothing is wrong with the publish; the record is simply pessimistic, and a
-`fingerprint_matches: false` on a healthy site is the kind of false alarm that
-teaches an operator to ignore the field. Widening the budget trades publish
-latency for accuracy, so it is recorded here as a decision rather than taken
-unilaterally.
+The gap now doubles from two seconds, capped at sixteen: seven reads over
+about sixty-two seconds of waiting. Doubling puts the budget where propagation
+actually finishes — most publishes settle in seconds — and the cap stops the
+whole budget being spent in one long sleep at the end. A match still returns
+without waiting at all, so only a publish that has *not* settled pays for any
+of it.
+
+**The cost is stated rather than hidden.** The wait happens inside the approval
+request's transaction, because the dispatcher records the fingerprint on the
+row it is about to insert, so an unsettled publish holds one pooled connection
+for up to a minute. That is acceptable while publishing is an approval-gated
+human action measured in a handful per day against a pool of ten. If
+publishing ever becomes frequent or automated, the read-back belongs after the
+commit instead — and the comment in `fingerprint.ts` says so.
+
+The shipped budget is asserted by a test rather than described in prose, so
+shortening it again has to be a deliberate decision instead of a number that
+quietly drifts back.
 
 ## Awaiting a decision
 
@@ -810,9 +826,6 @@ None of these is blocked on code:
 - **Promoting `agents.logs`** from candidate, which carries a recorded evidence
   gap for unreadable source material.
 - **A directory adapter** for lead sourcing, which keeps the leads list empty.
-- **Widening the post-publish read-back budget** past its current six attempts
-  two seconds apart, which currently records a false mismatch on a first
-  publish. It trades publish latency for an accurate first record.
 
 ## Next exact action
 

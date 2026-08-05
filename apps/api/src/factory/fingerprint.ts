@@ -93,10 +93,28 @@ export function classifyFingerprint(args: {
   };
 }
 
-/** Attempts before a non-matching read is believed. */
-export const READ_BACK_ATTEMPTS = 6;
-/** Gap between attempts. */
+/**
+ * Attempts before a non-matching read is believed.
+ *
+ * Six attempts two seconds apart — about ten seconds of waiting — was too
+ * short. In the 2026-08-04 loop run, two of three publishes recorded a
+ * `mismatch` that was not one: the address served the approved build correctly
+ * within a minute, and the hourly sweep then recorded a match. A
+ * `fingerprint_matches: false` on a healthy site is the kind of false alarm
+ * that teaches an operator to ignore the field, which would waste the one
+ * mechanism that detects real drift.
+ */
+export const READ_BACK_ATTEMPTS = 7;
+/** First gap between attempts; it doubles from here. */
 export const READ_BACK_DELAY_MS = 2000;
+/**
+ * Ceiling on a single gap.
+ *
+ * Doubling without a cap would spend the whole budget in one long sleep at the
+ * end, so a site that settles at forty seconds would still be waited on for
+ * over a minute.
+ */
+export const READ_BACK_MAX_DELAY_MS = 16_000;
 
 export interface ReadBackOutcome extends FingerprintResult {
   /** How many reads it took; 1 means it matched immediately. */
@@ -117,18 +135,49 @@ export interface ReadBackOutcome extends FingerprintResult {
  * because a matching hash cannot be a propagation artefact. Exhausting the
  * attempts records the last result honestly rather than giving up into a
  * pretend success.
+ *
+ * The gap doubles from `delayMs` up to `maxDelayMs`, which spends the budget
+ * where propagation actually finishes: most publishes settle in seconds, and
+ * the long waits are only reached by the ones that do not. With the defaults
+ * that is seven reads over about sixty-two seconds of waiting.
+ *
+ * **This wait is inside the approval request's transaction**, because the
+ * dispatcher records the fingerprint on the row it is about to insert. A
+ * publish therefore holds one pooled connection for as long as the read-back
+ * runs. That is a real cost, accepted rather than hidden: publishes are
+ * approval-gated human actions measured in a handful per day, the pool is ten,
+ * and only a publish whose address has NOT settled pays the full budget — a
+ * match returns without sleeping at all. If publishing ever becomes frequent
+ * or automated, the read-back belongs after the commit instead.
  */
+export function backoffDelays(
+  attempts: number,
+  delayMs: number,
+  maxDelayMs: number,
+): number[] {
+  const gaps: number[] = [];
+  let next = delayMs;
+  for (let i = 1; i < Math.max(1, attempts); i += 1) {
+    gaps.push(Math.min(next, maxDelayMs));
+    next *= 2;
+  }
+  return gaps;
+}
+
 export async function readBackUntilSettled(args: {
   approved: string;
   url: string;
   read: (url: string) => Promise<ReadPublicResult>;
   attempts?: number;
   delayMs?: number;
+  maxDelayMs?: number;
   sleep?: (ms: number) => Promise<void>;
 }): Promise<ReadBackOutcome> {
   const attempts = Math.max(1, args.attempts ?? READ_BACK_ATTEMPTS);
   const delayMs = args.delayMs ?? READ_BACK_DELAY_MS;
+  const maxDelayMs = args.maxDelayMs ?? READ_BACK_MAX_DELAY_MS;
   const sleep = args.sleep ?? ((ms: number) => new Promise((r) => setTimeout(r, ms)));
+  const gaps = backoffDelays(attempts, delayMs, maxDelayMs);
 
   let last: FingerprintResult = classifyFingerprint({ approved: args.approved, read: null });
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
@@ -143,7 +192,7 @@ export async function readBackUntilSettled(args: {
       });
     }
     if (last.matches) return { ...last, attempts: attempt };
-    if (attempt < attempts) await sleep(delayMs);
+    if (attempt < attempts) await sleep(gaps[attempt - 1] ?? maxDelayMs);
   }
   return { ...last, attempts };
 }

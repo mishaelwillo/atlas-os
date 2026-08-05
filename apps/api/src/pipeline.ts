@@ -73,7 +73,7 @@ export interface PipelineDeps {
    * How persistently a published address is re-read before a non-match is
    * believed. Injected so tests do not sleep through real propagation waits.
    */
-  readBack: { attempts: number; delayMs: number };
+  readBack: { attempts: number; delayMs: number; maxDelayMs?: number };
   router: AtlasRouter;
   /** registry meta keyed by capability id — runs.execute routes through this */
   capabilities: Record<string, CapabilityRouteMeta>;
