@@ -253,3 +253,87 @@ describe('RevenueOpsCard', () => {
     expect(screen.getByRole('status')).toHaveTextContent('migrations 0004 to 0006');
   });
 });
+
+/**
+ * The two defects a browser run surfaced.
+ *
+ * The deal control offered all five states and left the API to refuse four of
+ * them; and one publish click produced two immutable offer versions, 473ms
+ * apart, which for a customer means a different offer to have accepted.
+ */
+describe('derived deal moves', () => {
+  it('offers only the moves the payload carries', async () => {
+    setup({
+      ...DATA,
+      items: [{ ...DATA.items![0], dealMoves: ['accepted', 'declined'] }],
+    });
+    const select = screen.getByTestId(`deal-state-${LEAD}`) as HTMLSelectElement;
+    const options = Array.from(select.options)
+      .map((o) => o.value)
+      .filter(Boolean);
+    expect(options).toEqual(['accepted', 'declined']);
+    expect(options).not.toContain('offer_review');
+  });
+
+  it('says the deal is decided when nothing may move', () => {
+    setup({ ...DATA, items: [{ ...DATA.items![0], dealMoves: [] }] });
+    expect(screen.getByTestId(`no-deal-moves-${LEAD}`)).toHaveTextContent(/decided/);
+    expect(screen.queryByTestId(`deal-state-${LEAD}`)).toBeNull();
+  });
+});
+
+describe('one governed action at a time', () => {
+  /**
+   * `busy` drives the disabled state but React commits it asynchronously, so
+   * two events arriving before that commit both used to pass. A duplicated
+   * publish creates a second immutable offer version.
+   */
+  it('sends one request when the publish button is clicked twice in a row', async () => {
+    let resolve: (v: unknown) => void = () => undefined;
+    const gate = new Promise((r) => {
+      resolve = r;
+    });
+    const calls: unknown[] = [];
+    const client = {
+      offersPublish: async (input: Record<string, unknown>) => {
+        calls.push(input);
+        await gate;
+        return { published: true, version: 1, priceMinor: 0, currency: 'JMD', period: 'monthly' };
+      },
+    } as unknown as AtlasGeneratedClient;
+
+    render(<RevenueOpsCard data={DATA} client={client} hasSpace onChanged={vi.fn()} />);
+    await userEvent.click(screen.getByTestId(`offer-form-${LEAD}`));
+    await userEvent.type(screen.getByTestId('offer-price'), '0');
+
+    const publish = screen.getByTestId(`publish-${LEAD}`);
+    // Both clicks land before the first call settles.
+    publish.click();
+    publish.click();
+    resolve(null);
+
+    await waitFor(() => expect(calls.length).toBeGreaterThan(0));
+    expect(calls).toHaveLength(1);
+  });
+
+  /** A refusal must not leave the lock held and wedge every later action. */
+  it('still acts after a refusal that never reached the API', async () => {
+    const calls: unknown[] = [];
+    const client = {
+      offersPublish: async (input: Record<string, unknown>) => {
+        calls.push(input);
+        return { published: true, version: 1, priceMinor: 0, currency: 'JMD', period: 'monthly' };
+      },
+    } as unknown as AtlasGeneratedClient;
+
+    render(<RevenueOpsCard data={DATA} client={client} hasSpace onChanged={vi.fn()} />);
+    await userEvent.click(screen.getByTestId(`offer-form-${LEAD}`));
+    // Blank price: refused locally, nothing sent.
+    await userEvent.click(screen.getByTestId(`publish-${LEAD}`));
+    expect(calls).toHaveLength(0);
+
+    await userEvent.type(screen.getByTestId('offer-price'), '0');
+    await userEvent.click(screen.getByTestId(`publish-${LEAD}`));
+    await waitFor(() => expect(calls).toHaveLength(1));
+  });
+});

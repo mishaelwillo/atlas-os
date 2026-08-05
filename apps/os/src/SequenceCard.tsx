@@ -13,7 +13,7 @@
  * Planning sends nothing. Every touch still needs its own policy check and its
  * own named approval, so the button says "Plan" and the copy says so too.
  */
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import type { AtlasGeneratedClient } from '@atlas/client';
 import styles from './MissionControl.module.css';
 
@@ -95,6 +95,19 @@ export function SequenceCard({
   const channels = data.channels ?? [];
   const maxSteps = data.maxSteps ?? 4;
 
+  /*
+   * One governed action at a time.
+   *
+   * `busy` drives the disabled state, but React commits it asynchronously, so
+   * two events arriving before that commit both pass the check. A ref flips
+   * synchronously and closes that window. It matters most here because these
+   * capabilities are not idempotent: a duplicated publish creates a second
+   * immutable offer VERSION, which is a different offer for the customer to
+   * have accepted — two were created 473ms apart while running the pilot
+   * through a browser.
+   */
+  const inFlight = useRef(false);
+
   const act = useCallback(
     async (run: () => Promise<unknown>) => {
       setError(null);
@@ -103,6 +116,10 @@ export function SequenceCard({
         setError('Select a Space first. Every governed action requires one.');
         return;
       }
+      // Taken only once the call is certain to run, so a refusal above cannot
+      // leave the lock held and wedge every later action.
+      if (inFlight.current) return;
+      inFlight.current = true;
       setBusy(true);
       try {
         const res = (await run()) as Record<string, unknown>;
@@ -111,6 +128,7 @@ export function SequenceCard({
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       } finally {
+        inFlight.current = false;
         setBusy(false);
       }
     },

@@ -392,6 +392,8 @@ export const statusMissionControl: CapabilityHandler = async (ctx) => {
             businessName: l.businessName,
             offer: l.offer,
             deal: l.deal,
+            // Derived from planDealTransition, like the demo and touch moves.
+            dealMoves: l.dealMoves,
             entitlement: l.entitlement,
           })),
         },
