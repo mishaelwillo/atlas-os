@@ -271,9 +271,9 @@ None of these blocks the active work item.
   2026-08-04 — publish → revise → publish v2 → roll back → withdraw. It found
   that no site could ever be published twice: the live step-down ran after the
   insert, so the one-live index rejected it first. Fixed. Nothing is left live.
-- **Widening the post-publish read-back budget** (six attempts, two seconds
-  apart) — a first publish records a false mismatch that the sweep later
-  corrects. Trades publish latency for an accurate first record.
+- **Closed.** The post-publish read-back budget was widened: the gap now
+  doubles from two seconds capped at sixteen, seven reads over about sixty-two
+  seconds, so a first publish no longer records a false mismatch.
 
 ## How the user wants you to work
 

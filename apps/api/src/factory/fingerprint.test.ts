@@ -6,7 +6,15 @@
  * deployment recorded as `live` carrying a fingerprint nothing had verified.
  */
 import { describe, expect, it } from 'vitest';
-import { classifyFingerprint, readBackUntilSettled, sha256 } from './fingerprint.js';
+import {
+  READ_BACK_ATTEMPTS,
+  READ_BACK_DELAY_MS,
+  READ_BACK_MAX_DELAY_MS,
+  backoffDelays,
+  classifyFingerprint,
+  readBackUntilSettled,
+  sha256,
+} from './fingerprint.js';
 
 const HTML = '<!doctype html>\n<html lang="en"><body>Acme</body></html>\n';
 const APPROVED = sha256(HTML);
@@ -174,7 +182,65 @@ describe('readBackUntilSettled', () => {
         waits.push(ms);
       },
     });
-    // Waits between attempts, not after the last one.
-    expect(waits).toEqual([1500, 1500]);
+    // Waits between attempts, not after the last one. The gap doubles.
+    expect(waits).toEqual([1500, 3000]);
+  });
+
+  it('doubles the gap and stops doubling at the ceiling', async () => {
+    const waits: number[] = [];
+    await readBackUntilSettled({
+      approved: APPROVED,
+      url: 'https://x/a',
+      read: async () => ({ status: 404, body: '' }),
+      attempts: 6,
+      delayMs: 2000,
+      maxDelayMs: 8000,
+      sleep: async (ms) => {
+        waits.push(ms);
+      },
+    });
+    expect(waits).toEqual([2000, 4000, 8000, 8000, 8000]);
+  });
+
+  /** A settled address must never pay for the budget. */
+  it('does not wait at all when the first read matches', async () => {
+    const waits: number[] = [];
+    await readBackUntilSettled({
+      approved: APPROVED,
+      url: 'https://x/a',
+      read: async () => ({ status: 200, body: HTML }),
+      sleep: async (ms) => {
+        waits.push(ms);
+      },
+    });
+    expect(waits).toEqual([]);
+  });
+});
+
+/**
+ * The shipped budget, asserted rather than described.
+ *
+ * Ten seconds was too short: the 2026-08-04 loop run recorded a `mismatch` on
+ * two of three publishes for addresses that were serving the approved build
+ * within a minute. These pin what the defaults actually spend, so shortening
+ * them again has to be a deliberate decision rather than a number that quietly
+ * drifts back.
+ */
+describe('the shipped read-back budget', () => {
+  it('waits about a minute across seven reads', () => {
+    const gaps = backoffDelays(READ_BACK_ATTEMPTS, READ_BACK_DELAY_MS, READ_BACK_MAX_DELAY_MS);
+    expect(gaps).toEqual([2000, 4000, 8000, 16000, 16000, 16000]);
+
+    const totalMs = gaps.reduce((a, b) => a + b, 0);
+    expect(totalMs).toBe(62_000);
+    // Comfortably past the settling time observed in production, and bounded
+    // well short of anything that would look like a hung request.
+    expect(totalMs).toBeGreaterThan(45_000);
+    expect(totalMs).toBeLessThan(120_000);
+  });
+
+  it('never waits longer than the ceiling in one go', () => {
+    const gaps = backoffDelays(20, READ_BACK_DELAY_MS, READ_BACK_MAX_DELAY_MS);
+    expect(Math.max(...gaps)).toBe(READ_BACK_MAX_DELAY_MS);
   });
 });

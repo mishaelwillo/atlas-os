@@ -300,6 +300,7 @@ const factoryDeploySite: ApprovalDispatcher = async (ctx, payload) => {
         read: ctx.deps.readPublic,
         attempts: ctx.deps.readBack.attempts,
         delayMs: ctx.deps.readBack.delayMs,
+        maxDelayMs: ctx.deps.readBack.maxDelayMs,
       })
     : null;
 
@@ -654,6 +655,7 @@ const factoryRollback: ApprovalDispatcher = async (ctx, payload) => {
         read: ctx.deps.readPublic,
         attempts: ctx.deps.readBack.attempts,
         delayMs: ctx.deps.readBack.delayMs,
+        maxDelayMs: ctx.deps.readBack.maxDelayMs,
       })
     : null;
 
