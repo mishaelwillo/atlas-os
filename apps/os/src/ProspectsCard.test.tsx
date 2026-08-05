@@ -67,6 +67,10 @@ function setup(data: ProspectsData = DATA, result: Record<string, unknown> = {})
       calls.push({ method: 'demosAdvance', input });
       return result.advance ?? { advanced: true, from: 'building', to: 'qa' };
     },
+    leadsRecord: async (input: Record<string, unknown>) => {
+      calls.push({ method: 'leadsRecord', input });
+      return result.record ?? { recorded: true, leadId: 'lead-new', status: 'new' };
+    },
   } as unknown as AtlasGeneratedClient;
 
   const onChanged = vi.fn();
@@ -262,5 +266,81 @@ describe('ProspectsCard', () => {
     );
     expect(screen.getByRole('status')).toHaveTextContent('migrations 0004 to 0006');
     expect(screen.queryByTestId('queue-summary')).toBeNull();
+  });
+});
+
+/**
+ * Recording a prospect by hand.
+ *
+ * `leads.find` has no approved directory adapter, so without this the card is
+ * a surface an operator cannot start from: every action here keys off a lead
+ * and nothing else can create one.
+ */
+describe('recording a hand-sourced prospect', () => {
+  const EMPTY: ProspectsData = { ...DATA, items: [] };
+
+  it('says how to start when there are no prospects yet', () => {
+    setup(EMPTY);
+    expect(screen.getByText(/record one by hand below/i)).toBeInTheDocument();
+  });
+
+  it('sends the business and where it was found', async () => {
+    const { calls, onChanged } = setup(EMPTY);
+    await userEvent.type(screen.getByTestId('lead-business-name'), 'Acme Plumbing');
+    await userEvent.type(screen.getByTestId('lead-source-url'), 'https://maps.example/acme');
+    await userEvent.type(screen.getByTestId('lead-phone'), '555-0100');
+    await userEvent.click(screen.getByTestId('submit-lead'));
+
+    await waitFor(() => expect(calls).toHaveLength(1));
+    expect(calls[0]).toEqual({
+      method: 'leadsRecord',
+      input: {
+        businessName: 'Acme Plumbing',
+        sourceUrl: 'https://maps.example/acme',
+        phone: '555-0100',
+      },
+    });
+    expect(onChanged).toHaveBeenCalled();
+  });
+
+  /** The source is what the rubric will need; the form says so before sending. */
+  it('refuses to send without a source, by name', async () => {
+    const { calls } = setup(EMPTY);
+    await userEvent.type(screen.getByTestId('lead-business-name'), 'Acme Plumbing');
+    await userEvent.click(screen.getByTestId('submit-lead'));
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/where you found them are both required/i);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('omits an empty optional field rather than sending a blank', async () => {
+    const { calls } = setup(EMPTY);
+    await userEvent.type(screen.getByTestId('lead-business-name'), 'Acme Plumbing');
+    await userEvent.type(screen.getByTestId('lead-source-url'), 'https://maps.example/acme');
+    await userEvent.click(screen.getByTestId('submit-lead'));
+
+    await waitFor(() => expect(calls).toHaveLength(1));
+    expect('phone' in (calls[0].input as Record<string, unknown>)).toBe(false);
+    expect('websiteUrl' in (calls[0].input as Record<string, unknown>)).toBe(false);
+  });
+
+  /** A 200 refusal naming the existing prospect must read as a refusal. */
+  it('reports a duplicate as refused and names the existing prospect', async () => {
+    setup(EMPTY, {
+      record: {
+        recorded: false,
+        code: 'already_recorded',
+        duplicateOf: 'lead-existing-1234',
+        note: 'this business is already recorded in this space',
+      },
+    });
+    await userEvent.type(screen.getByTestId('lead-business-name'), 'Acme Plumbing');
+    await userEvent.type(screen.getByTestId('lead-source-url'), 'https://maps.example/acme');
+    await userEvent.click(screen.getByTestId('submit-lead'));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('prospect-outcome')).toHaveTextContent(/Refused \(already_recorded\)/),
+    );
+    expect(screen.getByTestId('prospect-outcome')).toHaveTextContent(/already recorded as lead-exi/);
   });
 });

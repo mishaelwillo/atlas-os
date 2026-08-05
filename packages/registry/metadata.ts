@@ -215,6 +215,22 @@ export const capabilityMetadata: Record<CapabilityId, CapabilityMetadata> = {
     evidenceIds: ['video-qy0l1t7x6le-google-maps-prospecting'],
     specification: P2_REVENUE_SPECIFICATION,
   },
+  'leads.record': {
+    stage: 'candidate',
+    phase: 'P2C',
+    menuGroup: 'Prospecting',
+    regions: ['global'],
+    entitlements: ['revenue-pilot'],
+    monetization: 'acquisition',
+    implementation: 'build',
+    // An operator types what they found and where it was found. Nothing is
+    // scraped, nothing is inferred, and no contact is made.
+    autonomy: 'manual',
+    // The specification names hand sourcing as the pilot workflow before an
+    // approved directory adapter exists. No video evidence is claimed for it.
+    evidenceIds: [],
+    specification: P2_REVENUE_SPECIFICATION,
+  },
   'prospecting.qualify': {
     stage: 'candidate',
     phase: 'P2C',

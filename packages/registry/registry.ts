@@ -161,6 +161,17 @@ export const registry = [
     taskClass: 'do', requiresApproval: false, scopes: ['leads:write'], method: 'POST', execution: 'handler',
   },
   {
+    id: 'leads.record',
+    name: 'Record a sourced lead',
+    description: 'Record one prospect an operator sourced by hand, with where they found it. This is the pilot workflow until leads.find has an approved directory adapter. It never sets the outreach lifecycle beyond new, and it refuses a business already recorded in the space rather than creating a second row for it.',
+    // `sourceUrl` is required: a prospect whose provenance nobody recorded
+    // cannot satisfy the qualification rubric's contact-source check, so
+    // admitting one without it would only create a lead that can never qualify.
+    input: { type: 'object', required: ['businessName', 'sourceUrl'], properties: { businessName: { type: 'string' }, sourceUrl: { type: 'string' }, phone: { type: 'string' }, websiteUrl: { type: 'string' }, note: { type: 'string' } } },
+    output: { type: 'object', properties: { leadId: { type: 'string' }, recorded: { type: 'boolean' }, duplicateOf: { type: 'string' }, code: { type: 'string' }, note: { type: 'string' }, status: { type: 'string' } } },
+    taskClass: 'quick', requiresApproval: false, scopes: ['leads:write'], method: 'POST', execution: 'handler',
+  },
+  {
     id: 'prospecting.qualify',
     name: 'Qualify prospect',
     description: 'Score one sourced prospect against the pilot rubric and record an append-only assessment. Settled blockers disqualify; open questions send it to eligibility review. Never writes leads.status, which is the outreach lifecycle.',

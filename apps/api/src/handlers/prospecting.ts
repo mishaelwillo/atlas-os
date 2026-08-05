@@ -109,6 +109,90 @@ async function requireLead(ctx: HandlerCtx, leadId: string): Promise<{ status: s
 }
 
 /**
+ * leads.record — record one prospect an operator sourced by hand.
+ *
+ * `leads.find` needs an approved directory adapter and does not have one, so
+ * without this there is no way to get a prospect into the pilot at all: every
+ * P2C surface keys off a lead, and nothing could create one. The specification
+ * treats hand sourcing as the pilot workflow in the meantime.
+ *
+ * Three things it deliberately will not do.
+ *
+ * It will not admit a prospect with no provenance. `sourceUrl` is required
+ * because the rubric's contact-source check is one an unsourced lead can never
+ * pass — admitting one would only create a prospect that cannot be qualified.
+ *
+ * It will not set the outreach lifecycle. A new lead is `new`, full stop.
+ * `leads.status` carries suppression, and letting a recorder choose it would
+ * let a hand-typed row assert consent nobody gave.
+ *
+ * It will not create a second row for a business already in the space. The
+ * specification says duplicates merge with provenance, and the rubric
+ * disqualifies a duplicate outright; silently recording one twice would put
+ * two prospects in the funnel for one business and let both be contacted.
+ */
+export const leadsRecord: CapabilityHandler = async (ctx, input) => {
+  const businessName = text(input.businessName);
+  const sourceUrl = text(input.sourceUrl);
+  if (businessName === null) throw new CapabilityError(400, 'leads.record: businessName is required');
+  if (sourceUrl === null) {
+    throw new CapabilityError(400, 'leads.record: sourceUrl is required — where did you find this business?');
+  }
+  if (ctx.spaceId === null) {
+    throw new CapabilityError(400, 'leads.record requires a space (x-atlas-space)');
+  }
+
+  const existing = await ctx.q.query(
+    `select lead_id from leads where space_id = $1 and lower(business_name) = lower($2) limit 1`,
+    [ctx.spaceId, businessName],
+  );
+  if (existing.rows[0]) {
+    const duplicateOf = String(existing.rows[0].lead_id);
+    await insertAudit(ctx.q, ctx.spaceId, ctx.auth.actor, 'leads.record_refused', duplicateOf, {
+      code: 'already_recorded',
+      businessName,
+    });
+    return {
+      recorded: false,
+      code: 'already_recorded',
+      duplicateOf,
+      note: 'this business is already recorded in this space; qualify or re-assess the existing prospect',
+      status: 'refused',
+    };
+  }
+
+  /*
+   * Provenance goes in `criteria` because the leads table has no column for
+   * it. That is a real limitation rather than a design: a dedicated column
+   * would need a migration, and the jsonb keeps the fact attached to the row
+   * that is going to be qualified against it.
+   */
+  const criteria = {
+    sourceUrl,
+    recordedBy: ctx.auth.actor,
+    handSourced: true,
+    ...(text(input.websiteUrl) === null ? {} : { websiteUrl: text(input.websiteUrl) }),
+    ...(text(input.note) === null ? {} : { note: text(input.note) }),
+  };
+
+  const res = await ctx.q.query(
+    `insert into leads (space_id, business_name, gbp_url, phone, criteria, score, status)
+     values ($1, $2, $3, $4, $5::jsonb, 0, 'new')
+     returning lead_id`,
+    [ctx.spaceId, businessName, sourceUrl, text(input.phone), JSON.stringify(criteria)],
+  );
+  const leadId = String(res.rows[0]?.lead_id ?? '');
+  if (leadId === '') throw new CapabilityError(500, 'leads.record: lead was not persisted');
+
+  await insertAudit(ctx.q, ctx.spaceId, ctx.auth.actor, 'leads.recorded', leadId, {
+    businessName,
+    sourceUrl,
+  });
+
+  return { recorded: true, leadId, status: 'new' };
+};
+
+/**
  * prospecting.qualify — record an assessment against the pilot rubric.
  *
  * The verdict is derived from the supplied evidence rather than accepted from

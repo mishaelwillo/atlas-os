@@ -9,6 +9,7 @@ import { factoryBuildSite, factoryPreview, factoryReviseSite } from './factory.j
 import {
   demosAdvance,
   demosEnqueue,
+  leadsRecord,
   prospectingQualify,
   prospectingWorkspace,
 } from './prospecting.js';
@@ -58,6 +59,7 @@ export const handlers: Record<string, CapabilityHandler> = {
   'factory.preview': factoryPreview,
   'factory.deploy_site': factoryDeploySite,
   'leads.find': leadsFind,
+  'leads.record': leadsRecord,
   'outreach.send': outreachSend,
   'factory.revise_site': factoryReviseSite,
   'factory.rollback': factoryRollback,

@@ -300,6 +300,22 @@ ledgers is not executable and does not appear here.
 - Scopes: `leads:write`
 - Description: Industry \+ location \+ criteria → scored lead table \(active GBP, no website\)\.
 
+### `leads.record` — Record a sourced lead
+- Stage: candidate
+- Phase: P2C
+- Monetization: acquisition
+- Autonomy: manual
+- Implementation: build
+- Regions: `global`
+- Entitlements: `revenue-pilot`
+- Evidence: none
+- Specification: `docs/specs/p2/revenue-pilot.md`
+- Method: POST
+- Task class: quick
+- Approval required: no
+- Scopes: `leads:write`
+- Description: Record one prospect an operator sourced by hand, with where they found it\. This is the pilot workflow until leads\.find has an approved directory adapter\. It never sets the outreach lifecycle beyond new, and it refuses a business already recorded in the space rather than creating a second row for it\.
+
 ### `prospecting.qualify` — Qualify prospect
 - Stage: candidate
 - Phase: P2C
