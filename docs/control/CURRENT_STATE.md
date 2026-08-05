@@ -957,6 +957,51 @@ check constraint refuses an unknown state with `23514`. No migration is needed
 statements without enforcing a constraint, so nothing else could have shown
 that.
 
+## The same question, asked of every state machine
+
+Finding three unreachable states in one chain is a reason to check the others,
+not a reason to trust them. `reachability.ts` asks the general question and
+`state-machines.ts` declares all four revenue machines — hosting, the demo
+queue, outreach touches and deal decisions — each naming its entrances and
+probing its own planner. The hosting-only walk added with `hosting.advance` is
+gone: one question with one right answer should have one implementation.
+
+Two findings are reported, in both directions. A state that is unreachable and
+undeclared is the defect the hosting chain had. A state declared unreachable
+that the product *can* reach is the opposite error, and the one that worsens
+with time — a deferral left standing after the thing it waited for shipped
+reads as a limitation the system no longer has. Both have failing mutations.
+
+`canRequest` is the one hand-written part, deliberately. It describes what the
+handlers do, which is the thing being compared against the transition tables;
+deriving it from those tables would compare a claim with itself.
+
+**Three of the four are clean.** The demo queue reaches all six states, and a
+touch reaches all eleven — including `sent`, which only the approved
+`outreach.send` dispatcher can produce. Reachability grants that dispatcher
+flag for exactly that move, because an approved send is a real path through the
+product; a test withdraws it and confirms `sent` becomes unreachable, so the
+grant cannot quietly widen. Sequence state is derived from touches rather than
+transitioned into, so it is checked differently: each of the four is shown to
+be produced by some real arrangement of touches.
+
+### The deal chain cannot record `interested`
+
+`deals.decide` reads the standing decision, counts from `interested` when there
+is none, and writes only the transition's target — and `NEXT_DEAL_STATES` has
+no edge into `interested`. So no `deal_decisions` row can ever carry it.
+
+Nothing today reads a lie from this: the funnel counts only `accepted` and
+`declined`, and the card's moves are derived, so `interested` is never offered.
+But the specification names it as the chain's first state, and a lead who has
+expressed interest is currently indistinguishable in the data from a lead
+nobody has touched. The code comment — "a deal nobody has recorded yet starts
+as interested" — reads absence as a positive fact.
+
+It is declared with that reasoning rather than silently fixed, because making
+it recordable adds a countable funnel stage, and that is a product decision
+rather than a defect in these rules. **Open for the operator.**
+
 ## Awaiting a decision
 
 None of these is blocked on code:

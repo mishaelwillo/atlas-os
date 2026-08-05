@@ -14,14 +14,12 @@ import {
   type OfferDraft,
 } from './offers.js';
 import {
-  DEFERRED_HOSTING_STATES,
   ENTITLED_STATES,
   HOSTING_STATES,
   isEntitled,
   planAdvanceHosting,
   planCancellation,
   planHostingTransition,
-  reachableHostingStates,
   type ActivationInput,
 } from './hosting-activation.js';
 
@@ -270,40 +268,11 @@ describe('the hosting activation gate', () => {
   });
 });
 
-/**
- * The chain the specification names has seven states. Before `hosting.advance`
- * existed the product could reach four of them, while the transition table and
- * this file's header both described the whole thing as though an entitlement
- * walked it — the funnel even counted `onboarded` and `active` rows that no
- * code path could create. This is the check that claim was missing.
+/*
+ * Reachability of the hosting chain is checked in reachability.test.ts, along
+ * with every other revenue state machine — the gap was found here but is not
+ * peculiar to here, so the check is not either.
  */
-describe('hosting state reachability', () => {
-  it('leaves no state both unreachable and undeclared', () => {
-    const reachable = reachableHostingStates();
-    for (const state of HOSTING_STATES) {
-      const deferred = Object.prototype.hasOwnProperty.call(DEFERRED_HOSTING_STATES, state);
-      expect(
-        { state, reachable: reachable.has(state), deferred },
-        `${state} must be either reachable through a capability or declared in DEFERRED_HOSTING_STATES`,
-      ).toMatchObject({ state, reachable: !deferred, deferred });
-    }
-  });
-
-  /** A deferral with no reason is a to-do wearing a decision's clothes. */
-  it('gives every deferred state a reason', () => {
-    for (const [state, reason] of Object.entries(DEFERRED_HOSTING_STATES)) {
-      expect(HOSTING_STATES).toContain(state);
-      expect(reason.length, `${state} needs a stated reason`).toBeGreaterThan(40);
-    }
-  });
-
-  it('reaches the whole delivery chain from recorded terms', () => {
-    const reachable = reachableHostingStates();
-    for (const state of ['terms_approved', 'payment_pending', 'entitlement_active', 'onboarded', 'active', 'cancelled'] as const) {
-      expect(reachable.has(state), `${state} should be reachable`).toBe(true);
-    }
-  });
-});
 
 describe('advancing a served customer', () => {
   const served: ActivationInput = {
