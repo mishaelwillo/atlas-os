@@ -164,6 +164,126 @@ export function backoffDelays(
   return gaps;
 }
 
+export type WithdrawalVerdict = 'withdrawn' | 'still_serving' | 'serving_other' | 'unreadable';
+
+export interface WithdrawalResult {
+  verdict: WithdrawalVerdict;
+  /** True only when the address demonstrably stopped serving. */
+  gone: boolean;
+  /** sha256 of whatever the address still serves, when it serves anything. */
+  observed: string | null;
+  message: string;
+}
+
+/**
+ * Decide whether a withdrawn address has actually stopped serving.
+ *
+ * The mirror of `classifyFingerprint`, and it makes the same refusal: an
+ * address that could not be read is NOT gone. A withdrawal that fell back to
+ * "assume it worked" on a network error would record a site as taken down
+ * while it was still public — the more dangerous direction of the two, because
+ * the publish read-back at worst reports a problem that is not there, and this
+ * one would hide one that is.
+ *
+ * Bytes that are neither the withdrawn build nor an absence get their own
+ * verdict rather than counting as success. The address serving *something
+ * else* may be perfectly fine — a sibling site, the project placeholder — but
+ * that is a different fact from the site being gone, and only one of them is
+ * what a withdrawal claims.
+ */
+export function classifyWithdrawal(args: {
+  /** The build that was live and is being withdrawn. */
+  withdrawn: string;
+  read: ReadPublicResult | null;
+  error?: string | null;
+}): WithdrawalResult {
+  if (args.read === null) {
+    return {
+      verdict: 'unreadable',
+      gone: false,
+      observed: null,
+      message: `the withdrawn address could not be read back${args.error ? `: ${args.error}` : ''}, so it is not confirmed gone`,
+    };
+  }
+  if (args.read.status !== 200) {
+    return {
+      verdict: 'withdrawn',
+      gone: true,
+      observed: null,
+      message: `the withdrawn address answers ${args.read.status} and no longer serves the site`,
+    };
+  }
+
+  const observed = sha256(args.read.body);
+  if (observed === args.withdrawn) {
+    return {
+      verdict: 'still_serving',
+      gone: false,
+      observed,
+      message:
+        'the withdrawn address still serves the build that was taken down; the provider has not applied the withdrawal',
+    };
+  }
+  return {
+    verdict: 'serving_other',
+    gone: false,
+    observed,
+    message: `the withdrawn address answers 200 with ${observed.slice(0, 12)}, which is neither the withdrawn build nor an absence`,
+  };
+}
+
+export interface WithdrawalOutcome extends WithdrawalResult {
+  attempts: number;
+}
+
+/**
+ * Read a withdrawn address back until it stops serving.
+ *
+ * Propagation runs in both directions. In the 2026-08-04 run a withdrawal that
+ * had already committed kept being served for between twenty and forty
+ * seconds, and nothing checked it at all: the dispatcher reported "withdrawn"
+ * the moment the provider accepted the snapshot. The hourly sweep cannot cover
+ * this either, because it only walks deployments that are still `live` — a
+ * withdrawn-but-still-serving site is invisible to every other check.
+ *
+ * `withdrawn` returns at once, because an address that has stopped serving
+ * cannot un-stop through propagation. Anything else is retried on the same
+ * budget a publish uses, and exhausting it records what was actually observed
+ * rather than the outcome that was wanted.
+ */
+export async function withdrawUntilGone(args: {
+  withdrawn: string;
+  url: string;
+  read: (url: string) => Promise<ReadPublicResult>;
+  attempts?: number;
+  delayMs?: number;
+  maxDelayMs?: number;
+  sleep?: (ms: number) => Promise<void>;
+}): Promise<WithdrawalOutcome> {
+  const attempts = Math.max(1, args.attempts ?? READ_BACK_ATTEMPTS);
+  const delayMs = args.delayMs ?? READ_BACK_DELAY_MS;
+  const maxDelayMs = args.maxDelayMs ?? READ_BACK_MAX_DELAY_MS;
+  const sleep = args.sleep ?? ((ms: number) => new Promise((r) => setTimeout(r, ms)));
+  const gaps = backoffDelays(attempts, delayMs, maxDelayMs);
+
+  let last: WithdrawalResult = classifyWithdrawal({ withdrawn: args.withdrawn, read: null });
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const read = await args.read(args.url);
+      last = classifyWithdrawal({ withdrawn: args.withdrawn, read });
+    } catch (err) {
+      last = classifyWithdrawal({
+        withdrawn: args.withdrawn,
+        read: null,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+    if (last.gone) return { ...last, attempts: attempt };
+    if (attempt < attempts) await sleep(gaps[attempt - 1] ?? maxDelayMs);
+  }
+  return { ...last, attempts };
+}
+
 export async function readBackUntilSettled(args: {
   approved: string;
   url: string;

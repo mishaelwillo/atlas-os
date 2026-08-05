@@ -817,6 +817,40 @@ The shipped budget is asserted by a test rather than described in prose, so
 shortening it again has to be a deliberate decision instead of a number that
 quietly drifts back.
 
+### Withdrawal is now confirmed too
+
+Propagation runs both ways, and the withdrawal direction had no check at all:
+the dispatcher reported "withdrawn" the moment the provider accepted the
+snapshot, while the address kept serving for between twenty and forty seconds.
+Nothing else could catch it either — the hourly sweep only walks deployments
+that are still `live`, so a withdrawn-but-still-serving site was invisible to
+every check in the system.
+
+`factory.unpublish` now reads the address back on the same budget a publish
+uses and records which of four things it found: `withdrawn` (the address
+stopped serving), `still_serving` (it still serves the build that was taken
+down), `serving_other` (it answers with something that is neither), or
+`unreadable`.
+
+The refusal runs the opposite way from the publish read-back, deliberately. An
+unreadable address is **not** counted as gone: a publish read-back that guesses
+wrong reports a problem that is not there, while a withdrawal read-back that
+guesses wrong would record a site as taken down while it was still public.
+`serving_other` gets its own verdict for the same reason — the address serving
+a sibling site or the placeholder may be perfectly fine, but that is a
+different fact from the site being gone, and only one of them is what a
+withdrawal claims.
+
+It never fails the withdrawal. Atlas has told the provider to stop and the
+record says so; refusing to record that because the edge is still catching up
+would be its own inaccuracy. A withdrawal that did not take effect is logged
+at error level and named in the audit row and the operator's dispatch result.
+
+**One limit worth stating.** The verdict is recorded in the audit trail and
+returned to the operator, not stored as a column on `site_deployments` — that
+would need a migration, and the operator applies those. So a withdrawal that
+never propagates is reported once, clearly, and not re-checked afterwards.
+
 ## Awaiting a decision
 
 None of these is blocked on code:

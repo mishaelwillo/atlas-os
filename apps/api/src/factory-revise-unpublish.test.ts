@@ -13,12 +13,16 @@ import { describe, expect, it } from 'vitest';
 import { buildApp } from './app.js';
 import { buildDescriptor, buildDossier } from './factory/dossier.js';
 import { renderSite } from './factory/render.js';
+import { sha256 } from './factory/fingerprint.js';
 import { FakeDb, buildTestDeps, operatorJwt, testEnv } from './test/fakes.js';
 import type { PipelineDeps } from './pipeline.js';
 
 const SPACE = '11111111-2222-3333-4444-555555555555';
 const SITE = '99999999-8888-7777-6666-555555555555';
 const APPROVAL = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+/** The build being taken down, so the read-back can tell it from anything else. */
+const WITHDRAWN_HTML = '<!doctype html><html lang="en"><body>Acme</body></html>';
+const WITHDRAWN_HASH = sha256(WITHDRAWN_HTML);
 const SRC = 'https://maps.example/acme';
 
 const fact = (field: string, value: string) => ({ field, value, sourceUrl: SRC });
@@ -166,14 +170,30 @@ describe('factory.unpublish', () => {
     ]);
     db.when(
       /from site_deployments\s+where site_id = \$1 and status = 'live'/i,
-      liveRow ? [{ deployment_id: 'dep-1', version: 1, domain: 'https://sites.example.com/acme' }] : [],
+      liveRow
+        ? [
+            {
+              deployment_id: 'dep-1',
+              version: 1,
+              domain: 'https://sites.example.com/acme',
+              build_hash: WITHDRAWN_HASH,
+            },
+          ]
+        : [],
     );
     db.when(/from site_deployments d\s+join sites s/i, remaining);
     return db;
   }
 
-  async function approve(db: FakeDb, host: ReturnType<typeof withdrawingHost>) {
-    const res = await app(db, { hosting: host as unknown as PipelineDeps['hosting'] }).inject({
+  async function approve(
+    db: FakeDb,
+    host: ReturnType<typeof withdrawingHost>,
+    readPublic?: PipelineDeps['readPublic'],
+  ) {
+    const res = await app(db, {
+      hosting: host as unknown as PipelineDeps['hosting'],
+      ...(readPublic ? { readPublic } : {}),
+    }).inject({
       method: 'POST',
       url: '/v1/approvals/decide',
       headers: { authorization: `Bearer ${operatorJwt(testEnv())}` },
@@ -247,6 +267,69 @@ describe('factory.unpublish', () => {
     const db = dbFor([]);
     await approve(db, withdrawingHost());
     expect(db.auditInserts().some((a) => (a.params ?? []).includes('factory.unpublished'))).toBe(true);
+  });
+
+  /*
+   * The provider accepting a snapshot is not the public having stopped
+   * receiving the site. A committed withdrawal kept serving for twenty to
+   * forty seconds in production and nothing checked; the hourly sweep cannot,
+   * because it only walks deployments that are still `live`.
+   */
+  describe('confirming the address stopped serving', () => {
+    const gone: PipelineDeps['readPublic'] = async () => ({ status: 404, body: '' });
+    const stillServing: PipelineDeps['readPublic'] = async () => ({
+      status: 200,
+      body: WITHDRAWN_HTML,
+    });
+
+    it('reports the withdrawal confirmed when the address stops serving', async () => {
+      const db = dbFor([]);
+      const dispatched = await approve(db, withdrawingHost(), gone);
+
+      expect(dispatched).toMatchObject({ executed: true, withdrawal: 'withdrawn' });
+      expect(String(dispatched.note)).toMatch(/confirmed gone/);
+    });
+
+    /** The failure this closes: reported withdrawn while still public. */
+    it('says so when the address is still serving the withdrawn build', async () => {
+      const db = dbFor([]);
+      const dispatched = await approve(db, withdrawingHost(), stillServing);
+
+      expect(dispatched).toMatchObject({ executed: true, withdrawal: 'still_serving' });
+      expect(String(dispatched.note)).toMatch(/still serves the build that was taken down/);
+      expect(String(dispatched.note)).not.toMatch(/confirmed gone/);
+    });
+
+    /** Atlas has told the provider to stop; the record must say that either way. */
+    it('still records the withdrawal when the address has not caught up', async () => {
+      const db = dbFor([]);
+      await approve(db, withdrawingHost(), stillServing);
+
+      expect(db.calls.some((c) => /set status = 'unpublished'/i.test(c.sql))).toBe(true);
+    });
+
+    it('audits which verdict the read-back reached', async () => {
+      const db = dbFor([]);
+      await approve(db, withdrawingHost(), stillServing);
+
+      const audit = db
+        .auditInserts()
+        .find((a) => (a.params ?? []).includes('factory.unpublished'));
+      expect(JSON.stringify(audit?.params ?? [])).toContain('still_serving');
+    });
+
+    /** An unreadable address is not a withdrawn one. */
+    it('does not claim gone when the address cannot be read', async () => {
+      const db = dbFor([]);
+      const dispatched = await approve(db, withdrawingHost(), async () => {
+        throw new Error('ECONNRESET');
+      });
+
+      expect(dispatched).toMatchObject({ withdrawal: 'unreadable' });
+      // "not confirmed gone" — the absence of a claim, not a claim of absence.
+      expect(String(dispatched.note)).toMatch(/not confirmed gone/);
+      expect(String(dispatched.note)).not.toMatch(/and confirmed gone/);
+    });
   });
 
   /** Withdrawal is privileged: it never runs on request. */
