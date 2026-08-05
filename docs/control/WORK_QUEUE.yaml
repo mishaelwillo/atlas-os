@@ -63,7 +63,7 @@ items:
     specification: docs/specs/p2/website-factory.md
     acceptance_checks:
       - GBP or profile URL becomes an approved live demo in under 30 minutes
-    next_action: The 2026-08-03 machine run published a site end to end and proved the publish path, but the public fingerprint differs from the approved build because the zone injects a bot-detection script; the post-publish read-back is built and awaits migration 0007; decide the zone setting and run the timed acceptance through Mission Control
+    next_action: The zone setting is fixed and the full loop — publish, revise, publish v2, roll back, withdraw — was proven against production on 2026-08-04, which found and fixed a defect that made a second publish of any site impossible; the remaining acceptance is the timed benchmark run through Mission Control, which needs an operator session
   - id: P2C-REVENUE-001
     phase: P2C
     title: Run the minimum complete revenue pilot
