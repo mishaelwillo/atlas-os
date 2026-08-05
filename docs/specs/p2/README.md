@@ -176,6 +176,7 @@ does not replace ownership without an approved registry migration.
 | `factory.unpublish` | executable | P2B | build now | `docs/specs/p2/website-factory.md` | — |
 | `events.site` | executable | P2B | build now | `docs/specs/p2/website-factory.md` | — |
 | `leads.find` | executable | P2C | integrate now | `docs/specs/p2/revenue-pilot.md` | — |
+| `leads.record` | executable | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
 | `outreach.send` | executable | P2C | integrate now/shadow | `docs/specs/p2/revenue-pilot.md` | — |
 | `prospecting.qualify` | executable | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
 | `prospecting.workspace` | executable | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |

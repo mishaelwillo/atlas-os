@@ -20,6 +20,7 @@ export const GENERATED_CAPABILITY_IDS = [
   "factory.unpublish",
   "factory.rollback",
   "leads.find",
+  "leads.record",
   "prospecting.qualify",
   "prospecting.workspace",
   "demos.enqueue",
@@ -565,6 +566,65 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
       "properties": {
         "leads": {
           "type": "array"
+        }
+      }
+    },
+    "execution": "handler"
+  } as const satisfies CapabilityRouteMeta, deps);
+  registerCapabilityRoute(app, {
+    "id": "leads.record",
+    "name": "Record a sourced lead",
+    "path": "/v1/leads/record",
+    "method": "POST",
+    "taskClass": "quick",
+    "requiresApproval": false,
+    "scopes": [
+      "leads:write"
+    ],
+    "input": {
+      "type": "object",
+      "required": [
+        "businessName",
+        "sourceUrl"
+      ],
+      "properties": {
+        "businessName": {
+          "type": "string"
+        },
+        "sourceUrl": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "websiteUrl": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "leadId": {
+          "type": "string"
+        },
+        "recorded": {
+          "type": "boolean"
+        },
+        "duplicateOf": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
         }
       }
     },

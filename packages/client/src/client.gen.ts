@@ -160,6 +160,22 @@ export type LeadsFindOutput = {
   leads?: Array<unknown>;
 };
 
+export type LeadsRecordInput = {
+  businessName: string;
+  sourceUrl: string;
+  phone?: string;
+  websiteUrl?: string;
+  note?: string;
+};
+export type LeadsRecordOutput = {
+  leadId?: string;
+  recorded?: boolean;
+  duplicateOf?: string;
+  code?: string;
+  note?: string;
+  status?: string;
+};
+
 export type ProspectingQualifyInput = {
   leadId: string;
   evidence: Record<string, unknown>;
@@ -487,6 +503,11 @@ export class AtlasGeneratedClient {
   /** Find leads — POST /v1/leads/find */
   leadsFind(input: LeadsFindInput): Promise<LeadsFindOutput | ApprovalPending> {
     return this.request<LeadsFindOutput>("POST", "/v1/leads/find", input);
+  }
+
+  /** Record a sourced lead — POST /v1/leads/record */
+  leadsRecord(input: LeadsRecordInput): Promise<LeadsRecordOutput | ApprovalPending> {
+    return this.request<LeadsRecordOutput>("POST", "/v1/leads/record", input);
   }
 
   /** Qualify prospect — POST /v1/prospecting/qualify */

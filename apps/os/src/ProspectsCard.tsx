@@ -111,6 +111,16 @@ const BLANK_EVIDENCE: EvidenceForm = {
   benefitRationale: '',
 };
 
+/** A prospect an operator sourced by hand, before a directory adapter exists. */
+interface LeadForm {
+  businessName: string;
+  sourceUrl: string;
+  phone: string;
+  websiteUrl: string;
+}
+
+const BLANK_LEAD: LeadForm = { businessName: '', sourceUrl: '', phone: '', websiteUrl: '' };
+
 function list(value: string): string[] {
   return value
     .split(',')
@@ -170,8 +180,15 @@ export function describeOutcome(result: Record<string, unknown>): string {
   if (result.status === 'schema_pending') {
     return `Nothing was recorded — ${String(result.note ?? 'the schema is behind the code')}.`;
   }
-  if (result.enqueued === false || result.advanced === false) {
-    return `Refused (${String(result.code ?? 'no code')}) — ${String(result.note ?? 'no reason given')}`;
+  if (result.enqueued === false || result.advanced === false || result.recorded === false) {
+    const duplicate =
+      typeof result.duplicateOf === 'string' ? ` · already recorded as ${result.duplicateOf.slice(0, 8)}` : '';
+    return `Refused (${String(result.code ?? 'no code')}) — ${String(
+      result.note ?? 'no reason given',
+    )}${duplicate}`;
+  }
+  if (result.recorded === true) {
+    return `Recorded as ${String(result.leadId).slice(0, 8)} — qualify it next.`;
   }
   if (typeof result.verdict === 'string') {
     const total = typeof result.total === 'number' ? ` · scored ${result.total}` : '';
@@ -231,6 +248,7 @@ export function ProspectsCard({
 }: ProspectsCardProps): React.ReactElement {
   const [openLead, setOpenLead] = useState<string | null>(null);
   const [form, setForm] = useState<EvidenceForm>({ ...BLANK_EVIDENCE });
+  const [lead, setLead] = useState<LeadForm>({ ...BLANK_LEAD });
   const [move, setMove] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -291,10 +309,77 @@ export function ProspectsCard({
 
       {items.length === 0 && (
         <p className={styles.empty}>
-          No prospects yet. Lead sourcing has no directory adapter, so this is empty by
-          construction rather than by outcome.
+          No prospects yet. Automatic lead sourcing has no directory adapter, so record one
+          by hand below — that is the pilot workflow until it does.
         </p>
       )}
+
+      {/*
+        Recording a prospect by hand. `leads.find` needs an approved directory
+        adapter and has none, so without this there is no way to get a prospect
+        into the pilot at all: every surface here keys off a lead.
+
+        The source is required because the rubric's contact-source check is one
+        an unsourced prospect can never pass, so admitting one would only
+        create a lead that cannot be qualified.
+      */}
+      <details className={styles.factRow} data-testid="record-lead">
+        <summary>Record a prospect you sourced by hand</summary>
+        <label className={styles.field}>
+          <span>Business name</span>
+          <input
+            data-testid="lead-business-name"
+            value={lead.businessName}
+            onChange={(e) => setLead((l) => ({ ...l, businessName: e.target.value }))}
+          />
+        </label>
+        <label className={styles.field}>
+          <span>Where you found them — required</span>
+          <input
+            data-testid="lead-source-url"
+            placeholder="https://maps.google.com/?cid=..."
+            value={lead.sourceUrl}
+            onChange={(e) => setLead((l) => ({ ...l, sourceUrl: e.target.value }))}
+          />
+        </label>
+        <label className={styles.field}>
+          <span>Phone</span>
+          <input
+            data-testid="lead-phone"
+            value={lead.phone}
+            onChange={(e) => setLead((l) => ({ ...l, phone: e.target.value }))}
+          />
+        </label>
+        <label className={styles.field}>
+          <span>Existing website, if they have one</span>
+          <input
+            data-testid="lead-website"
+            value={lead.websiteUrl}
+            onChange={(e) => setLead((l) => ({ ...l, websiteUrl: e.target.value }))}
+          />
+        </label>
+        <button
+          type="button"
+          data-testid="submit-lead"
+          disabled={busy}
+          onClick={() => {
+            if (lead.businessName.trim() === '' || lead.sourceUrl.trim() === '') {
+              setError('A business name and where you found them are both required.');
+              return;
+            }
+            void act(() =>
+              client.leadsRecord({
+                businessName: lead.businessName.trim(),
+                sourceUrl: lead.sourceUrl.trim(),
+                ...(lead.phone.trim() === '' ? {} : { phone: lead.phone.trim() }),
+                ...(lead.websiteUrl.trim() === '' ? {} : { websiteUrl: lead.websiteUrl.trim() }),
+              }),
+            ).then(() => setLead({ ...BLANK_LEAD }));
+          }}
+        >
+          {busy ? 'Recording…' : 'Record prospect'}
+        </button>
+      </details>
 
       <table className={styles.table}>
         <tbody>

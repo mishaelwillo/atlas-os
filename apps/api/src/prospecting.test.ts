@@ -340,3 +340,107 @@ describe('before migration 0004 is applied', () => {
     expect(statusCode).toBe(500);
   });
 });
+
+/**
+ * leads.record (docs/specs/p2/revenue-pilot.md).
+ *
+ * `leads.find` needs an approved directory adapter and has none, so without
+ * this there is no way to get a prospect into the pilot: every P2C surface
+ * keys off a lead and nothing could create one.
+ */
+describe('leads.record', () => {
+  function db(existing: Array<Record<string, unknown>> = []): FakeDb {
+    const d = new FakeDb();
+    d.when(/from leads where space_id = \$1 and lower\(business_name\)/i, existing);
+    d.when(/insert into leads/i, [{ lead_id: 'lead-new' }]);
+    return d;
+  }
+
+  async function record(d: FakeDb, payload: Record<string, unknown>) {
+    const res = await app(d).inject({
+      method: 'POST',
+      url: '/v1/leads/record',
+      headers: headers(),
+      payload,
+    });
+    return { statusCode: res.statusCode, body: res.json() as Record<string, unknown> };
+  }
+
+  it('records a hand-sourced prospect with its provenance', async () => {
+    const d = db();
+    const { body } = await record(d, {
+      businessName: 'Acme Plumbing',
+      sourceUrl: 'https://maps.example/acme',
+      phone: '555-0100',
+    });
+
+    expect(body).toMatchObject({ recorded: true, leadId: 'lead-new', status: 'new' });
+    const insert = d.calls.find((c) => /insert into leads/i.test(c.sql));
+    expect(insert?.params).toContain('Acme Plumbing');
+    // Provenance is stored with the row that will be qualified against it.
+    expect(String(insert?.params?.[4])).toContain('https://maps.example/acme');
+  });
+
+  /**
+   * An unsourced prospect could never pass the rubric's contact-source check.
+   * The registry declares `sourceUrl` required, so the route's input schema
+   * refuses it before the handler is reached — the handler keeps its own guard
+   * as defence in depth, but this is where it is actually stopped.
+   */
+  it('refuses a prospect with no recorded source, and records nothing', async () => {
+    const d = db();
+    const { statusCode } = await record(d, { businessName: 'Acme Plumbing' });
+    expect(statusCode).toBe(400);
+    expect(d.calls.some((c) => /insert into leads/i.test(c.sql))).toBe(false);
+  });
+
+  it('requires a business name', async () => {
+    const { statusCode } = await record(db(), { sourceUrl: 'https://maps.example/acme' });
+    expect(statusCode).toBe(400);
+  });
+
+  /**
+   * Two rows for one business would put two prospects in the funnel and let
+   * both be contacted; the rubric disqualifies duplicates for the same reason.
+   */
+  it('refuses a business already recorded in the space, and names the existing one', async () => {
+    const d = db([{ lead_id: 'lead-existing' }]);
+    const { body } = await record(d, {
+      businessName: 'Acme Plumbing',
+      sourceUrl: 'https://maps.example/acme',
+    });
+
+    expect(body).toMatchObject({
+      recorded: false,
+      code: 'already_recorded',
+      duplicateOf: 'lead-existing',
+    });
+    expect(d.calls.some((c) => /insert into leads/i.test(c.sql))).toBe(false);
+  });
+
+  /** leads.status carries suppression; a recorder must not be able to set it. */
+  it('always records the lifecycle as new, whatever the caller sends', async () => {
+    const d = db();
+    await record(d, {
+      businessName: 'Acme Plumbing',
+      sourceUrl: 'https://maps.example/acme',
+      status: 'suppressed',
+    });
+
+    const insert = d.calls.find((c) => /insert into leads/i.test(c.sql));
+    expect(insert?.sql).toMatch(/'new'/);
+    expect(insert?.params).not.toContain('suppressed');
+  });
+
+  it('audits what was recorded', async () => {
+    const d = db();
+    await record(d, { businessName: 'Acme Plumbing', sourceUrl: 'https://maps.example/acme' });
+    expect(d.auditInserts().some((a) => (a.params ?? []).includes('leads.recorded'))).toBe(true);
+  });
+
+  it('audits a refused duplicate too', async () => {
+    const d = db([{ lead_id: 'lead-existing' }]);
+    await record(d, { businessName: 'Acme Plumbing', sourceUrl: 'https://maps.example/acme' });
+    expect(d.auditInserts().some((a) => (a.params ?? []).includes('leads.record_refused'))).toBe(true);
+  });
+});
