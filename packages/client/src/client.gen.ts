@@ -319,6 +319,21 @@ export type DealsDecideOutput = {
   status?: string;
 };
 
+export type HostingRecordTermsInput = {
+  leadId: string;
+  paymentReference?: string;
+};
+export type HostingRecordTermsOutput = {
+  entitlementId?: string;
+  state?: string;
+  offerVersion?: number;
+  paymentRecorded?: boolean;
+  recorded?: boolean;
+  code?: string;
+  note?: string;
+  status?: string;
+};
+
 export type HostingActivateInput = {
   leadId: string;
 };
@@ -558,6 +573,11 @@ export class AtlasGeneratedClient {
   /** Record a deal decision — POST /v1/deals/decide */
   dealsDecide(input: DealsDecideInput): Promise<DealsDecideOutput | ApprovalPending> {
     return this.request<DealsDecideOutput>("POST", "/v1/deals/decide", input);
+  }
+
+  /** Record accepted terms — POST /v1/hosting/record_terms */
+  hostingRecordTerms(input: HostingRecordTermsInput): Promise<HostingRecordTermsOutput | ApprovalPending> {
+    return this.request<HostingRecordTermsOutput>("POST", "/v1/hosting/record_terms", input);
   }
 
   /** Activate hosting — POST /v1/hosting/activate (approval-gated: returns {approvalId, status:"review"}) */

@@ -18,7 +18,7 @@ import {
   validateOffer,
   type OfferDraft,
 } from '../revenue/offers.js';
-import { isEntitled, isHostingState } from '../revenue/hosting-activation.js';
+import { isEntitled, isHostingState, planRecordTerms } from '../revenue/hosting-activation.js';
 
 /** Postgres `undefined_table`; the one error meaning migration 0006 has not run. */
 const UNDEFINED_TABLE = '42P01';
@@ -226,6 +226,123 @@ export const dealsDecide: CapabilityHandler = async (ctx, input) => {
   });
 
   return pending(outcome) ? { ...SCHEMA_PENDING, decided: false } : outcome;
+};
+
+/**
+ * hosting.record_terms — create the entitlement the rest of the chain needs.
+ *
+ * `hosting.activate` moves an entitlement, `hosting.cancel` ends one and
+ * `hosting.state` reads one. Nothing created one, so the pilot's exit
+ * criterion — one paying customer — was unreachable through the product no
+ * matter what an operator did. Found by approving a real activation in Mission
+ * Control and reading what came back: "no hosting entitlement for this lead".
+ *
+ * Operator-only, like `deals.decide`, because it records a commercial fact
+ * about a named customer. It is not approval-gated: it grants nothing. The
+ * approval sits where it always did, at the entrance to `entitlement_active`,
+ * and this only prepares the row that gate will judge.
+ */
+export const hostingRecordTerms: CapabilityHandler = async (ctx, input) => {
+  const leadId = text(input.leadId);
+  if (leadId === null) throw new CapabilityError(400, 'hosting.record_terms: leadId is required');
+  if (ctx.spaceId === null) {
+    throw new CapabilityError(400, 'hosting.record_terms requires a space (x-atlas-space)');
+  }
+
+  const lead = await ctx.q.query(`select lead_id from leads where lead_id = $1`, [leadId]);
+  if (!lead.rows[0]) throw new CapabilityError(404, 'hosting.record_terms: lead not found');
+
+  const outcome = await withSchema(async () => {
+    const existing = await ctx.q.query(
+      `select state from hosting_entitlements
+        where lead_id = $1 and state <> 'cancelled' order by created_at desc limit 1`,
+      [leadId],
+    );
+    const decision = await ctx.q.query(
+      `select state, offer_version from deal_decisions
+        where lead_id = $1 order by created_at desc limit 1`,
+      [leadId],
+    );
+    const d = decision.rows[0];
+    const dealState = d ? String(d.state) : null;
+    const acceptedOfferVersion =
+      d && d.offer_version !== null && dealState === 'accepted' ? Number(d.offer_version) : null;
+
+    /*
+     * Disclosure completeness is recomputed from the stored offer rather than
+     * trusted from a flag, exactly as the activation gate does it: the offer
+     * row keeps what was actually shown to the owner, and that is the only
+     * thing worth checking against.
+     */
+    let disclosuresComplete = false;
+    let offerId: string | null = null;
+    if (acceptedOfferVersion !== null) {
+      const offer = await ctx.q.query(
+        `select offer_id, disclosures from offers where lead_id = $1 and version = $2`,
+        [leadId, acceptedOfferVersion],
+      );
+      const row = offer.rows[0];
+      offerId = row ? String(row.offer_id) : null;
+      const stored = (row?.disclosures ?? {}) as Record<string, unknown>;
+      disclosuresComplete = REQUIRED_DISCLOSURES.every((key) => {
+        const value = stored[key];
+        return typeof value === 'string' && value.trim() !== '';
+      });
+    }
+
+    const plan = planRecordTerms({
+      dealState,
+      acceptedOfferVersion,
+      disclosuresComplete,
+      existingState: existing.rows[0] ? String(existing.rows[0].state) : null,
+      paymentReference: text(input.paymentReference),
+    });
+
+    if (!plan.ok) {
+      await insertAudit(ctx.q, ctx.spaceId, ctx.auth.actor, 'hosting.record_terms_refused', leadId, {
+        code: plan.code,
+        dealState,
+      });
+      return { recorded: false, code: plan.code, note: plan.message, status: 'refused' };
+    }
+    if (offerId === null) {
+      throw new CapabilityError(500, 'hosting.record_terms: the accepted offer version was not found');
+    }
+
+    const res = await ctx.q.query(
+      `insert into hosting_entitlements
+         (space_id, lead_id, offer_id, offer_version, state, payment_reference)
+       values ($1, $2, $3, $4, $5, $6::text)
+       returning entitlement_id`,
+      [ctx.spaceId, leadId, offerId, plan.offerVersion, plan.state, plan.paymentReference],
+    );
+    const entitlementId = String(res.rows[0]?.entitlement_id ?? '');
+    if (entitlementId === '') {
+      throw new CapabilityError(500, 'hosting.record_terms: entitlement was not persisted');
+    }
+
+    /*
+     * The reference itself is never audited, only that one exists — the audit
+     * trail is read far more widely than the row it describes.
+     */
+    await insertAudit(ctx.q, ctx.spaceId, ctx.auth.actor, 'hosting.terms_recorded', entitlementId, {
+      leadId,
+      offerVersion: plan.offerVersion,
+      state: plan.state,
+      paymentRecorded: plan.paymentReference !== null,
+    });
+
+    return {
+      recorded: true,
+      entitlementId,
+      state: plan.state,
+      offerVersion: plan.offerVersion,
+      paymentRecorded: plan.paymentReference !== null,
+      status: plan.state,
+    };
+  });
+
+  return pending(outcome) ? { ...SCHEMA_PENDING, recorded: false } : outcome;
 };
 
 /**

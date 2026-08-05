@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `browser-run-findings`
+**Handoff ID:** `hosting-record-terms`
 **Status:** active
-**Started:** 2026-08-05T19:10:10.836Z
-**Updated:** 2026-08-05T19:10:10.836Z
+**Started:** 2026-08-05T20:24:36.315Z
+**Updated:** 2026-08-05T20:24:36.315Z
 **Actor:** Claude
-**Objective:** Fix what the browser run of the P2C cards found
+**Objective:** Give the hosting chain an entrance so the pilot can reach a paying customer
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `fix/browser-run-findings`
+- Branch: `feat/hosting-record-terms`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `21697b26e4ab7c3289ca06766a908e6506b11023`
+- Head commit: `53bdf020f87a832577de580bbb03cb5601c21b4c`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Added permittedDealMoves and published it per lead; added an in-flight ref lock to all three P2C cards
+- Added hosting.record_terms with planRecordTerms, its card control, metadata and traceability; moved the executable pin from 34 to 35
 
 ## Current working tree
 
@@ -25,7 +25,7 @@
 
 ## Verification evidence
 
-- 618 API and 150 OS tests pass; replacing the derivation with a fixed list fails six tests and removing the lock fails one; browser run recorded two offers 473ms apart before the fix
+- 628 API and 150 OS tests; removing the card-data guard fails a test; insert and the one-live index proven against the real schema and rolled back
 
 ## Database actions
 
@@ -47,8 +47,8 @@
 
 ## Next exact action
 
-Re-verify the deal control and the publish lock in the browser against the deployed build
+Record terms for the fixture in Mission Control, then approve the activation and watch the gate
 
 ## Definition of done
 
-Deal moves are derived like demo and touch moves, and one click cannot create two offer versions
+An operator can record accepted terms, creating the entitlement that hosting.activate needs

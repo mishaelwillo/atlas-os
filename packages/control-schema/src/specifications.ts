@@ -147,10 +147,10 @@ export function assertTraceabilityIntegrity(
   );
   // Pinned deliberately: adding an executable capability is a governance
   // event, so the count must be changed knowingly rather than drifting.
-  // 34 as of leads.record, which gives an operator a governed way to record a
-  // hand-sourced prospect while leads.find has no approved directory adapter.
-  if (executable.size !== 34) {
-    throw new Error(`expected exactly 34 executable capabilities, found ${executable.size}`);
+  // 35 as of hosting.record_terms, which creates the entitlement the rest of
+  // the hosting chain moves and reads; nothing created one before it.
+  if (executable.size !== 35) {
+    throw new Error(`expected exactly 35 executable capabilities, found ${executable.size}`);
   }
   if (candidate.size !== 31) {
     throw new Error(`expected exactly 31 capability candidates, found ${candidate.size}`);

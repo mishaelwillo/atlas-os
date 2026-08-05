@@ -17,6 +17,11 @@
  * Pure and deterministic — no clock, no database, no network.
  */
 
+import { REQUIRED_DISCLOSURES } from './offers.js';
+
+/** How many disclosures an offer must carry; named so a refusal can say it. */
+const REQUIRED_DISCLOSURE_COUNT = REQUIRED_DISCLOSURES.length;
+
 export const HOSTING_STATES = [
   'terms_approved',
   'payment_pending',
@@ -54,6 +59,132 @@ export function isHostingState(value: string): value is HostingState {
 
 export function isEntitled(state: HostingState): boolean {
   return ENTITLED_STATES.includes(state);
+}
+
+/**
+ * A payment reference is a pointer at the provider's own record. It is never
+ * card data, and this is the one place that could accidentally become card
+ * data — an operator copying the wrong field. Thirteen to nineteen digits,
+ * ignoring spaces and dashes, is a card number shape; refusing it costs an
+ * operator nothing and stops the one input Atlas must never hold.
+ */
+const CARD_SHAPED = /^[0-9][0-9 -]{11,25}$/;
+
+export function looksLikeCardNumber(reference: string): boolean {
+  const trimmed = reference.trim();
+  if (!CARD_SHAPED.test(trimmed)) return false;
+  const digits = trimmed.replace(/[ -]/g, '');
+  return digits.length >= 13 && digits.length <= 19;
+}
+
+export type TermsRefusalCode =
+  | 'terms_not_accepted'
+  | 'offer_version_mismatch'
+  | 'disclosures_incomplete'
+  | 'already_recorded'
+  | 'payment_reference_looks_like_card_data';
+
+export interface TermsRefusal {
+  ok: false;
+  code: TermsRefusalCode;
+  message: string;
+}
+
+export interface TermsPlan {
+  ok: true;
+  /** The offer version the entitlement is bound to. */
+  offerVersion: number;
+  /**
+   * `terms_approved` when only the decision is recorded, `payment_pending`
+   * when the operator already holds the provider's reference. Both are
+   * preparation; neither entitles anyone to anything.
+   */
+  state: Extract<HostingState, 'terms_approved' | 'payment_pending'>;
+  paymentReference: string | null;
+}
+
+export interface TermsInput {
+  /** The standing deal decision for this customer. */
+  dealState: string | null;
+  /** Offer version the deal was accepted against. */
+  acceptedOfferVersion: number | null;
+  /** Whether that offer version carried every required disclosure. */
+  disclosuresComplete: boolean;
+  /** State of an existing non-cancelled entitlement, if there is one. */
+  existingState: string | null;
+  /** Provider reference an operator read off the provider's console. */
+  paymentReference: string | null;
+}
+
+/**
+ * Decide whether accepted terms may be recorded as a hosting entitlement.
+ *
+ * This is the entrance the chain was missing. `hosting.activate` moves an
+ * entitlement to `entitlement_active`, `hosting.cancel` ends one and
+ * `hosting.state` reads one — but nothing created one, so the acceptance
+ * "one paying customer" was unreachable through the product no matter what an
+ * operator did. Found by approving a real activation and reading the refusal:
+ * "no hosting entitlement for this lead".
+ *
+ * It checks the same three commercial facts the activation gate checks, and
+ * for the same reason: an entitlement recorded against terms nobody accepted,
+ * or against a different offer version than the one accepted, would put a
+ * customer one approval away from being served something they never agreed to.
+ *
+ * It does not confirm a payment and cannot. Supplying a reference records that
+ * an operator saw one in the provider's console; it moves the entitlement to
+ * `payment_pending`, which still entitles nobody to anything.
+ */
+export function planRecordTerms(input: TermsInput): TermsPlan | TermsRefusal {
+  if (input.existingState !== null) {
+    return {
+      ok: false,
+      code: 'already_recorded',
+      message: `this customer already has a '${input.existingState}' entitlement; cancel it before recording new terms`,
+    };
+  }
+  if (input.dealState !== 'accepted') {
+    return {
+      ok: false,
+      code: 'terms_not_accepted',
+      message:
+        input.dealState === null
+          ? 'no deal decision is recorded for this customer'
+          : `the deal is '${input.dealState}'; terms can only be recorded once it is accepted`,
+    };
+  }
+  if (input.acceptedOfferVersion === null) {
+    return {
+      ok: false,
+      code: 'offer_version_mismatch',
+      message: 'the accepted deal names no offer version, so there is nothing to bind terms to',
+    };
+  }
+  if (!input.disclosuresComplete) {
+    return {
+      ok: false,
+      code: 'disclosures_incomplete',
+      message: `the accepted offer version is missing required disclosures; every one of the ${REQUIRED_DISCLOSURE_COUNT} must carry text before hosting can be prepared`,
+    };
+  }
+
+  const reference = input.paymentReference === null ? null : input.paymentReference.trim();
+  if (reference !== null && reference !== '' && looksLikeCardNumber(reference)) {
+    return {
+      ok: false,
+      code: 'payment_reference_looks_like_card_data',
+      message:
+        'that looks like a card number; record the provider’s own reference for the payment, never the instrument',
+    };
+  }
+
+  const recorded = reference === null || reference === '' ? null : reference;
+  return {
+    ok: true,
+    offerVersion: input.acceptedOfferVersion,
+    state: recorded === null ? 'terms_approved' : 'payment_pending',
+    paymentReference: recorded,
+  };
 }
 
 export type ActivationRefusalCode =

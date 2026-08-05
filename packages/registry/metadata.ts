@@ -368,6 +368,24 @@ export const capabilityMetadata: Record<CapabilityId, CapabilityMetadata> = {
     evidenceIds: [],
     specification: P2_REVENUE_SPECIFICATION,
   },
+  'hosting.record_terms': {
+    stage: 'candidate',
+    phase: 'P2C',
+    menuGroup: 'Revenue Operations',
+    regions: ['global'],
+    entitlements: ['website-hosting'],
+    monetization: 'hosting',
+    implementation: 'build',
+    // An operator records a decision a customer made and, optionally, a
+    // reference they read off the provider's console. Atlas confirms nothing.
+    autonomy: 'manual',
+    // The capability derives from the specification's hosting chain and from a
+    // defect found by running the pilot, not from the video. Claiming the
+    // free-hosting-offer evidence would attribute it to material that does not
+    // name it.
+    evidenceIds: [],
+    specification: P2_REVENUE_SPECIFICATION,
+  },
   'hosting.activate': {
     stage: 'candidate',
     phase: 'P2C',

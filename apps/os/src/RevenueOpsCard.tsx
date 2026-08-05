@@ -92,7 +92,11 @@ export function describeRevenueOutcome(result: Record<string, unknown>): string 
       8,
     )} — nothing has been activated or cancelled. Decide it in Pending approvals.`;
   }
-  if (result.published === false || result.decided === false) {
+  if (result.recorded === true) {
+    const paid = result.paymentRecorded === true ? ' with a provider reference' : ' — no payment reference yet';
+    return `Terms recorded on offer v${String(result.offerVersion)}${paid}. This entitles nobody to anything until an approved activation.`;
+  }
+  if (result.published === false || result.decided === false || result.recorded === false) {
     const missing = Array.isArray(result.missing) && result.missing.length > 0
       ? ` · missing: ${(result.missing as string[]).join(', ')}`
       : '';
@@ -161,6 +165,7 @@ export function RevenueOpsCard({
   const [offer, setOffer] = useState<OfferForm>(() => blankOffer(periods, required));
   const [deal, setDeal] = useState<Record<string, string>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [paymentRef, setPaymentRef] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [outcome, setOutcome] = useState<string | null>(null);
@@ -375,6 +380,34 @@ export function RevenueOpsCard({
               }}
             >
               {openLead === item.leadId ? 'Close offer' : 'New offer version'}
+            </button>
+            {/*
+              The entrance to the hosting chain. activate/cancel/state all move
+              or read an entitlement; nothing created one, so the pilot could
+              not reach a paying customer however the operator worked.
+            */}
+            <input
+              data-testid={`payment-ref-${item.leadId}`}
+              placeholder="provider payment reference (optional)"
+              value={paymentRef[item.leadId] ?? ''}
+              onChange={(e) => setPaymentRef((p) => ({ ...p, [item.leadId]: e.target.value }))}
+            />
+            <button
+              type="button"
+              data-testid={`record-terms-${item.leadId}`}
+              disabled={busy}
+              onClick={() =>
+                void act(() =>
+                  client.hostingRecordTerms({
+                    leadId: item.leadId,
+                    ...((paymentRef[item.leadId] ?? '').trim() === ''
+                      ? {}
+                      : { paymentReference: (paymentRef[item.leadId] ?? '').trim() }),
+                  }),
+                )
+              }
+            >
+              Record accepted terms
             </button>
             <button
               type="button"

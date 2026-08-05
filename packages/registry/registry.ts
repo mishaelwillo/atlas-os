@@ -254,6 +254,14 @@ export const registry = [
     taskClass: 'quick', requiresApproval: false, scopes: [], method: 'POST', execution: 'handler',
   },
   {
+    id: 'hosting.record_terms',
+    name: 'Record accepted terms',
+    description: 'Create the hosting entitlement for a customer whose deal was accepted, bound to that exact offer version. This is the entrance to the hosting chain: activate, cancel and state all move or read an entitlement, and nothing created one. Operator-only. It never confirms a payment — supplying the provider’s own reference records that an operator saw one, and refuses anything shaped like a card number.',
+    input: { type: 'object', required: ['leadId'], properties: { leadId: { type: 'string' }, paymentReference: { type: 'string' } } },
+    output: { type: 'object', properties: { entitlementId: { type: 'string' }, state: { type: 'string' }, offerVersion: { type: 'number' }, paymentRecorded: { type: 'boolean' }, recorded: { type: 'boolean' }, code: { type: 'string' }, note: { type: 'string' }, status: { type: 'string' } } },
+    taskClass: 'quick', requiresApproval: false, scopes: [], method: 'POST', execution: 'handler',
+  },
+  {
     id: 'hosting.activate',
     name: 'Activate hosting',
     description: 'Grant a customer hosting. ALWAYS approval-gated. Refused before an approval is created, and again before the entitlement moves, unless terms were accepted on this exact offer version with every required disclosure and a payment reference is recorded. Atlas never confirms a payment itself.',

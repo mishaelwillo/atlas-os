@@ -397,6 +397,22 @@ ledgers is not executable and does not appear here.
 - Scopes: none
 - Description: Disable renewal for a customer\. ALWAYS approval\-gated\. Deletes no history, offer or export, and a customer who paid for the period keeps it\.
 
+### `hosting.record_terms` — Record accepted terms
+- Stage: candidate
+- Phase: P2C
+- Monetization: hosting
+- Autonomy: manual
+- Implementation: build
+- Regions: `global`
+- Entitlements: `website-hosting`
+- Evidence: none
+- Specification: `docs/specs/p2/revenue-pilot.md`
+- Method: POST
+- Task class: quick
+- Approval required: no
+- Scopes: none
+- Description: Create the hosting entitlement for a customer whose deal was accepted, bound to that exact offer version\. This is the entrance to the hosting chain: activate, cancel and state all move or read an entitlement, and nothing created one\. Operator\-only\. It never confirms a payment — supplying the provider’s own reference records that an operator saw one, and refuses anything shaped like a card number\.
+
 ### `hosting.state` — Hosting state
 - Stage: candidate
 - Phase: P2C

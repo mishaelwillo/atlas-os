@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 import { buildApp } from './app.js';
 import { FakeDb, buildTestDeps, operatorJwt, testEnv } from './test/fakes.js';
 import { REQUIRED_DISCLOSURES } from './revenue/offers.js';
+import { planRecordTerms } from './revenue/hosting-activation.js';
 
 const SPACE = '11111111-2222-3333-4444-555555555555';
 const LEAD = '99999999-8888-7777-6666-555555555555';
@@ -423,5 +424,98 @@ describe('before migration 0006 is applied', () => {
     });
     const { statusCode } = await publish(db);
     expect(statusCode).toBe(500);
+  });
+});
+
+/**
+ * hosting.record_terms — the entrance the chain was missing.
+ *
+ * activate moves an entitlement, cancel ends one, state reads one; nothing
+ * created one, so "one paying customer" was unreachable through the product.
+ * Found by approving a real activation in Mission Control and reading the
+ * refusal: "no hosting entitlement for this lead".
+ */
+describe('planRecordTerms', () => {
+  const accepted = {
+    dealState: 'accepted',
+    acceptedOfferVersion: 2,
+    disclosuresComplete: true,
+    existingState: null,
+    paymentReference: null,
+  };
+
+  it('records terms_approved when only the decision is known', () => {
+    const plan = planRecordTerms(accepted);
+    expect(plan).toMatchObject({ ok: true, state: 'terms_approved', offerVersion: 2, paymentReference: null });
+  });
+
+  /** The operator already holds the provider's reference. Still entitles nobody. */
+  it('records payment_pending when a provider reference is supplied', () => {
+    const plan = planRecordTerms({ ...accepted, paymentReference: ' ch_3Abc123 ' });
+    expect(plan).toMatchObject({ ok: true, state: 'payment_pending', paymentReference: 'ch_3Abc123' });
+  });
+
+  it('refuses terms nobody accepted', () => {
+    expect(planRecordTerms({ ...accepted, dealState: 'offer_review' })).toMatchObject({
+      ok: false,
+      code: 'terms_not_accepted',
+    });
+    expect(planRecordTerms({ ...accepted, dealState: null })).toMatchObject({
+      ok: false,
+      code: 'terms_not_accepted',
+    });
+  });
+
+  /** The same check the activation gate makes, for the same reason. */
+  it('refuses an accepted deal that names no offer version', () => {
+    expect(planRecordTerms({ ...accepted, acceptedOfferVersion: null })).toMatchObject({
+      ok: false,
+      code: 'offer_version_mismatch',
+    });
+  });
+
+  it('refuses an offer version whose disclosures are incomplete', () => {
+    expect(planRecordTerms({ ...accepted, disclosuresComplete: false })).toMatchObject({
+      ok: false,
+      code: 'disclosures_incomplete',
+    });
+  });
+
+  it('refuses a second entitlement while one stands', () => {
+    const plan = planRecordTerms({ ...accepted, existingState: 'payment_pending' });
+    expect(plan).toMatchObject({ ok: false, code: 'already_recorded' });
+    expect((plan as { message: string }).message).toContain('payment_pending');
+  });
+
+  /** A cancelled entitlement does not block a returning customer. */
+  it('allows new terms after a cancellation', () => {
+    expect(planRecordTerms({ ...accepted, existingState: null })).toMatchObject({ ok: true });
+  });
+
+  /**
+   * The one input Atlas must never hold. An operator copying the wrong field
+   * from a provider console is exactly how card data would arrive.
+   */
+  it('refuses a payment reference shaped like a card number', () => {
+    for (const pan of ['4111111111111111', '4111 1111 1111 1111', '4111-1111-1111-1111', '378282246310005']) {
+      expect(planRecordTerms({ ...accepted, paymentReference: pan }), pan).toMatchObject({
+        ok: false,
+        code: 'payment_reference_looks_like_card_data',
+      });
+    }
+  });
+
+  it('accepts a real provider reference that merely contains digits', () => {
+    for (const ref of ['ch_3Abc123XyZ', 'pi_1234567890', 'INV-2026-000123', '1234']) {
+      expect(planRecordTerms({ ...accepted, paymentReference: ref }), ref).toMatchObject({ ok: true });
+    }
+  });
+
+  it('treats a blank reference as none rather than as a value', () => {
+    expect(planRecordTerms({ ...accepted, paymentReference: '   ' })).toMatchObject({
+      ok: true,
+      state: 'terms_approved',
+      paymentReference: null,
+    });
   });
 });
