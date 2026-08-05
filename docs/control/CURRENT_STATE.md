@@ -851,14 +851,20 @@ returned to the operator, not stored as a column on `site_deployments`. So a
 withdrawal that never propagates is reported once, clearly, and not re-checked
 afterwards.
 
-### Migration 0011 is written for review and NOT applied
+### Migration 0011 is applied, and the verdict is now persisted
 
-`supabase/migrations/0011_deployment_withdrawal_verdict.sql` closes that limit
+`supabase/migrations/0011_deployment_withdrawal_verdict.sql` closed that limit
 by giving the verdict somewhere to live: `withdrawal_verdict` and
 `withdrawal_checked_at` on `site_deployments`, plus a partial index answering
 "which withdrawn deployments are not confirmed gone" without scanning history.
-`expected_migration` still reads `0010_deployment_unpublished`, which is the
-authority; this file claims nothing about its own history.
+
+The operator applied it on 2026-08-05. Applied identity is proven, not assumed:
+`railway run --service api pnpm control:status` read
+`0011_deployment_withdrawal_verdict` from `supabase_migrations.schema_migrations`,
+and both columns, both constraints and the partial index were read from the
+live schema. `expected_migration` pins that identity, `ATLAS_SCHEMA_VERSION` is
+set to it on both Railway services, and the drift report has no migration or
+schema-claim finding. Twenty-six public tables, unchanged — 0011 adds no table.
 
 Two constraints carry the reasoning. The verdict is restricted to the four the
 code can produce, so a value nobody defined cannot reach the column and go
@@ -879,12 +885,24 @@ unconfirmed set the moment it exists — four rows as of 2026-08-04, all fixture
 whose addresses answer 404 today. That is the honest starting state rather than
 a defect, and it is self-correcting: the first re-check of each resolves it.
 
-**What still has to happen after an operator applies it**, in this order:
-bump `expected_migration` and `ATLAS_SCHEMA_VERSION` on both services, verify
-through `control:status`, then write the verdict from the unpublish dispatcher
-and extend `factory.verify_live` to re-check recently-withdrawn addresses.
-Until then the column would sit empty, which is why the writer is not shipped
-ahead of the schema.
+**Both follow-ups are now built.** The unpublish dispatcher writes the verdict
+and its timestamp together — the schema refuses a verdict with no time and a
+time with no verdict, so the null path clears both. And `factory.verify_live`
+re-reads withdrawals that have not been observed to stop serving, records what
+it finds, and reports `drifted` when any withdrawal cannot be confirmed. Only
+the unconfirmed are re-read: a withdrawal already observed gone cannot un-go,
+and re-reading settled history would spend requests to learn nothing. That
+predicate is exactly the partial index 0011 adds.
+
+`no_address` is deliberately not written. It is not one of the four verdicts
+the column may hold, and inventing a fifth to describe a missing address would
+put a value in the column that no read-back ever produced.
+
+Both statements were proven by a transactional dry run against the real schema
+— the dispatcher write in both its verdict and null paths, the sweep write
+across all four verdicts, and the selection query confirming a settled
+withdrawal is not re-selected. A test double records statements without
+enforcing constraints, so nothing else could have checked the coherence rule.
 
 ## Awaiting a decision
 

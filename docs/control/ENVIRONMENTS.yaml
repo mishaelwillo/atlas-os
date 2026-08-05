@@ -6,7 +6,7 @@ environments:
       branch: main
     supabase:
       project_ref: yyyspvralawnvhtmuyvg
-      expected_migration: 0010_deployment_unpublished
+      expected_migration: 0011_deployment_withdrawal_verdict
       required_tables:
         - spaces
         - api_tokens

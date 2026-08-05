@@ -277,9 +277,9 @@ export const registry = [
   {
     id: 'factory.verify_live',
     name: 'Verify live sites',
-    description: 'Read every live deployment back and compare what its address serves against the build approved for it. Changes no deployment state: a site that has gone wrong is still the site that is public. Records the observation and names what is wrong.',
+    description: 'Read every live deployment back and compare what its address serves against the build approved for it, and re-read withdrawals not yet observed to have stopped serving. Changes no deployment state: a site that has gone wrong is still the site that is public. Records the observation and names what is wrong.',
     input: { type: 'object', properties: {} },
-    output: { type: 'object', properties: { checked: { type: 'number' }, matching: { type: 'number' }, healthy: { type: 'boolean' }, mismatched: { type: 'array' }, unreadable: { type: 'array' }, status: { type: 'string' } } },
+    output: { type: 'object', properties: { checked: { type: 'number' }, matching: { type: 'number' }, healthy: { type: 'boolean' }, mismatched: { type: 'array' }, unreadable: { type: 'array' }, withdrawalsChecked: { type: 'number' }, withdrawalsConfirmed: { type: 'number' }, withdrawalsUnconfirmed: { type: 'array' }, status: { type: 'string' } } },
     taskClass: 'quick', requiresApproval: false, scopes: ['factory:write'], method: 'POST', execution: 'handler',
   },
   {

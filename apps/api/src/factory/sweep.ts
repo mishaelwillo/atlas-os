@@ -15,7 +15,13 @@
  *
  * The comparison is pure; reading the addresses is the caller's job.
  */
-import { classifyFingerprint, type FingerprintVerdict, type ReadPublicResult } from './fingerprint.js';
+import {
+  classifyFingerprint,
+  classifyWithdrawal,
+  type FingerprintVerdict,
+  type ReadPublicResult,
+  type WithdrawalVerdict,
+} from './fingerprint.js';
 
 export interface LiveDeploymentRef {
   deploymentId: string;
@@ -89,6 +95,84 @@ export function classifyLive(
  * failure this exists to surface, and counting it as "probably fine" would
  * reproduce the silence that made the original defect last an hour.
  */
+export interface WithdrawnDeploymentRef {
+  deploymentId: string;
+  siteId: string;
+  domain: string | null;
+  /** The build that was taken down, so a stale copy is recognisable. */
+  buildHash: string;
+}
+
+export interface WithdrawnEntry {
+  deploymentId: string;
+  siteId: string;
+  domain: string | null;
+  verdict: WithdrawalVerdict | 'no_address';
+  observed: string | null;
+  message: string;
+}
+
+/**
+ * Classify one withdrawn deployment.
+ *
+ * The dispatcher checks once, at withdrawal time, and a withdrawal that never
+ * propagates would otherwise never be looked at again. This is what turns that
+ * single observation into a standing one.
+ *
+ * A row with no recorded address is `no_address` rather than skipped, for the
+ * same reason the live sweep does it: something was withdrawn from nowhere,
+ * which cannot be confirmed and must not silently count as confirmed.
+ */
+export function classifyWithdrawn(
+  deployment: WithdrawnDeploymentRef,
+  read: ReadPublicResult | null,
+  error?: string | null,
+): WithdrawnEntry {
+  if (deployment.domain === null || deployment.domain.trim() === '') {
+    return {
+      deploymentId: deployment.deploymentId,
+      siteId: deployment.siteId,
+      domain: null,
+      verdict: 'no_address',
+      observed: null,
+      message: 'this deployment was withdrawn but records no address, so nothing can be checked',
+    };
+  }
+
+  const result = classifyWithdrawal({ withdrawn: deployment.buildHash, read, error });
+  return {
+    deploymentId: deployment.deploymentId,
+    siteId: deployment.siteId,
+    domain: deployment.domain,
+    verdict: result.verdict,
+    observed: result.observed,
+    message: result.message,
+  };
+}
+
+export interface WithdrawnSummary {
+  checked: number;
+  confirmed: number;
+  /** Withdrawn deployments whose address has not been observed to stop serving. */
+  unconfirmed: WithdrawnEntry[];
+}
+
+/**
+ * Summarise a withdrawal re-check.
+ *
+ * Only `withdrawn` counts as confirmed. `unreadable` does not, and neither
+ * does `serving_other`: the first establishes nothing and the second
+ * establishes something that is not what a withdrawal claims.
+ */
+export function summariseWithdrawn(entries: readonly WithdrawnEntry[]): WithdrawnSummary {
+  const unconfirmed = entries.filter((e) => e.verdict !== 'withdrawn');
+  return {
+    checked: entries.length,
+    confirmed: entries.length - unconfirmed.length,
+    unconfirmed: [...unconfirmed],
+  };
+}
+
 export function summariseSweep(entries: readonly SweepEntry[]): SweepSummary {
   const mismatched = entries.filter((e) => e.verdict === 'mismatch' || e.verdict === 'no_address');
   const unreadable = entries.filter((e) => e.verdict === 'unreadable');

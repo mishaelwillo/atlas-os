@@ -73,11 +73,16 @@ comment on column site_deployments.withdrawal_checked_at is
 -- still serving.
 --
 -- CONSEQUENCE OF APPLYING: every withdrawal that predates this migration has a
--- null verdict, so all of them enter that set the moment it exists — four rows
--- as of 2026-08-04, all of them fixtures whose addresses do answer 404 today.
+-- null verdict, so all of them enter that set the moment it exists — THREE rows
+-- when this was applied, all of them fixtures whose addresses answer 404 today.
 -- That is the honest starting state rather than a defect: nothing checked
 -- them, so nothing can claim they are confirmed. It is also self-correcting,
 -- because the first re-check of each resolves it to 'withdrawn'.
+--
+-- (This comment first said four. The dry run counted the fixture row it had
+-- itself inserted inside its own transaction, and the number was carried over
+-- without being read back from the real table. Comment-only correction: the
+-- non-comment content of this file is unchanged from what was applied.)
 create index if not exists site_deployments_withdrawal_unconfirmed
   on site_deployments (space_id, superseded_at desc)
   where status = 'unpublished' and withdrawal_verdict is distinct from 'withdrawn';
