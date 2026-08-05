@@ -14,6 +14,7 @@ import { buildApp } from './app.js';
 import { FakeDb, buildTestDeps, operatorJwt, testEnv } from './test/fakes.js';
 import { DEMO_STATES, permittedDemoMoves, planAdvance } from './revenue/demo-queue.js';
 import { TOUCH_STATES, permittedTouchMoves, planTouchAdvance } from './revenue/sequence.js';
+import { DEAL_STATES, permittedDealMoves, planDealTransition } from './revenue/offers.js';
 
 function appWith(db: FakeDb): FastifyInstance {
   return buildApp({ deps: buildTestDeps(db) });
@@ -322,5 +323,64 @@ describe('derived moves track their rule function', () => {
         ).not.toContain('sent');
       }
     }
+  });
+});
+
+/**
+ * Deal moves are derived, like the demo and touch moves.
+ *
+ * Found by running the pilot through a browser: the card offered all five
+ * deal states and left the API to refuse four of them, so `offer_review` from
+ * `interested` looked like a legitimate choice and came back refused.
+ */
+describe('derived deal moves', () => {
+  it('offers only what planDealTransition permits, for every state', () => {
+    for (const from of DEAL_STATES) {
+      for (const offerVersion of [null, 2]) {
+        const expected = DEAL_STATES.filter(
+          (to) => planDealTransition({ from, to, offerVersion }).ok,
+        );
+        expect(permittedDealMoves({ from, offerVersion }), `${from}/${offerVersion}`).toEqual(
+          expected,
+        );
+      }
+    }
+  });
+
+  /** The exact case the browser surfaced. */
+  it('does not offer offer_review from interested', () => {
+    expect(permittedDealMoves({ from: 'interested', offerVersion: 2 })).toEqual([
+      'discovery',
+      'declined',
+    ]);
+  });
+
+  /** Reviewing or accepting names a published offer; with none, neither is offered. */
+  it('offers no offer-bearing move when nothing is published', () => {
+    expect(permittedDealMoves({ from: 'discovery', offerVersion: null })).toEqual(['declined']);
+    expect(permittedDealMoves({ from: 'discovery', offerVersion: 1 })).toEqual([
+      'offer_review',
+      'declined',
+    ]);
+  });
+
+  it('offers nothing once the deal is decided', () => {
+    expect(permittedDealMoves({ from: 'accepted', offerVersion: 2 })).toEqual([]);
+    expect(permittedDealMoves({ from: 'declined', offerVersion: 2 })).toEqual([]);
+  });
+
+  it('carries the derived moves on the revenue card', async () => {
+    const data = (await cards(pilotDb())).revenue_ops;
+    const [row] = data.items as Array<{ dealMoves: string[] }>;
+    // The fixture stands at offer_review on offer v2.
+    expect(row.dealMoves).toEqual(['accepted', 'declined']);
+  });
+
+  /** A lead nobody has decided starts at interested, the same as the handler assumes. */
+  it('treats a lead with no decision as interested', async () => {
+    const db = pilotDb([[/from deal_decisions/i, []]]);
+    const data = (await cards(db)).revenue_ops;
+    const [row] = data.items as Array<{ dealMoves: string[] }>;
+    expect(row.dealMoves).toEqual(['discovery', 'declined']);
   });
 });

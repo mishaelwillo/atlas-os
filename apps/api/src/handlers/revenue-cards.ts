@@ -35,6 +35,7 @@ import {
   DEAL_STATES,
   OFFER_PERIODS,
   REQUIRED_DISCLOSURES,
+  permittedDealMoves,
 } from '../revenue/offers.js';
 import { isEntitled, isHostingState } from '../revenue/hosting-activation.js';
 import {
@@ -122,6 +123,12 @@ export interface PipelineLead {
   sequence: PipelineSequence | null;
   offer: PipelineOffer | null;
   deal: PipelineDeal | null;
+  /**
+   * Derived from planDealTransition. Empty means the deal is decided.
+   * A deal nobody has recorded yet starts at `interested`, which is what the
+   * handler assumes too, so the offered moves match what it would accept.
+   */
+  dealMoves: string[];
   entitlement: PipelineEntitlement | null;
 }
 
@@ -318,6 +325,8 @@ export async function readPipeline(q: Queryable, space: string | null): Promise<
 
   const rows: PipelineLead[] = leads.rows.map((r) => {
     const leadId = String(r.lead_id);
+    const deal = byLeadDeal.get(leadId) ?? null;
+    const offer = byLeadOffer.get(leadId) ?? null;
     return {
       leadId,
       businessName: String(r.business_name ?? ''),
@@ -325,8 +334,12 @@ export async function readPipeline(q: Queryable, space: string | null): Promise<
       qualification: byLeadAssessment.get(leadId) ?? null,
       demo: byLeadDemo.get(leadId) ?? null,
       sequence: byLeadSequence.get(leadId) ?? null,
-      offer: byLeadOffer.get(leadId) ?? null,
-      deal: byLeadDeal.get(leadId) ?? null,
+      offer,
+      deal,
+      dealMoves: permittedDealMoves({
+        from: deal?.state ?? 'interested',
+        offerVersion: offer?.version ?? null,
+      }),
       entitlement: byLeadEntitlement.get(leadId) ?? null,
     };
   });

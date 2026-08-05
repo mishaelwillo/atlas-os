@@ -19,7 +19,7 @@
  * 3. **Atlas never confirms a payment.** The card reports only whether a
  *    provider reference exists, because that is all `hosting.state` returns.
  */
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import type { AtlasGeneratedClient } from '@atlas/client';
 import styles from './MissionControl.module.css';
 
@@ -56,6 +56,8 @@ export interface RevenueItem {
   businessName: string;
   offer: RevenueOffer | null;
   deal: RevenueDeal | null;
+  /** Derived by the API from planDealTransition; empty means decided. */
+  dealMoves?: string[];
   entitlement: RevenueEntitlement | null;
 }
 
@@ -163,6 +165,19 @@ export function RevenueOpsCard({
   const [error, setError] = useState<string | null>(null);
   const [outcome, setOutcome] = useState<string | null>(null);
 
+  /*
+   * One governed action at a time.
+   *
+   * `busy` drives the disabled state, but React commits it asynchronously, so
+   * two events arriving before that commit both pass the check. A ref flips
+   * synchronously and closes that window. It matters most here because these
+   * capabilities are not idempotent: a duplicated publish creates a second
+   * immutable offer VERSION, which is a different offer for the customer to
+   * have accepted — two were created 473ms apart while running the pilot
+   * through a browser.
+   */
+  const inFlight = useRef(false);
+
   const act = useCallback(
     async (run: () => Promise<unknown>) => {
       setError(null);
@@ -171,6 +186,10 @@ export function RevenueOpsCard({
         setError('Select a Space first. Every governed action requires one.');
         return;
       }
+      // Taken only once the call is certain to run, so a refusal above cannot
+      // leave the lock held and wedge every later action.
+      if (inFlight.current) return;
+      inFlight.current = true;
       setBusy(true);
       try {
         const res = (await run()) as Record<string, unknown>;
@@ -179,6 +198,7 @@ export function RevenueOpsCard({
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       } finally {
+        inFlight.current = false;
         setBusy(false);
       }
     },
@@ -294,18 +314,31 @@ export function RevenueOpsCard({
           </table>
 
           <div className={styles.buttonRow}>
-            <select
-              data-testid={`deal-state-${item.leadId}`}
-              value={deal[item.leadId] ?? ''}
-              onChange={(e) => setDeal((d) => ({ ...d, [item.leadId]: e.target.value }))}
-            >
-              <option value="">— record a decision —</option>
-              {dealStates.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
+            {/*
+              The moves come from the payload, which the API derived from
+              planDealTransition — the same way the demo queue and the outreach
+              touches do it. This control used to offer all five deal states
+              and leave the API to refuse four of them, so `offer_review` from
+              `interested` looked legitimate and came back refused.
+            */}
+            {(item.dealMoves ?? dealStates).length === 0 ? (
+              <span className={styles.when} data-testid={`no-deal-moves-${item.leadId}`}>
+                this deal is decided — no further move
+              </span>
+            ) : (
+              <select
+                data-testid={`deal-state-${item.leadId}`}
+                value={deal[item.leadId] ?? ''}
+                onChange={(e) => setDeal((d) => ({ ...d, [item.leadId]: e.target.value }))}
+              >
+                <option value="">— record a decision —</option>
+                {(item.dealMoves ?? dealStates).map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            )}
             <input
               data-testid={`deal-notes-${item.leadId}`}
               placeholder="notes"

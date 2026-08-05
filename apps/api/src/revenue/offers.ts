@@ -204,6 +204,29 @@ export function isDealState(value: string): value is DealState {
 }
 
 /**
+ * Every state this deal may actually be moved to, derived by asking
+ * `planDealTransition` rather than by restating the transition table.
+ *
+ * The demo queue and the outreach touches already publish their permitted
+ * moves this way; deals did not, so the operator surface offered all five
+ * states and left the API to refuse four of them. Running the pilot through a
+ * browser is what made it visible: choosing `offer_review` from `interested`
+ * looked like a legitimate option and came back refused.
+ *
+ * `offerVersion` is part of the question rather than a detail. Reaching
+ * `offer_review` or `accepted` names a specific published offer, so with none
+ * published the derivation correctly offers neither.
+ */
+export function permittedDealMoves(args: {
+  from: string;
+  offerVersion: number | null;
+}): DealState[] {
+  return DEAL_STATES.filter(
+    (to) => planDealTransition({ from: args.from, to, offerVersion: args.offerVersion }).ok,
+  );
+}
+
+/**
  * Decide whether a deal may move.
  *
  * Reaching `offer_review` requires a published offer version, because that
