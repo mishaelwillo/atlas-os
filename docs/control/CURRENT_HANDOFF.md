@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `manual-and-continuation`
+**Handoff ID:** `hosting-chain-reachability`
 **Status:** active
-**Started:** 2026-08-05T20:41:02.943Z
-**Updated:** 2026-08-05T20:41:02.943Z
+**Started:** 2026-08-05T21:15:08.002Z
+**Updated:** 2026-08-05T21:15:08.002Z
 **Actor:** Claude
-**Objective:** Leave the project readable by someone with no context
+**Objective:** Make every hosting state either reachable through a capability or declared deferred with a reason
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `docs/manual-and-handoff`
+- Branch: `feat/hosting-chain-reachability`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `8ec71fa5bb5789d9bbc8a5922673d18252bfb49f`
+- Head commit: `ea20d143ad696f38aad449c3067f9eede18bc2d3`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Added docs/MANUAL.md, rewrote NEW_SESSION_PROMPT.md, refreshed the control index
+- Added hosting.advance (executable count 35 to 36), reachableHostingStates and DEFERRED_HOSTING_STATES, derived hosting moves on the revenue card
 
 ## Current working tree
 
@@ -25,11 +25,11 @@
 
 ## Verification evidence
 
-- counts, SHA and migration pin read from the repo and the live services rather than recalled
+- Mutation-tested both guards; transactional dry run against production proved both statements and the 0006 constraint, then rolled back
 
 ## Database actions
 
-- No external action reported.
+- Read-only plus one rolled-back transaction; no schema change and no migration
 - Observed Supabase status: ok (live-read-only at 2026-08-05T06:12:01.756Z).
 
 ## Hosting actions
@@ -51,4 +51,4 @@ Clean up the pilot fixture in the atlas space, then resolve the directory adapte
 
 ## Definition of done
 
-A conceptual manual exists and the continuation prompt reflects current reality
+A test fails on any hosting state that is unreachable and undeclared, hosting.advance reaches onboarded and active, and neither approval-gated target can be reached through it
