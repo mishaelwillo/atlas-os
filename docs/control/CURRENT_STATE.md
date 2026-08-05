@@ -847,9 +847,44 @@ would be its own inaccuracy. A withdrawal that did not take effect is logged
 at error level and named in the audit row and the operator's dispatch result.
 
 **One limit worth stating.** The verdict is recorded in the audit trail and
-returned to the operator, not stored as a column on `site_deployments` — that
-would need a migration, and the operator applies those. So a withdrawal that
-never propagates is reported once, clearly, and not re-checked afterwards.
+returned to the operator, not stored as a column on `site_deployments`. So a
+withdrawal that never propagates is reported once, clearly, and not re-checked
+afterwards.
+
+### Migration 0011 is written for review and NOT applied
+
+`supabase/migrations/0011_deployment_withdrawal_verdict.sql` closes that limit
+by giving the verdict somewhere to live: `withdrawal_verdict` and
+`withdrawal_checked_at` on `site_deployments`, plus a partial index answering
+"which withdrawn deployments are not confirmed gone" without scanning history.
+`expected_migration` still reads `0010_deployment_unpublished`, which is the
+authority; this file claims nothing about its own history.
+
+Two constraints carry the reasoning. The verdict is restricted to the four the
+code can produce, so a value nobody defined cannot reach the column and go
+unnoticed — the permitted list has to stay identical to `WithdrawalVerdict` in
+`fingerprint.ts`, and the migration says so. And a verdict without a timestamp,
+or a timestamp without a verdict, is refused: one claims something was
+established without saying when, the other claims a check happened without
+saying what it found.
+
+Proven by a transactional dry run against the real schema — applied, every
+constraint exercised in both directions, the ledger insert confirmed, the index
+created, re-application confirmed a no-op, then rolled back. A test double
+cannot check a constraint, so this is the only thing that could have.
+
+**Applying it has a visible consequence, stated in the file.** Every withdrawal
+that predates the migration has a null verdict, so all of them enter the
+unconfirmed set the moment it exists — four rows as of 2026-08-04, all fixtures
+whose addresses answer 404 today. That is the honest starting state rather than
+a defect, and it is self-correcting: the first re-check of each resolves it.
+
+**What still has to happen after an operator applies it**, in this order:
+bump `expected_migration` and `ATLAS_SCHEMA_VERSION` on both services, verify
+through `control:status`, then write the verdict from the unpublish dispatcher
+and extend `factory.verify_live` to re-check recently-withdrawn addresses.
+Until then the column would sit empty, which is why the writer is not shipped
+ahead of the schema.
 
 ## Awaiting a decision
 

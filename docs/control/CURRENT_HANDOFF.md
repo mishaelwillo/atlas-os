@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `withdrawal-readback`
+**Handoff ID:** `migration-0011-review`
 **Status:** active
-**Started:** 2026-08-05T00:35:50.647Z
-**Updated:** 2026-08-05T00:35:50.647Z
+**Started:** 2026-08-05T01:04:18.555Z
+**Updated:** 2026-08-05T01:04:18.555Z
 **Actor:** Claude
-**Objective:** Confirm a withdrawal actually stopped serving before reporting it withdrawn
+**Objective:** Write the withdrawal-verdict migration for operator review
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `fix/withdrawal-readback`
+- Branch: `feat/migration-0011-withdrawal-verdict`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `c86e53d36d3fe6ffe07f2c66f791cb08b219efaa`
+- Head commit: `0e4bc11238f8a46bdb604430164367e7d6e086f9`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Added classifyWithdrawal and withdrawUntilGone, wired into the unpublish dispatcher with its verdict audited and returned
+- Added supabase/migrations/0011_deployment_withdrawal_verdict.sql and recorded its status and consequences
 
 ## Current working tree
 
@@ -25,11 +25,11 @@
 
 ## Verification evidence
 
-- 597 API tests pass; treating an unreadable address as gone fails three tests; build, lint and control:verify green
+- transactional dry run against production: migration applied in-transaction, all four verdicts accepted, invented verdict and incoherent pairs rejected, ledger and index confirmed, re-application a no-op, rolled back
 
 ## Database actions
 
-- No external action reported.
+- NONE APPLIED. Migration 0011 is written for review; expected_migration still reads 0010_deployment_unpublished
 - Observed Supabase status: ok (live-read-only at 2026-08-04T22:57:39.336Z).
 
 ## Hosting actions
@@ -43,12 +43,12 @@
 
 ## Blockers
 
-- Not supplied.
+- 0011 needs an operator to apply it before the verdict can be persisted or the sweep extended
 
 ## Next exact action
 
-Exercise the three P2C cards in a signed-in browser
+An operator applies 0011, then bump expected_migration and ATLAS_SCHEMA_VERSION, verify through control:status, and only then write the verdict from the dispatcher and extend the sweep
 
 ## Definition of done
 
-factory.unpublish reports whether the address stopped serving, and never claims gone for an address it could not read
+A reviewed migration exists that gives the withdrawal verdict a column, proven against the real schema and not applied
