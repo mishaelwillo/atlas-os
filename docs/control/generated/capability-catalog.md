@@ -541,4 +541,4 @@ ledgers is not executable and does not appear here.
 - Task class: quick
 - Approval required: no
 - Scopes: `factory:write`
-- Description: Read every live deployment back and compare what its address serves against the build approved for it\. Changes no deployment state: a site that has gone wrong is still the site that is public\. Records the observation and names what is wrong\.
+- Description: Read every live deployment back and compare what its address serves against the build approved for it, and re\-read withdrawals not yet observed to have stopped serving\. Changes no deployment state: a site that has gone wrong is still the site that is public\. Records the observation and names what is wrong\.
