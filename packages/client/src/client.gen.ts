@@ -349,6 +349,20 @@ export type HostingCancelOutput = {
   approvalId?: string;
 };
 
+export type HostingAdvanceInput = {
+  leadId: string;
+  state: string;
+};
+export type HostingAdvanceOutput = {
+  entitlementId?: string;
+  from?: string;
+  state?: string;
+  advanced?: boolean;
+  code?: string;
+  note?: string;
+  status?: string;
+};
+
 export type HostingStateInput = {
   leadId: string;
 };
@@ -588,6 +602,11 @@ export class AtlasGeneratedClient {
   /** Cancel hosting — POST /v1/hosting/cancel (approval-gated: returns {approvalId, status:"review"}) */
   hostingCancel(input: HostingCancelInput): Promise<HostingCancelOutput | ApprovalPending> {
     return this.request<HostingCancelOutput>("POST", "/v1/hosting/cancel", input);
+  }
+
+  /** Advance hosting delivery — POST /v1/hosting/advance */
+  hostingAdvance(input: HostingAdvanceInput): Promise<HostingAdvanceOutput | ApprovalPending> {
+    return this.request<HostingAdvanceOutput>("POST", "/v1/hosting/advance", input);
   }
 
   /** Hosting state — GET /v1/hosting/state */

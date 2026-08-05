@@ -15,6 +15,11 @@ import { FakeDb, buildTestDeps, operatorJwt, testEnv } from './test/fakes.js';
 import { DEMO_STATES, permittedDemoMoves, planAdvance } from './revenue/demo-queue.js';
 import { TOUCH_STATES, permittedTouchMoves, planTouchAdvance } from './revenue/sequence.js';
 import { DEAL_STATES, permittedDealMoves, planDealTransition } from './revenue/offers.js';
+import {
+  HOSTING_STATES,
+  permittedHostingMoves,
+  planAdvanceHosting,
+} from './revenue/hosting-activation.js';
 
 function appWith(db: FakeDb): FastifyInstance {
   return buildApp({ deps: buildTestDeps(db) });
@@ -311,6 +316,35 @@ describe('derived moves track their rule function', () => {
           `${sequenceState}/${from}`,
         ).toEqual(expected);
       }
+    }
+  });
+
+  it('permittedHostingMoves agrees with planAdvanceHosting for every state', () => {
+    for (const from of HOSTING_STATES) {
+      const expected = HOSTING_STATES.filter(
+        (to) =>
+          planAdvanceHosting({
+            from,
+            to,
+            dealState: 'accepted',
+            acceptedOfferVersion: 1,
+            entitlementOfferVersion: 1,
+            disclosuresComplete: true,
+            paymentReference: 'probe',
+          }).ok,
+      );
+      expect(permittedHostingMoves(from), from).toEqual(expected);
+    }
+  });
+
+  /**
+   * The two the surface must never offer, from any state: both are
+   * approval-gated and belong to hosting.activate and hosting.cancel.
+   */
+  it('never offers entitlement_active or cancelled from any state', () => {
+    for (const from of HOSTING_STATES) {
+      expect(permittedHostingMoves(from), from).not.toContain('entitlement_active');
+      expect(permittedHostingMoves(from), from).not.toContain('cancelled');
     }
   });
 

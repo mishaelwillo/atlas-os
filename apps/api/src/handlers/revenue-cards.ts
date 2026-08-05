@@ -37,7 +37,11 @@ import {
   REQUIRED_DISCLOSURES,
   permittedDealMoves,
 } from '../revenue/offers.js';
-import { isEntitled, isHostingState } from '../revenue/hosting-activation.js';
+import {
+  isEntitled,
+  isHostingState,
+  permittedHostingMoves,
+} from '../revenue/hosting-activation.js';
 import {
   MAX_DEMO_EFFORT_HOURS,
   QUALIFYING_SCORE,
@@ -109,6 +113,12 @@ export interface PipelineEntitlement {
   paymentRecorded: boolean;
   renewalEnabled: boolean;
   entitled: boolean;
+  /**
+   * Delivery moves derived from planAdvanceHosting. Never contains
+   * `entitlement_active` or `cancelled` — both are approval-gated and belong
+   * to their own capabilities, not to this control.
+   */
+  moves: string[];
   activatedAt: string | null;
   cancelledAt: string | null;
   servesUntil: string | null;
@@ -317,6 +327,7 @@ export async function readPipeline(q: Queryable, space: string | null): Promise<
       renewalEnabled: r.renewal_enabled === true,
       // Derived from the state so it cannot disagree with the row it describes.
       entitled: isHostingState(state) ? isEntitled(state) : false,
+      moves: permittedHostingMoves(state),
       activatedAt: iso(r.activated_at),
       cancelledAt: iso(r.cancelled_at),
       servesUntil: iso(r.serves_until),

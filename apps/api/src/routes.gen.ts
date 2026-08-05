@@ -34,6 +34,7 @@ export const GENERATED_CAPABILITY_IDS = [
   "hosting.record_terms",
   "hosting.activate",
   "hosting.cancel",
+  "hosting.advance",
   "hosting.state",
   "analytics.funnel",
   "factory.verify_live",
@@ -1274,6 +1275,57 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
       "type": "object",
       "properties": {
         "approvalId": {
+          "type": "string"
+        }
+      }
+    },
+    "execution": "handler"
+  } as const satisfies CapabilityRouteMeta, deps);
+  registerCapabilityRoute(app, {
+    "id": "hosting.advance",
+    "name": "Advance hosting delivery",
+    "path": "/v1/hosting/advance",
+    "method": "POST",
+    "taskClass": "quick",
+    "requiresApproval": false,
+    "scopes": [],
+    "input": {
+      "type": "object",
+      "required": [
+        "leadId",
+        "state"
+      ],
+      "properties": {
+        "leadId": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "entitlementId": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "advanced": {
+          "type": "boolean"
+        },
+        "code": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        },
+        "status": {
           "type": "string"
         }
       }

@@ -904,6 +904,59 @@ across all four verdicts, and the selection query confirming a settled
 withdrawal is not re-selected. A test double records statements without
 enforcing constraints, so nothing else could have checked the coherence rule.
 
+## The hosting chain could not be walked, and nothing said so
+
+The specification's chain has seven states. The product could reach four.
+`hosting.activate` hardcoded `entitlement_active` as its target and nothing
+went further, so `onboarded`, `active` and `past_due` were unreachable by any
+caller — while `NEXT_HOSTING_STATES` declared transitions into all of them,
+`ENTITLED_STATES` named them, `planCancellation` branched on them, the funnel's
+revenue SQL counted `onboarded` and `active` rows that no code path could
+create, and this module's own header described the chain as though an
+entitlement walked it. One more claim nothing checked.
+
+**It is now checked rather than reworded.** `reachableHostingStates` computes
+the closure from the states `hosting.record_terms` creates through the targets
+the capabilities actually request, and a test requires every state to be either
+in that closure or declared in `DEFERRED_HOSTING_STATES` with a reason. A state
+that is unreachable *and* undeclared fails the suite. Emptying the advance
+targets — which is exactly the pre-fix code — fails five tests naming
+`onboarded` and `active`.
+
+`hosting.advance` closes the gap for the two delivery states. It is
+operator-only and **not** approval-gated, because neither move grants anything:
+`isEntitled` is already true at `entitlement_active`, so these record how far
+delivery has got, not what the customer is owed. Asking for an approval to
+record bookkeeping is how a queue stops being read.
+
+**The target restriction is the safety property, not a convenience.**
+`planHostingTransition` will permit `payment_pending → entitlement_active` —
+that is its job — so an advance that passed an arbitrary target through to it
+would be an unapproved route into activation, past both halves of the gate. The
+planner refuses any target that is not a delivery state and names the
+capability that owns it. Deleting that guard fails five tests, including one
+that asserts no approval row and no state write happen on the refused path.
+
+The card's controls are derived from the planner like every other move list,
+so the surface cannot offer `entitlement_active` or `cancelled`. The card does
+**not** filter them out itself — a filter there would be a second copy of a
+rule the API holds, and the first time the two disagreed the copy would be
+believed. What is asserted instead is that the control only ever reaches
+`hosting.advance`, which refuses both server-side.
+
+`past_due` stays unreachable, deliberately and now visibly. A lapse is a
+payment fact and Atlas confirms no payments — `billing.manage` is deferred to
+P3 — so nothing can observe one. Reaching it by hand would record a lapse
+nobody detected.
+
+**Verified against the real schema.** Both statements ran inside one
+rolled-back transaction against production with a fixture entitlement: the
+read-back parses, the update writes `onboarded` and then `active`, and the 0006
+check constraint refuses an unknown state with `23514`. No migration is needed
+— 0006 already permits every value the capability writes. A test double records
+statements without enforcing a constraint, so nothing else could have shown
+that.
+
 ## Awaiting a decision
 
 None of these is blocked on code:

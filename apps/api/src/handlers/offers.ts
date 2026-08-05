@@ -18,7 +18,12 @@ import {
   validateOffer,
   type OfferDraft,
 } from '../revenue/offers.js';
-import { isEntitled, isHostingState, planRecordTerms } from '../revenue/hosting-activation.js';
+import {
+  isEntitled,
+  isHostingState,
+  planAdvanceHosting,
+  planRecordTerms,
+} from '../revenue/hosting-activation.js';
 
 /** Postgres `undefined_table`; the one error meaning migration 0006 has not run. */
 const UNDEFINED_TABLE = '42P01';
@@ -343,6 +348,101 @@ export const hostingRecordTerms: CapabilityHandler = async (ctx, input) => {
   });
 
   return pending(outcome) ? { ...SCHEMA_PENDING, recorded: false } : outcome;
+};
+
+/**
+ * hosting.advance — move a served customer along the delivery chain.
+ *
+ * The specification's chain runs `… → entitlement_active → onboarded → active`,
+ * but `hosting.activate` stops at `entitlement_active` and nothing went
+ * further, so two of the seven states were unreachable by any caller while the
+ * transition table, this module's neighbours and the funnel's own SQL all
+ * spoke as though they were not. `reachableHostingStates` now checks that; this
+ * is what makes the check pass honestly rather than by narrowing the claim.
+ *
+ * Operator-only and not approval-gated, because neither move grants anything:
+ * the customer is entitled from `entitlement_active` onward, so these record
+ * how far delivery has got. The commercial gate stays exactly where it was.
+ *
+ * The four commercial facts are still read fresh and passed to the planner.
+ * They gate only the entrance to `entitlement_active`, which this capability
+ * refuses to target — but reading them costs one query and means the planner
+ * is never handed a shape it has to guess about.
+ */
+export const hostingAdvance: CapabilityHandler = async (ctx, input) => {
+  const leadId = text(input.leadId);
+  if (leadId === null) throw new CapabilityError(400, 'hosting.advance: leadId is required');
+  const to = text(input.state);
+  if (to === null) throw new CapabilityError(400, 'hosting.advance: state is required');
+
+  const outcome = await withSchema(async () => {
+    const found = await ctx.q.query(
+      `select entitlement_id, state, offer_version, payment_reference
+         from hosting_entitlements where lead_id = $1 order by created_at desc limit 1`,
+      [leadId],
+    );
+    const row = found.rows[0];
+    if (!row) {
+      return {
+        advanced: false,
+        code: 'no_entitlement',
+        note: 'no hosting entitlement for this lead; record accepted terms first',
+        status: 'refused',
+      };
+    }
+
+    const decision = await ctx.q.query(
+      `select state, offer_version from deal_decisions
+        where lead_id = $1 order by created_at desc limit 1`,
+      [leadId],
+    );
+    const d = decision.rows[0];
+    const dealState = d ? String(d.state) : null;
+
+    const plan = planAdvanceHosting({
+      from: String(row.state),
+      to,
+      dealState,
+      acceptedOfferVersion:
+        d && d.offer_version !== null && dealState === 'accepted' ? Number(d.offer_version) : null,
+      entitlementOfferVersion: row.offer_version === null ? null : Number(row.offer_version),
+      // Only read by the entitlement_active branch, which this cannot target.
+      disclosuresComplete: true,
+      paymentReference: row.payment_reference === null ? null : String(row.payment_reference),
+    });
+
+    if (!plan.ok) {
+      await insertAudit(ctx.q, ctx.spaceId, ctx.auth.actor, 'hosting.advance_refused', leadId, {
+        code: plan.code,
+        from: String(row.state),
+        to,
+      });
+      return { advanced: false, code: plan.code, note: plan.message, status: 'refused' };
+    }
+
+    await ctx.q.query(
+      `update hosting_entitlements set state = $2, updated_at = now() where entitlement_id = $1`,
+      [String(row.entitlement_id), plan.to],
+    );
+    await insertAudit(
+      ctx.q,
+      ctx.spaceId,
+      ctx.auth.actor,
+      'hosting.advanced',
+      String(row.entitlement_id),
+      { leadId, from: plan.from, to: plan.to },
+    );
+
+    return {
+      advanced: true,
+      entitlementId: String(row.entitlement_id),
+      from: plan.from,
+      state: plan.to,
+      status: plan.to,
+    };
+  });
+
+  return pending(outcome) ? { ...SCHEMA_PENDING, advanced: false } : outcome;
 };
 
 /**
