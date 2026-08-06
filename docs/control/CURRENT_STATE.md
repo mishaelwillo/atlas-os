@@ -1079,6 +1079,62 @@ next. `AGENTS.md` says that, with the reason.
 The steady state is an `unassigned-<date>` handoff naming the integration
 branch, which verifies clean.
 
+## P2B is complete — the timed benchmark, 2026-08-06
+
+Run through Mission Control in a signed-in operator session, against a real
+business nobody had looked at beforehand. **9 minutes 16 seconds** of the
+30-minute budget, from first opening a directory to an accessible preview with
+QA passing all 28 checks.
+
+| step | detail |
+| --- | --- |
+| research | found `findyello.com`'s Jamaica plumbers index, opened one listing cold |
+| business | Patrick's Plumbing Service, Kingston 11 — a real prospect with a directory listing and no site of its own |
+| facts | businessName, phone, hours — the three `trades-1` requires, each carrying the URL they were read on |
+| build | `factory.build_site` → `preview_built`, hash `a6fbcc19d397`, QA passed 28 checks |
+| preview | renders in the sandboxed viewer with a visible `source` link beside every displayed fact; expires 2026-08-12 |
+
+Verified in the database rather than from the screen: three facts, **zero
+unsourced**, `source_profile` recording the profile URL and a count of supplied
+facts.
+
+### What the previous attempt got wrong, and what this one still does not measure
+
+The 2026-08-03 run recorded 4.75s and did not count, because the facts were
+prepared in advance and submitted programmatically — none of the research and
+entry time the budget exists to bound was incurred. This run incurred it: the
+business was chosen during the run, from a directory found during the run.
+
+**The 9m16s is conservative, not flattering.** Roughly four of those minutes
+were lost to a tooling failure of the driver, not the product: values set
+through the automation's form helper never reached React state, the five-second
+poll then wiped them, and the first build never fired — no `factory.build_site`
+row in the audit trail. Re-entering everything with real keyboard events worked
+first time. An operator typing by hand would not have paid that cost, so the
+honest reading is "well inside 30 minutes, and the true operator path is
+faster."
+
+**Not measured:** the optional fields. `tagline`, `email` and `address` were all
+available on the source page and were skipped to keep the run to the template's
+required set. A richer page would have taken longer, though not four minutes
+longer.
+
+### The acceptance was reworded to match the specification
+
+`WORK_QUEUE.yaml` said "approved live demo in under 30 minutes". The
+specification says "dossier → descriptor → accessible preview inside 30 minutes
+in the benchmark, with every displayed business fact source-linked", and makes
+production publish a *separate* acceptance with its own conditions and no clock.
+
+The paraphrase would have had the benchmark measure something the specification
+never asked for — and, incidentally, would have put a real business's site on a
+public address to satisfy a timing test. The queue now carries the
+specification's wording, plus the publish and rollback acceptances it had
+dropped; those were proven against production on 2026-08-04.
+
+Nothing was published. The preview is access-controlled and expiring, so no page
+about this business exists anywhere public.
+
 ## Awaiting a decision
 
 None of these is blocked on code:

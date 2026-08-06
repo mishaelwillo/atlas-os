@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `archive-workflow-placement`
+**Handoff ID:** `p2b-timed-acceptance`
 **Status:** active
-**Started:** 2026-08-06T02:25:23.546Z
-**Updated:** 2026-08-06T02:25:23.546Z
+**Started:** 2026-08-06T03:26:17.061Z
+**Updated:** 2026-08-06T03:26:17.061Z
 **Actor:** Claude
-**Objective:** Put handoff archiving at the point in the workflow where it can actually be run
+**Objective:** Run the P2B timed benchmark against a real business and close the phase
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `docs/archive-workflow-placement`
+- Branch: `feat/p2b-timed-acceptance`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `94bafa7c257151f36653f9c53fdc0f1b26f3a6c5`
+- Head commit: `f674b0335303dca215c59943c9487ffa4f5df747`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Moved archiving to session start in AGENTS.md; carries the archived takeover point
+- P2B moved to done; acceptance reworded from the spec; benchmark recorded in CURRENT_STATE
 
 ## Current working tree
 
@@ -25,11 +25,11 @@
 
 ## Verification evidence
 
-- The mis-placed step was caught by running it: the archive left a handoff naming main while on a feature branch, which control:verify blocked
+- Preview verified in the database - three facts, zero unsourced - and rendered in the sandboxed viewer with a source link beside each
 
 ## Database actions
 
-- None
+- One site row created in the studio space by factory.build_site; nothing published
 - Observed Supabase status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## Hosting actions
@@ -47,8 +47,8 @@
 
 ## Next exact action
 
-Clean up the pilot fixture in the atlas space, then resolve the directory adapter decision that blocks the pilot exit criterion
+Decide whether Patrick's Plumbing Service becomes the first real pilot prospect; otherwise resolve the directory adapter
 
 ## Definition of done
 
-AGENTS.md describes an archiving step that does not require pushing to a protected branch or failing a feature branch's CI
+P2B-FACTORY-001 is done, with the acceptance worded from the specification and the measured time recorded honestly
