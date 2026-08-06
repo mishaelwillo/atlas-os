@@ -185,6 +185,24 @@ const NEXT_DEAL_STATES: Readonly<Record<DealState, readonly DealState[]>> = {
   declined: [],
 };
 
+/**
+ * What a *first* decision may record, when no decision exists yet.
+ *
+ * `null` — nobody has decided anything — is a different fact from `interested`,
+ * and conflating the two was a real gap: `deals.decide` counted from
+ * `interested` when there was no standing row, so no `deal_decisions` row could
+ * ever carry that state, and a lead who had expressed interest looked exactly
+ * like a lead nobody had touched. The reachability check over `dealMachine` is
+ * what surfaced it.
+ *
+ * Derived rather than listed: a first decision may record interest itself, or
+ * anything an interested deal could already have become. Recording a later
+ * state does not oblige an operator to invent an earlier one — someone who went
+ * straight to a discovery call should not have to claim a separate expression
+ * of interest first.
+ */
+const FIRST_DEAL_STATES: readonly DealState[] = ['interested', ...NEXT_DEAL_STATES.interested];
+
 export type DealRefusalCode = 'unknown_state' | 'terminal_state' | 'not_a_permitted_transition' | 'offer_required';
 
 export interface DealRefusal {
@@ -195,7 +213,8 @@ export interface DealRefusal {
 
 export interface DealPlan {
   ok: true;
-  from: DealState;
+  /** `null` when this is the first decision recorded for the lead. */
+  from: DealState | null;
   to: DealState;
 }
 
@@ -218,7 +237,8 @@ export function isDealState(value: string): value is DealState {
  * published the derivation correctly offers neither.
  */
 export function permittedDealMoves(args: {
-  from: string;
+  /** `null` when no decision has been recorded yet — not `interested`. */
+  from: string | null;
   offerVersion: number | null;
 }): DealState[] {
   return DEAL_STATES.filter(
@@ -235,11 +255,43 @@ export function permittedDealMoves(args: {
  * hidden-terms failure the MVP excludes.
  */
 export function planDealTransition(args: {
-  from: string;
+  /** `null` when no decision has been recorded for this lead yet. */
+  from: string | null;
   to: string;
   offerVersion: number | null;
 }): DealPlan | DealRefusal {
-  if (!isDealState(args.from) || !isDealState(args.to)) {
+  if (!isDealState(args.to)) {
+    return {
+      ok: false,
+      code: 'unknown_state',
+      message: `'${args.from ?? 'no decision'}' → '${args.to}' is not a known deal transition`,
+    };
+  }
+
+  /*
+   * The first decision. Absence is not a state, so it has no row in the
+   * transition table and is handled before it: reading `null` as `interested`
+   * is exactly the conflation that made interest unrecordable.
+   */
+  if (args.from === null) {
+    if (!FIRST_DEAL_STATES.includes(args.to)) {
+      return {
+        ok: false,
+        code: 'not_a_permitted_transition',
+        message: `a first decision may only record ${FIRST_DEAL_STATES.join(' or ')}`,
+      };
+    }
+    if ((args.to === 'offer_review' || args.to === 'accepted') && args.offerVersion === null) {
+      return {
+        ok: false,
+        code: 'offer_required',
+        message: `'${args.to}' names a specific published offer version; there is none`,
+      };
+    }
+    return { ok: true, from: null, to: args.to };
+  }
+
+  if (!isDealState(args.from)) {
     return {
       ok: false,
       code: 'unknown_state',

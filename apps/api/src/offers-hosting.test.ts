@@ -130,13 +130,46 @@ describe('deals.decide', () => {
     return res.json() as Record<string, unknown>;
   }
 
-  it('starts an unrecorded deal at interested', async () => {
+  /**
+   * A first decision names no prior state. It used to be counted from
+   * `interested`, which meant no row could ever carry that state and a lead
+   * who had expressed interest was indistinguishable from one nobody had
+   * touched.
+   */
+  it('records a first decision with no prior state', async () => {
     const db = dbForDeal({ offerVersion: 1 });
-    expect(await decide(db, 'discovery')).toMatchObject({
-      decided: true,
-      from: 'interested',
-      to: 'discovery',
-    });
+    const body = await decide(db, 'discovery');
+    expect(body).toMatchObject({ decided: true, first: true, to: 'discovery' });
+    expect(body.from).toBeUndefined();
+  });
+
+  it('can record interest itself as the first decision', async () => {
+    const db = dbForDeal({ offerVersion: 1 });
+    const body = await decide(db, 'interested');
+    expect(body).toMatchObject({ decided: true, first: true, to: 'interested' });
+    expect(db.calls.some((c) => /insert into deal_decisions/i.test(c.sql))).toBe(true);
+  });
+
+  /** Interest is a first decision only. It is not somewhere a deal goes back to. */
+  it('refuses to record interest once a deal has moved on', async () => {
+    const db = dbForDeal({ standing: 'discovery', offerVersion: 1 });
+    const body = await decide(db, 'interested');
+    expect(body).toMatchObject({ decided: false, code: 'not_a_permitted_transition' });
+    expect(db.calls.some((c) => /insert into deal_decisions/i.test(c.sql))).toBe(false);
+  });
+
+  /** A later state may still be recorded first; nobody has to invent a step. */
+  it('lets a first decision skip straight to declined', async () => {
+    const db = dbForDeal({ offerVersion: 1 });
+    expect(await decide(db, 'declined')).toMatchObject({ decided: true, first: true });
+  });
+
+  /** The offer gate applies to a first decision exactly as it does to a move. */
+  it('refuses a first decision of accepted with no published offer', async () => {
+    const db = dbForDeal({});
+    const body = await decide(db, 'accepted');
+    expect(body).toMatchObject({ decided: false });
+    expect(db.calls.some((c) => /insert into deal_decisions/i.test(c.sql))).toBe(false);
   });
 
   /** Accepting nothing in particular is the hidden-terms failure. */

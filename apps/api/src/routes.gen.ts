@@ -1148,6 +1148,9 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
         "from": {
           "type": "string"
         },
+        "first": {
+          "type": "boolean"
+        },
         "to": {
           "type": "string"
         },

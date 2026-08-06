@@ -410,11 +410,17 @@ describe('derived deal moves', () => {
     expect(row.dealMoves).toEqual(['accepted', 'declined']);
   });
 
-  /** A lead nobody has decided starts at interested, the same as the handler assumes. */
-  it('treats a lead with no decision as interested', async () => {
+  /**
+   * A lead nobody has decided on offers interest as a first decision, not
+   * instead of one. Reading absence as `interested` is what made the state
+   * unrecordable, and the card read it the same way the handler did.
+   */
+  it('offers interest as a first decision when no decision exists', async () => {
     const db = pilotDb([[/from deal_decisions/i, []]]);
     const data = (await cards(db)).revenue_ops;
-    const [row] = data.items as Array<{ dealMoves: string[] }>;
-    expect(row.dealMoves).toEqual(['discovery', 'declined']);
+    const [row] = data.items as Array<{ dealMoves: string[]; deal: unknown }>;
+    expect(row.dealMoves).toEqual(['interested', 'discovery', 'declined']);
+    // And the lead still carries no decision — the offer is not a record.
+    expect(row.deal).toBeNull();
   });
 });

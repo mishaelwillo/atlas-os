@@ -48,7 +48,7 @@ export interface FunnelData {
  * pinned space sees every space, anyone else sees theirs.
  */
 export async function readFunnel(q: Queryable, space: string | null): Promise<FunnelData> {
-  const [leads, assessments, demos, sequences, touches, offers, deals, entitlements, revenue, blockers] =
+  const [leads, assessments, demos, sequences, touches, offers, deals, interested, entitlements, revenue, blockers] =
     await Promise.all([
       q.query(
         `select count(*)::int as n from leads where ($1::uuid is null or space_id = $1::uuid)`,
@@ -95,6 +95,18 @@ export async function readFunnel(q: Queryable, space: string | null): Promise<Fu
             where ($1::uuid is null or space_id = $1::uuid)
             order by lead_id, created_at desc
          ) latest group by state`,
+        [space],
+      ),
+      /*
+       * Interest is counted from history, not from the standing state.
+       * `deal_decisions` is append-only, so a lead that has since moved to
+       * discovery still has its interest row — counting only the standing
+       * state would make recorded interest fall as deals progressed, which is
+       * the same mistake the touch counting avoids.
+       */
+      q.query(
+        `select count(distinct lead_id)::int as n from deal_decisions
+          where state = 'interested' and ($1::uuid is null or space_id = $1::uuid)`,
         [space],
       ),
       q.query(
@@ -182,6 +194,7 @@ export async function readFunnel(q: Queryable, space: string | null): Promise<Fu
       replied: sumByState('replied'),
       suppressed: sumByState('suppressed'),
       offersPublished: n(offers.rows[0]?.n),
+      dealsInterested: n(interested.rows[0]?.n),
       dealsAccepted: byDealState.get('accepted') ?? 0,
       dealsDeclined: byDealState.get('declined') ?? 0,
       entitlementsActive: entitled.reduce((s, k) => s + (byEntitlement.get(k) ?? 0), 0),

@@ -363,7 +363,7 @@ ledgers is not executable and does not appear here.
 - Task class: quick
 - Approval required: no
 - Scopes: none
-- Description: Record where a deal has got to: interested, discovery, offer\_review, accepted or declined\. Operator\-only — it records a human decision, it does not make one\. Reviewing or accepting requires a published offer version\.
+- Description: Record where a deal has got to: interested, discovery, offer\_review, accepted or declined\. Operator\-only — it records a human decision, it does not make one\. A first decision may record interest itself; \`from\` is absent on one, because there was no prior state to name\. Reviewing or accepting requires a published offer version\.
 
 ### `hosting.activate` — Activate hosting
 - Stage: candidate

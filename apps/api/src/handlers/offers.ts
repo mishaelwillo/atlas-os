@@ -179,8 +179,13 @@ export const dealsDecide: CapabilityHandler = async (ctx, input) => {
       `select state from deal_decisions where lead_id = $1 order by created_at desc limit 1`,
       [leadId],
     );
-    // A deal nobody has recorded yet starts as interested.
-    const from = standing.rows[0] ? String(standing.rows[0].state) : 'interested';
+    /*
+     * Null, not `interested`. A deal nobody has recorded is not a deal
+     * somebody was interested in, and reading it as one made `interested`
+     * impossible to record: the planner only ever writes a transition target,
+     * and nothing transitions into the state it counted from.
+     */
+    const from = standing.rows[0] ? String(standing.rows[0].state) : null;
 
     /*
      * The offer is resolved from the table rather than taken from the request:
@@ -204,7 +209,15 @@ export const dealsDecide: CapabilityHandler = async (ctx, input) => {
         from,
         to,
       });
-      return { decided: false, code: plan.code, note: plan.message, from, status: 'refused' };
+      // Same reason as the success path: absent, never a state nobody recorded.
+      return {
+        decided: false,
+        code: plan.code,
+        note: plan.message,
+        ...(from === null ? {} : { from }),
+        first: from === null,
+        status: 'refused',
+      };
     }
 
     const res = await ctx.q.query(
@@ -220,10 +233,18 @@ export const dealsDecide: CapabilityHandler = async (ctx, input) => {
       offerVersion,
     });
 
+    /*
+     * `from` is omitted on a first decision rather than sent as a state or an
+     * empty string. There was no prior state, and naming one — or naming
+     * `interested`, as this used to — would report a decision nobody recorded.
+     * The output schema types it as a string for that reason: absent is the
+     * only honest representation of "there was nothing before this".
+     */
     return {
       decided: true,
       decisionId: String(res.rows[0]?.decision_id ?? ''),
-      from: plan.from,
+      ...(plan.from === null ? {} : { from: plan.from }),
+      first: plan.from === null,
       to: plan.to,
       offerVersion,
       status: plan.to,

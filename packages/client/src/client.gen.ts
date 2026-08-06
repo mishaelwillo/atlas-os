@@ -312,6 +312,7 @@ export type DealsDecideInput = {
 export type DealsDecideOutput = {
   decisionId?: string;
   from?: string;
+  first?: boolean;
   to?: string;
   offerVersion?: number;
   decided?: boolean;
