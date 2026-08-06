@@ -651,6 +651,46 @@ describe('handoff archival', () => {
     ).toHaveLength(1);
   });
 
+  /**
+   * The takeover point has to be one verification accepts.
+   *
+   * It used to copy the archived handoff's branch forward, so after a merge
+   * the replacement named a branch nothing was happening on any more and
+   * `control:verify` blocked with `handoff_branch_mismatch` — the artifact
+   * whose whole purpose is "a safe place for the next model to start" was
+   * reliably unsafe, and every session after a merge opened on a blocking
+   * finding that meant nothing.
+   */
+  it('records the branch the worktree is on, not the one that was archived', async () => {
+    const root = await fixtureRoot();
+
+    await archiveCurrentHandoff(root, now, { observeBranch: async () => 'main' });
+
+    const current = await readFile(join(root, 'docs', 'control', 'CURRENT_HANDOFF.md'), 'utf8');
+    expect(current).toContain('- Branch: `main`');
+    expect(current).not.toContain('- Branch: `codex/atlas-continuity`');
+    // The archive itself is untouched: it records what actually happened.
+    const archived = await readFile(
+      join(root, 'docs', 'control', 'handoffs', 'archived', '2026-07-24-previous-handoff.md'),
+      'utf8',
+    );
+    expect(archived).toContain('- Branch: `codex/atlas-continuity`');
+  });
+
+  /**
+   * Unreadable is not a licence to invent one. Keeping the archived branch is
+   * the last thing known to be true, and a detached `HEAD` names nowhere the
+   * work lives.
+   */
+  it('keeps the archived branch when the worktree cannot be read', async () => {
+    const root = await fixtureRoot();
+
+    await archiveCurrentHandoff(root, now, { observeBranch: async () => undefined });
+
+    const current = await readFile(join(root, 'docs', 'control', 'CURRENT_HANDOFF.md'), 'utf8');
+    expect(current).toContain('- Branch: `codex/atlas-continuity`');
+  });
+
   it.each(['write', 'rename'])(
     'rolls back only its new archive when current replacement %s fails',
     async (failure) => {

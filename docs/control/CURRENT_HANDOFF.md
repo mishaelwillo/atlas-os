@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `recordable-deal-interest`
+**Handoff ID:** `safe-takeover-handoff`
 **Status:** active
-**Started:** 2026-08-06T01:27:46.556Z
-**Updated:** 2026-08-06T01:27:46.556Z
+**Started:** 2026-08-06T02:21:10.972Z
+**Updated:** 2026-08-06T02:21:10.972Z
 **Actor:** Claude
-**Objective:** Make interest a recordable deal state by stopping absence being read as it
+**Objective:** Make the archived takeover point one that control:verify accepts
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `feat/recordable-deal-interest`
+- Branch: `fix/safe-takeover-handoff`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `0957f7155962425befcc938c42d15862084dc462`
+- Head commit: `4f377917b427831bb23702b4af06c5ad587dad7d`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- planDealTransition takes from: null, FIRST_DEAL_STATES derived, from omitted on first decisions, funnel gains an interest stage
+- archive-handoff records the observed worktree branch; AGENTS.md names archiving as a step
 
 ## Current working tree
 
@@ -25,17 +25,17 @@
 
 ## Verification evidence
 
-- Two mutations fail; transactional dry run proved the insert, the history count and the constraint, then rolled back
+- Mutation fails the guarantee test; proven end to end on main - one blocking finding before, exit 0 after
 
 ## Database actions
 
-- Read-only plus one rolled-back transaction; no schema change
-- Observed Supabase status: ok (live-read-only at 2026-08-05T23:52:55.555Z).
+- None
+- Observed Supabase status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## Hosting actions
 
 - No external action reported.
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-05T23:52:55.555Z).
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## External side effects
 
@@ -51,4 +51,4 @@ Clean up the pilot fixture in the atlas space, then resolve the directory adapte
 
 ## Definition of done
 
-A first decision can record interested, absence is a distinct input from it, and the funnel counts interest from history
+Archiving on the integration branch leaves control:verify exiting 0, and removing the fix fails a test

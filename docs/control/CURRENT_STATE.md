@@ -1033,6 +1033,41 @@ still finds it after the deal moves to discovery, the unpinned-space form
 parses with a null parameter, and the check constraint refuses an unknown state
 with `23514`.
 
+## The safe takeover point was reliably unsafe
+
+`control:archive-handoff` exists to "preserve a safe takeover point while no
+model is assigned". The replacement handoff it wrote copied the archived one's
+branch forward, so after a merge it named a branch nothing was happening on any
+more, and `control:verify` blocked with `control.handoff_branch_mismatch`.
+
+That made the artifact fail the check it exists to satisfy — and because
+`AGENTS.md` tells every session to run `control:status` and stop on blocking
+drift, every session after a merge opened on a finding that meant nothing. Three
+consecutive mains carried it, `589a8ad` included. A blocking finding that fires
+in a correct state is worse than no finding: it is the thing that teaches people
+to skip the check that would have caught a real one, which is the same reasoning
+that widened the fingerprint read-back budget.
+
+It looked like a workflow slip — "you forgot to archive" — and was not.
+Archiving reproduced the mismatch exactly, because the archive was the thing
+copying the stale branch. That was checked by running it rather than by reading
+the code.
+
+CI never saw it. `verify-static` clears the comparison when it has a trusted
+GitHub push event for the integration branch, which exists in Actions and never
+locally, so the green CI on every merge was consistent with a local main that
+could not verify.
+
+The replacement now records the branch the worktree is actually on. Unreadable
+falls back to the archived branch — the last thing known to be true — and a
+detached `HEAD` is treated as unreadable, because it names nowhere the work
+lives. Removing the fix fails the test that states the guarantee.
+
+Proven end to end rather than asserted: on main, `control:verify` reported one
+blocking finding, archiving with the fix wrote `- Branch: main`, and
+`control:verify` then exited 0. `AGENTS.md` now names archiving as a step, since
+a fix nobody runs is not one.
+
 ## Awaiting a decision
 
 None of these is blocked on code:
