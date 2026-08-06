@@ -348,7 +348,9 @@ export async function readPipeline(q: Queryable, space: string | null): Promise<
       offer,
       deal,
       dealMoves: permittedDealMoves({
-        from: deal?.state ?? 'interested',
+        // Null, not `interested`: no decision recorded is its own fact, and the
+        // first decision may record interest itself.
+        from: deal?.state ?? null,
         offerVersion: offer?.version ?? null,
       }),
       entitlement: byLeadEntitlement.get(leadId) ?? null,

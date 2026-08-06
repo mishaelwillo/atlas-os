@@ -136,7 +136,16 @@ export function describeRevenueOutcome(result: Record<string, unknown>): string 
       result.offerVersion === null || result.offerVersion === undefined
         ? 'no offer version'
         : `offer v${String(result.offerVersion)}`;
-    return `Recorded ${String(result.from)} → ${String(result.to)} · ${version}`;
+    /*
+     * A first decision has no prior state, and `from` is absent rather than
+     * null or a guessed one. Printing an arrow from nothing would name a
+     * decision nobody recorded.
+     */
+    const move =
+      result.first === true || typeof result.from !== 'string'
+        ? `Recorded ${String(result.to)} as the first decision`
+        : `Recorded ${String(result.from)} → ${String(result.to)}`;
+    return `${move} · ${version}`;
   }
   return `status ${String(result.status ?? 'unknown')}`;
 }

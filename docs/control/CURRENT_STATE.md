@@ -998,9 +998,40 @@ expressed interest is currently indistinguishable in the data from a lead
 nobody has touched. The code comment — "a deal nobody has recorded yet starts
 as interested" — reads absence as a positive fact.
 
-It is declared with that reasoning rather than silently fixed, because making
-it recordable adds a countable funnel stage, and that is a product decision
-rather than a defect in these rules. **Open for the operator.**
+**Resolved: the operator chose to make it recordable.**
+
+The fix is not an extra edge into `interested` — it is removing the conflation
+that caused it. `null` (nobody has decided anything) is now a distinct input
+from `interested`, handled before the transition table rather than inside it,
+because absence is not a state. A first decision may record interest itself, or
+anything an interested deal could already have become: someone who went
+straight to a discovery call is not made to claim an expression of interest
+first. That entry set is derived from the table rather than listed beside it.
+
+`from` is **absent** from the response on a first decision, in both the success
+and refusal paths, rather than sent as null or as a guessed state. The output
+schema types it as a string, which is what caught the null on the refusal path
+during testing — a real check doing its job. The card renders "Recorded X as
+the first decision" instead of an arrow from nothing.
+
+Two mutations confirm it: dropping `interested` from the first-decision set
+fails the reachability check, and restoring the handler's `?? 'interested'`
+fails three tests. The `declaredButReachable` half of the check would also have
+caught a stale deferral left behind, which is what it is for.
+
+**The funnel gained a stage, and it is a floor rather than a gate.** Interest
+is counted from history — `deal_decisions` is append-only, so a deal that has
+moved on to discovery keeps its interest row and the count does not fall as
+deals progress, the same reasoning the touch counting uses. `offer_published`
+still measures against `replied`, deliberately: because recording interest is
+optional, dividing offers by interest would imply a path every deal did not
+take, and would read over 100% the first time an operator skipped it.
+
+Proven against the real schema in a rolled-back transaction: `deal_decisions`
+accepts an `interested` row (no row had ever carried that state), the count
+still finds it after the deal moves to discovery, the unpinned-space form
+parses with a null parameter, and the check constraint refuses an unknown state
+with `23514`.
 
 ## Awaiting a decision
 

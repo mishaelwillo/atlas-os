@@ -72,6 +72,13 @@ export interface StageCounts {
   replied: number;
   suppressed: number;
   offersPublished: number;
+  /**
+   * Leads with a recorded expression of interest, counted from history rather
+   * than from the standing state — `deal_decisions` is append-only, so a deal
+   * that has since moved to discovery keeps its interest row and the count
+   * does not fall as deals progress.
+   */
+  dealsInterested: number;
   dealsAccepted: number;
   dealsDeclined: number;
   entitlementsActive: number;
@@ -161,6 +168,24 @@ export function buildFunnel(args: {
       count: c.replied,
       conversionPercent: percent(c.replied, c.touchesDelivered),
       of: 'touch_delivered',
+    },
+    /*
+     * Recorded interest is a floor, not a gate.
+     *
+     * A first decision may skip straight to discovery or declined — nobody has
+     * to invent an expression of interest they did not get — so a deal can
+     * reach an offer without ever passing through a recorded `interested`.
+     * That is why the next stage is still measured against `replied` rather
+     * than against this: dividing offers by interest would imply every offer
+     * came through a recorded one, and would read over 100% the first time an
+     * operator skipped the step.
+     */
+    {
+      id: 'interested',
+      label: 'Interest recorded',
+      count: c.dealsInterested,
+      conversionPercent: percent(c.dealsInterested, c.replied),
+      of: 'replied',
     },
     {
       id: 'offer_published',

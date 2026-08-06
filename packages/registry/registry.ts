@@ -248,9 +248,9 @@ export const registry = [
   {
     id: 'deals.decide',
     name: 'Record a deal decision',
-    description: 'Record where a deal has got to: interested, discovery, offer_review, accepted or declined. Operator-only — it records a human decision, it does not make one. Reviewing or accepting requires a published offer version.',
+    description: 'Record where a deal has got to: interested, discovery, offer_review, accepted or declined. Operator-only — it records a human decision, it does not make one. A first decision may record interest itself; `from` is absent on one, because there was no prior state to name. Reviewing or accepting requires a published offer version.',
     input: { type: 'object', required: ['leadId', 'state'], properties: { leadId: { type: 'string' }, state: { type: 'string' }, offerVersion: { type: 'number' }, notes: { type: 'string' } } },
-    output: { type: 'object', properties: { decisionId: { type: 'string' }, from: { type: 'string' }, to: { type: 'string' }, offerVersion: { type: 'number' }, decided: { type: 'boolean' }, code: { type: 'string' }, status: { type: 'string' } } },
+    output: { type: 'object', properties: { decisionId: { type: 'string' }, from: { type: 'string' }, first: { type: 'boolean' }, to: { type: 'string' }, offerVersion: { type: 'number' }, decided: { type: 'boolean' }, code: { type: 'string' }, status: { type: 'string' } } },
     taskClass: 'quick', requiresApproval: false, scopes: [], method: 'POST', execution: 'handler',
   },
   {

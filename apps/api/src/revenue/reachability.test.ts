@@ -95,12 +95,14 @@ describe('what each machine can reach', () => {
     expect(reachableStates(withoutDispatcher).has('sent')).toBe(false);
   });
 
-  it('a deal reaches every state but interested', () => {
+  /**
+   * Including `interested`, which nothing could record until a first decision
+   * stopped being counted from it.
+   */
+  it('a deal reaches all five of its states', () => {
     const reachable = reachableStates(dealMachine);
-    expect(reachable.has('interested')).toBe(false);
-    for (const state of ['discovery', 'offer_review', 'accepted', 'declined'] as const) {
-      expect(reachable.has(state), state).toBe(true);
-    }
+    expect(reachable.size).toBe(dealMachine.states.length);
+    expect(reachable.has('interested')).toBe(true);
   });
 });
 

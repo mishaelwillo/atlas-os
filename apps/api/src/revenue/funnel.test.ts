@@ -30,6 +30,7 @@ function counts(overrides: Partial<StageCounts> = {}): StageCounts {
     replied: 0,
     suppressed: 0,
     offersPublished: 0,
+    dealsInterested: 0,
     dealsAccepted: 0,
     dealsDeclined: 0,
     entitlementsActive: 0,
@@ -114,6 +115,38 @@ describe('a funnel with real movement', () => {
 
   it('is not empty', () => {
     expect(report.empty).toBe(false);
+  });
+
+  /**
+   * Recorded interest is a floor, not a gate. A first decision may skip
+   * straight to discovery, so an offer can exist without one — measuring
+   * offers against interest would read over 100% the first time an operator
+   * skipped the step, and would imply a path every deal did not take.
+   */
+  it('does not measure offers against recorded interest', () => {
+    const skipped = buildFunnel({
+      counts: counts({ replied: 4, dealsInterested: 0, offersPublished: 2 }),
+      recurringMinorByCurrency: {},
+    });
+    expect(skipped.stages.find((s) => s.id === 'interested')).toMatchObject({
+      count: 0,
+      of: 'replied',
+    });
+    expect(skipped.stages.find((s) => s.id === 'offer_published')).toMatchObject({
+      of: 'replied',
+      conversionPercent: 50,
+    });
+  });
+
+  /** A rate with no denominator stays unknown here too. */
+  it('reports interest as unknown when nothing replied', () => {
+    const nothing = buildFunnel({
+      counts: counts({ replied: 0, dealsInterested: 0 }),
+      recurringMinorByCurrency: {},
+    });
+    expect(nothing.stages.find((s) => s.id === 'interested')).toMatchObject({
+      conversionPercent: null,
+    });
   });
 
   it('measures each stage against the one before it, and says which', () => {

@@ -109,20 +109,18 @@ export const touchMachine: StateMachine = {
 /**
  * Deal decisions.
  *
- * There is no insert that carries a starting state: `deals.decide` reads the
- * standing decision, counts from `interested` when there is none, and writes
- * only the transition's target. So the entrances are whatever a first decision
- * may write, derived from the planner rather than listed.
+ * No insert carries a starting state — `deals.decide` writes only the
+ * transition's target — so the entrances are whatever a *first* decision may
+ * write, probed with `from: null`. Null is the honest input: a deal nobody has
+ * recorded is not a deal somebody was interested in, and reading it as one is
+ * what made `interested` unrecordable until this check found it.
  */
 export const dealMachine: StateMachine = {
   name: 'deal decision',
   states: DEAL_STATES,
-  entry: DEAL_STATES.filter((to) => planDealTransition({ from: 'interested', to, offerVersion: 1 }).ok),
+  entry: DEAL_STATES.filter((to) => planDealTransition({ from: null, to, offerVersion: 1 }).ok),
   canRequest: (from, to) => planDealTransition({ from, to, offerVersion: 1 }).ok,
-  deferred: {
-    interested:
-      'the assumed starting point rather than a recorded one: deals.decide counts from it when no decision exists, and writes only a transition target, so no deal_decisions row can carry it. A lead who has expressed interest and a lead nobody has touched are therefore the same absence. Making it recordable is a product decision, not a defect in these rules.',
-  },
+  deferred: {},
 };
 
 export const REVENUE_STATE_MACHINES: readonly StateMachine[] = [
