@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `p2b-timed-acceptance`
+**Handoff ID:** `first-real-prospect`
 **Status:** active
-**Started:** 2026-08-06T03:26:17.061Z
-**Updated:** 2026-08-06T03:26:17.061Z
+**Started:** 2026-08-06T23:31:57.736Z
+**Updated:** 2026-08-06T23:31:57.736Z
 **Actor:** Claude
-**Objective:** Run the P2B timed benchmark against a real business and close the phase
+**Objective:** Record the pilot's first real prospect and its honest verdict in the control plane
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `feat/p2b-timed-acceptance`
+- Branch: `docs/first-real-prospect`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `f674b0335303dca215c59943c9487ffa4f5df747`
+- Head commit: `3d29430964e8f67990a8c3d0f5fce9503b2598bc`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- P2B moved to done; acceptance reworded from the spec; benchmark recorded in CURRENT_STATE
+- Recorded the prospect and its assessment in CURRENT_STATE; corrected the model-credential entry; updated the P2C next action
 
 ## Current working tree
 
@@ -25,11 +25,11 @@
 
 ## Verification evidence
 
-- Preview verified in the database - three facts, zero unsourced - and rendered in the sandboxed viewer with a source link beside each
+- Lead row, assessment verdict and empty messages table read from production; no outreach exists
 
 ## Database actions
 
-- One site row created in the studio space by factory.build_site; nothing published
+- One lead and one assessment created in the atlas space through the product; nothing sent
 - Observed Supabase status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## Hosting actions
@@ -47,8 +47,8 @@
 
 ## Next exact action
 
-Decide whether Patrick's Plumbing Service becomes the first real pilot prospect; otherwise resolve the directory adapter
+Close the two unknowns on Patrick's Plumbing Service - verify identity and location against a second source and review the directory's contact policy - then re-assess to unlock a demo slot
 
 ## Definition of done
 
-P2B-FACTORY-001 is done, with the acceptance worded from the specification and the measured time recorded honestly
+CURRENT_STATE and WORK_QUEUE describe the real prospect, its eligibility_review verdict and what closes the gap

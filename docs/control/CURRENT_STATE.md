@@ -1135,20 +1135,91 @@ dropped; those were proven against production on 2026-08-04.
 Nothing was published. The preview is access-controlled and expiring, so no page
 about this business exists anywhere public.
 
+## The pilot has its first real prospect, 2026-08-06
+
+The `atlas` space holds one lead, and for the first time it is a real business
+rather than a fixture: **Patrick's Plumbing Service**, Kingston 11, Jamaica —
+lead `bc9794d6-6c83-4910-9ad7-d5036366ff45`, hand-sourced through
+`leads.record` from a FindYello directory listing, with the source URL recorded
+on the row and `handSourced: true`.
+
+It came out of the P2B benchmark. The business was found cold during that timed
+run, so the demo already exists as a preview in `studio` — built only from facts
+on its own listing, every one source-linked.
+
+### The rubric refused to call it qualified, and that is the point
+
+| | |
+| --- | --- |
+| verdict | **`eligibility_review`** |
+| total | **25 / 30** — above the qualifying threshold of 24 |
+| scores | fit 5, risk 5, urgency 5, demoEffort 4, evidence 3, contactability 3 |
+| blockers | none |
+| unknowns | `identity_unverified`, `contact_policy_unreviewed` |
+| expires | 2026-09-05 |
+
+A prospect that clears the threshold with no blockers still routes to a human
+because two questions are open. That ordering is deliberate — an unknown is not
+a settled fact, and answering everything else does not make it one.
+
+The unknowns are real, not procedural. Only one source was read: the business
+was not confirmed against a second, the Kingston 11 address was not
+independently checked, and **FindYello's terms and Jamaica's contact policy have
+not been reviewed**. Three dropdowns answered "yes" would have produced
+`qualified`; they were left "not checked" because nobody had checked them.
+
+That second unknown is worth more than it looks. Whether a business may be
+contacted from a directory listing, and on which channels, is the same
+licensing question the directory adapter turns on — so closing it here answers
+part of that decision too.
+
+### Funnel state
+
+Sourced 1 · assessed 1 · in review 1. Demo queue, sequences, touches, offers and
+entitlements are all zero, and `messages` is empty.
+
+**Nothing has reached this business.** No outreach was drafted, no sequence
+planned, nothing sent. `demos.enqueue` was not attempted: it refuses
+`not_qualified` while the verdict stands at review, which is correct, and
+recording a refusal nobody needed would only add noise to the trail.
+
+The two pending approvals are the `factory.deploy_site` rows from 2026-08-03 and
+2026-08-04 and are unrelated.
+
+### What closes the gap
+
+1. Verify identity and location against a second source.
+2. Review FindYello's terms and the applicable contact policy.
+3. Re-assess. With both unknowns answered the verdict should reach `qualified`,
+   which is what unlocks a demo slot.
+4. Rebuild the demo in `atlas` so it sits with the lead rather than in `studio`.
+
+The pilot's exit criterion — one real hosting-paying customer — is now blocked
+on this prospect progressing, not on the directory adapter. Hand sourcing is the
+documented pilot workflow, and `leads.record`'s own description says so.
+
 ## Awaiting a decision
 
 None of these is blocked on code:
 
-- **A model credential**, without which `playbooks.author` records the
-  operator's brief rather than running a frontier session.
+- **A model credential.** Setting `ATLAS_MODEL_API_KEY` alone changes nothing
+  today: `playbooks.author` never reads it — it hardcodes `frontierSession:
+  false` — and the router's only consumers, `memory.answer` and
+  `memory.distill`, both throw `501`. The dispatcher's comment blames a missing
+  credential for behaviour that has no branch on one. Either the code should
+  branch or the comment should stop citing it.
 - **Promoting `agents.logs`** from candidate, which carries a recorded evidence
-  gap for unreadable source material.
-- **A directory adapter** for lead sourcing, which keeps the leads list empty.
+  gap: its source frames do not show a readable AI-agent sub-tab view, and the
+  ledger records the observation at `confidence: low`.
+- **A directory adapter** for lead sourcing. It buys volume; it is no longer
+  what blocks the exit criterion.
+- **Whether `control.handoff_branch_mismatch` should stay blocking** on the
+  integration branch when the recorded boundary is already an ancestor of HEAD —
+  a state that is benign by construction and clears with one archive command.
 
 ## Next exact action
 
-Exercise the P2C cards in a signed-in browser: sign in, select a Space, and
-walk one prospect from assessment through demo slot, sequence, offer and deal
-decision to a hosting activation request. That needs an operator session Claude
-does not have. Then resolve one of the decisions above — the directory adapter
-is what still blocks the pilot's exit criterion.
+Close the two unknowns on Patrick's Plumbing Service — verify identity and
+location against a second source, and review the directory's terms and the
+applicable contact policy — then re-assess. A `qualified` verdict unlocks the
+demo slot, and the demo already exists.

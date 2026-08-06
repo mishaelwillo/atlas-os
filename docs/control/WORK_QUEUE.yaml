@@ -81,4 +81,4 @@ items:
     specification: docs/specs/p2/revenue-pilot.md
     acceptance_checks:
       - One real hosting-paying customer completes an approval-gated sequence
-    next_action: The operator surface is built — three Mission Control cards cover all twelve P2C capabilities, so the pilot can be run through the product; the exit criterion now blocks only on a directory adapter for lead sourcing, and the surface has not been exercised in a signed-in browser because Mission Control's password is not available to Claude
+    next_action: The pilot has its first real prospect — Patrick's Plumbing Service, lead bc9794d6, hand-sourced into the atlas space on 2026-08-06 and assessed at 25/30 with no blockers but two unknowns, so the verdict stands at eligibility_review; close identity/location verification and the directory's contact-policy review, then re-assess to unlock a demo slot. The exit criterion no longer blocks on the directory adapter, because hand sourcing through leads.record is the documented pilot workflow
