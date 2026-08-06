@@ -1,6 +1,8 @@
+import { execFile } from 'node:child_process';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 import { parse } from 'yaml';
 import { createHandoff, isSafeHandoffId } from './handoff.js';
 import {
@@ -25,8 +27,46 @@ function reviewField(markdown: string): string | undefined {
   return /^-\s*Review status:\s*(.+?)\s*$/im.exec(markdown)?.[1];
 }
 
+const execFileAsync = promisify(execFile);
+
+/**
+ * The branch the worktree is actually on.
+ *
+ * The replacement handoff used to copy the archived one's branch forward, and
+ * that is how the takeover point this function exists to create came to be one
+ * that fails verification. After a merge the archived work sits on a branch
+ * that is no longer where anything happens, `control:verify` compares the
+ * recorded branch against the authoritative one, and blocks — so the artifact
+ * whose whole purpose is "a safe place for the next model to start" was
+ * reliably unsafe, and every session after a merge opened on a blocking
+ * finding that meant nothing. A blocking finding that fires in a correct state
+ * is worse than no finding: it is the thing that teaches people to skip the
+ * check that would have caught a real one.
+ */
+async function defaultObserveBranch(root: string): Promise<string | undefined> {
+  try {
+    const { stdout } = await execFileAsync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
+      cwd: root,
+      windowsHide: true,
+      encoding: 'utf8',
+    });
+    const branch = stdout.trim();
+    // A detached HEAD is not a branch, and naming it `HEAD` would be a claim
+    // about where the work lives that is not true of anywhere.
+    return branch === '' || branch === 'HEAD' ? undefined : branch;
+  } catch {
+    return undefined;
+  }
+}
+
 export interface ArchiveHandoffDependencies {
   currentWriteOperations?: AtomicWriteOperations;
+  /**
+   * Injected so the tests need no git repository. Returning `undefined` means
+   * the worktree could not be read, and the archived branch is kept — the last
+   * thing known to be true, rather than a guess.
+   */
+  observeBranch?: (root: string) => Promise<string | undefined>;
   writeArchive?: (
     path: string,
     content: string,
@@ -62,6 +102,8 @@ export async function archiveCurrentHandoff(
     );
   }
 
+  const observedBranch = await (dependencies.observeBranch ?? defaultObserveBranch)(root);
+
   const date = now.toISOString().slice(0, 10);
   const archiveDirectory = join(controlRoot, 'handoffs', 'archived');
   const archivePath = join(archiveDirectory, `${date}-${id}.md`);
@@ -78,7 +120,12 @@ export async function archiveCurrentHandoff(
     {
       startedAt: now.toISOString(),
       updatedAt: now.toISOString(),
-      branch: activeField(current, 'Branch') ?? 'unknown',
+      /*
+       * Where the next model would actually be standing, not where the work
+       * that just finished was done. Falls back to the archived branch only
+       * when the worktree cannot be read.
+       */
+      branch: observedBranch ?? activeField(current, 'Branch') ?? 'unknown',
       baseCommit: activeField(current, 'Base commit') ?? 'unknown',
       headCommit: activeField(current, 'Head commit') ?? 'unknown',
       reviewStatus: reviewField(current) ?? 'unknown',

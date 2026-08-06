@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `recordable-deal-interest`
+**Handoff ID:** `unassigned-2026-08-06`
 **Status:** active
-**Started:** 2026-08-06T01:27:46.556Z
-**Updated:** 2026-08-06T01:27:46.556Z
-**Actor:** Claude
-**Objective:** Make interest a recordable deal state by stopping absence being read as it
+**Started:** 2026-08-06T02:16:44.192Z
+**Updated:** 2026-08-06T02:16:44.192Z
+**Actor:** Unassigned
+**Objective:** Preserve a safe takeover point while no model is assigned.
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `feat/recordable-deal-interest`
+- Branch: `main`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
 - Head commit: `0957f7155962425befcc938c42d15862084dc462`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- planDealTransition takes from: null, FIRST_DEAL_STATES derived, from omitted on first decisions, funnel gains an interest stage
+- The prior current handoff was archived byte-for-byte.
 
 ## Current working tree
 
@@ -25,21 +25,19 @@
 
 ## Verification evidence
 
-- Two mutations fail; transactional dry run proved the insert, the history count and the constraint, then rolled back
+- The prior handoff was archived without altering its contents.
 
 ## Database actions
 
-- Read-only plus one rolled-back transaction; no schema change
-- Observed Supabase status: ok (live-read-only at 2026-08-05T23:52:55.555Z).
+- No external action reported.
 
 ## Hosting actions
 
 - No external action reported.
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-05T23:52:55.555Z).
 
 ## External side effects
 
-- No external action reported.
+- Created an immutable repository-local handoff archive.
 
 ## Blockers
 
@@ -47,8 +45,8 @@
 
 ## Next exact action
 
-Clean up the pilot fixture in the atlas space, then resolve the directory adapter decision that blocks the pilot exit criterion
+select a ready work item from WORK_QUEUE.yaml.
 
 ## Definition of done
 
-A first decision can record interested, absence is a distinct input from it, and the funnel counts interest from history
+A model claims the active work item and creates a new handoff.

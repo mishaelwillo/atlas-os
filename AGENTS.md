@@ -15,5 +15,8 @@ Before stopping:
 2. Run `pnpm control:verify`.
 3. Update `docs/control/CURRENT_HANDOFF.md`.
 4. Record external writes and the next exact action.
+5. After merging, on the integration branch, run `pnpm control:archive-handoff`.
+   An active handoff naming a merged branch blocks `control:verify` for the next
+   session, which then opens on a finding that means nothing.
 
 Never put tokens, passwords, private keys, connection strings, or secret values in control artifacts.
