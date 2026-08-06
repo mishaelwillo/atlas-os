@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `unassigned-2026-08-06`
+**Handoff ID:** `first-real-prospect`
 **Status:** active
-**Started:** 2026-08-06T23:29:48.906Z
-**Updated:** 2026-08-06T23:29:48.906Z
-**Actor:** Unassigned
-**Objective:** Preserve a safe takeover point while no model is assigned.
+**Started:** 2026-08-06T23:31:57.736Z
+**Updated:** 2026-08-06T23:31:57.736Z
+**Actor:** Claude
+**Objective:** Record the pilot's first real prospect and its honest verdict in the control plane
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `main`
+- Branch: `docs/first-real-prospect`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `f674b0335303dca215c59943c9487ffa4f5df747`
+- Head commit: `3d29430964e8f67990a8c3d0f5fce9503b2598bc`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- The prior current handoff was archived byte-for-byte.
+- Recorded the prospect and its assessment in CURRENT_STATE; corrected the model-credential entry; updated the P2C next action
 
 ## Current working tree
 
@@ -25,19 +25,21 @@
 
 ## Verification evidence
 
-- The prior handoff was archived without altering its contents.
+- Lead row, assessment verdict and empty messages table read from production; no outreach exists
 
 ## Database actions
 
-- No external action reported.
+- One lead and one assessment created in the atlas space through the product; nothing sent
+- Observed Supabase status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## Hosting actions
 
 - No external action reported.
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## External side effects
 
-- Created an immutable repository-local handoff archive.
+- No external action reported.
 
 ## Blockers
 
@@ -45,8 +47,8 @@
 
 ## Next exact action
 
-select a ready work item from WORK_QUEUE.yaml.
+Close the two unknowns on Patrick's Plumbing Service - verify identity and location against a second source and review the directory's contact policy - then re-assess to unlock a demo slot
 
 ## Definition of done
 
-A model claims the active work item and creates a new handoff.
+CURRENT_STATE and WORK_QUEUE describe the real prospect, its eligibility_review verdict and what closes the gap
