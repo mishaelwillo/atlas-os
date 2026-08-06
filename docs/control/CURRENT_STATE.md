@@ -1065,8 +1065,19 @@ lives. Removing the fix fails the test that states the guarantee.
 
 Proven end to end rather than asserted: on main, `control:verify` reported one
 blocking finding, archiving with the fix wrote `- Branch: main`, and
-`control:verify` then exited 0. `AGENTS.md` now names archiving as a step, since
-a fix nobody runs is not one.
+`control:verify` then exited 0.
+
+**Where in the workflow it goes was wrong at first, and running it is what
+showed that.** It was written as a closing step — archive after merging — which
+cannot work: the commit lands on a protected branch and cannot be pushed.
+Recording the integration branch from a feature branch instead would fail that
+branch's own CI, because a pull-request run compares against the head ref. So
+archiving belongs at the *start* of a session, on the integration branch, before
+a new handoff is created; the change then rides along in whatever branch opens
+next. `AGENTS.md` says that, with the reason.
+
+The steady state is an `unassigned-<date>` handoff naming the integration
+branch, which verifies clean.
 
 ## Awaiting a decision
 

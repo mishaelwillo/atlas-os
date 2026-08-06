@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `safe-takeover-handoff`
+**Handoff ID:** `unassigned-2026-08-06`
 **Status:** active
-**Started:** 2026-08-06T02:21:10.972Z
-**Updated:** 2026-08-06T02:21:10.972Z
-**Actor:** Claude
-**Objective:** Make the archived takeover point one that control:verify accepts
+**Started:** 2026-08-06T02:23:34.890Z
+**Updated:** 2026-08-06T02:23:34.890Z
+**Actor:** Unassigned
+**Objective:** Preserve a safe takeover point while no model is assigned.
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `fix/safe-takeover-handoff`
+- Branch: `main`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
 - Head commit: `4f377917b427831bb23702b4af06c5ad587dad7d`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- archive-handoff records the observed worktree branch; AGENTS.md names archiving as a step
+- The prior current handoff was archived byte-for-byte.
 
 ## Current working tree
 
@@ -25,21 +25,19 @@
 
 ## Verification evidence
 
-- Mutation fails the guarantee test; proven end to end on main - one blocking finding before, exit 0 after
+- The prior handoff was archived without altering its contents.
 
 ## Database actions
 
-- None
-- Observed Supabase status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
+- No external action reported.
 
 ## Hosting actions
 
 - No external action reported.
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## External side effects
 
-- No external action reported.
+- Created an immutable repository-local handoff archive.
 
 ## Blockers
 
@@ -47,8 +45,8 @@
 
 ## Next exact action
 
-Clean up the pilot fixture in the atlas space, then resolve the directory adapter decision that blocks the pilot exit criterion
+select a ready work item from WORK_QUEUE.yaml.
 
 ## Definition of done
 
-Archiving on the integration branch leaves control:verify exiting 0, and removing the fix fails a test
+A model claims the active work item and creates a new handoff.
