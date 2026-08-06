@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `unassigned-2026-08-06`
+**Handoff ID:** `safe-takeover-handoff`
 **Status:** active
-**Started:** 2026-08-06T02:16:44.192Z
-**Updated:** 2026-08-06T02:16:44.192Z
-**Actor:** Unassigned
-**Objective:** Preserve a safe takeover point while no model is assigned.
+**Started:** 2026-08-06T02:21:10.972Z
+**Updated:** 2026-08-06T02:21:10.972Z
+**Actor:** Claude
+**Objective:** Make the archived takeover point one that control:verify accepts
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `main`
+- Branch: `fix/safe-takeover-handoff`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `0957f7155962425befcc938c42d15862084dc462`
+- Head commit: `4f377917b427831bb23702b4af06c5ad587dad7d`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- The prior current handoff was archived byte-for-byte.
+- archive-handoff records the observed worktree branch; AGENTS.md names archiving as a step
 
 ## Current working tree
 
@@ -25,19 +25,21 @@
 
 ## Verification evidence
 
-- The prior handoff was archived without altering its contents.
+- Mutation fails the guarantee test; proven end to end on main - one blocking finding before, exit 0 after
 
 ## Database actions
 
-- No external action reported.
+- None
+- Observed Supabase status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## Hosting actions
 
 - No external action reported.
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## External side effects
 
-- Created an immutable repository-local handoff archive.
+- No external action reported.
 
 ## Blockers
 
@@ -45,8 +47,8 @@
 
 ## Next exact action
 
-select a ready work item from WORK_QUEUE.yaml.
+Clean up the pilot fixture in the atlas space, then resolve the directory adapter decision that blocks the pilot exit criterion
 
 ## Definition of done
 
-A model claims the active work item and creates a new handoff.
+Archiving on the integration branch leaves control:verify exiting 0, and removing the fix fails a test
