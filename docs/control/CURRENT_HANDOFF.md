@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `unassigned-2026-08-06`
+**Handoff ID:** `archive-workflow-placement`
 **Status:** active
-**Started:** 2026-08-06T02:23:34.890Z
-**Updated:** 2026-08-06T02:23:34.890Z
-**Actor:** Unassigned
-**Objective:** Preserve a safe takeover point while no model is assigned.
+**Started:** 2026-08-06T02:25:23.546Z
+**Updated:** 2026-08-06T02:25:23.546Z
+**Actor:** Claude
+**Objective:** Put handoff archiving at the point in the workflow where it can actually be run
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `main`
+- Branch: `docs/archive-workflow-placement`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `4f377917b427831bb23702b4af06c5ad587dad7d`
+- Head commit: `94bafa7c257151f36653f9c53fdc0f1b26f3a6c5`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- The prior current handoff was archived byte-for-byte.
+- Moved archiving to session start in AGENTS.md; carries the archived takeover point
 
 ## Current working tree
 
@@ -25,19 +25,21 @@
 
 ## Verification evidence
 
-- The prior handoff was archived without altering its contents.
+- The mis-placed step was caught by running it: the archive left a handoff naming main while on a feature branch, which control:verify blocked
 
 ## Database actions
 
-- No external action reported.
+- None
+- Observed Supabase status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## Hosting actions
 
 - No external action reported.
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## External side effects
 
-- Created an immutable repository-local handoff archive.
+- No external action reported.
 
 ## Blockers
 
@@ -45,8 +47,8 @@
 
 ## Next exact action
 
-select a ready work item from WORK_QUEUE.yaml.
+Clean up the pilot fixture in the atlas space, then resolve the directory adapter decision that blocks the pilot exit criterion
 
 ## Definition of done
 
-A model claims the active work item and creates a new handoff.
+AGENTS.md describes an archiving step that does not require pushing to a protected branch or failing a feature branch's CI
