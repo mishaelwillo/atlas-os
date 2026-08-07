@@ -8,6 +8,7 @@ import type { CapabilityHandler } from '../pipeline.js';
 import { TEMPLATE_LIBRARY } from '../factory/templates.js';
 import { isMissingTable, readFunnel } from './analytics.js';
 import { buildFunnel } from '../revenue/funnel.js';
+import { COST_CATEGORIES } from '../revenue/pilot-record.js';
 import {
   PROSPECTING_VOCABULARY,
   REVENUE_VOCABULARY,
@@ -161,8 +162,20 @@ export const statusMissionControl: CapabilityHandler = async (ctx) => {
       ...buildFunnel({
         counts: data.counts,
         recurringMinorByCurrency: data.recurringMinorByCurrency,
+        /*
+         * Without this the card renders the funnel while silently omitting the
+         * cost record — the half of the exit criterion an operator has to act
+         * on, and the half nobody would notice was missing.
+         */
+        cost: data.cost,
       }),
       topBlockers: data.topBlockers,
+      /*
+       * The categories the recording form is built from, published rather than
+       * restated in the card. A hand-written list is how a category quietly
+       * stops being recordable.
+       */
+      costCategories: [...COST_CATEGORIES],
       available: true,
     };
   } catch (err) {

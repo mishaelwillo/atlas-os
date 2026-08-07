@@ -8,7 +8,13 @@
 import { describe, expect, it } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import React from 'react';
-import { FunnelCard, formatMoney, formatRate, type FunnelData } from './FunnelCard.js';
+import {
+  FunnelCard,
+  describeRecordOutcome,
+  formatMoney,
+  formatRate,
+  type FunnelData,
+} from './FunnelCard.js';
 
 const MOVED: FunnelData = {
   available: true,
@@ -96,5 +102,127 @@ describe('FunnelCard', () => {
 
     expect(card.getByRole('status')).toHaveTextContent('migrations 0004 to 0006');
     expect(screen.queryByTestId('funnel-rates')).toBeNull();
+  });
+
+  /**
+   * The unavailable branch returns before the form renders, so its hook count
+   * must still match. Rendering both shapes in one test is what catches a hook
+   * declared after the early return.
+   */
+  it('survives switching between available and unavailable', () => {
+    const { rerender } = render(<FunnelCard data={MOVED} client={{} as never} hasSpace />);
+    rerender(<FunnelCard data={{ available: false, note: 'gone' }} client={{} as never} hasSpace />);
+    rerender(<FunnelCard data={MOVED} client={{} as never} hasSpace />);
+    expect(screen.getByTestId('card-funnel')).toBeTruthy();
+  });
+});
+
+/**
+ * The cost, support and outcome half of the exit criterion.
+ *
+ * The capabilities existed with no operator surface — the same gap the twelve
+ * P2C capabilities shipped with, where everything was drivable only by API and
+ * so nothing got recorded.
+ */
+describe('the cost record', () => {
+  const COMPLETE: FunnelData = {
+    ...MOVED,
+    costRecord: {
+      minorByCurrency: { USD: 2_500 },
+      minutesByCategory: { labour: 120 },
+      satisfaction: 4.5,
+      satisfactionCount: 2,
+      complete: true,
+      missingCategories: [],
+      satisfactionMissing: false,
+    },
+    grossMarginMinorByCurrency: { USD: 7_500 },
+    grossMarginUnavailableReason: null,
+  };
+
+  it('shows recorded money and time without adding them together', () => {
+    render(<FunnelCard data={COMPLETE} />);
+    expect(screen.getByTestId('funnel-cost-USD')).toHaveTextContent('25.00 USD');
+    expect(screen.getByTestId('funnel-minutes-labour')).toHaveTextContent('120 min');
+    expect(screen.getByTestId('funnel-minutes-labour')).toHaveTextContent('not priced');
+  });
+
+  it('shows margin once the record is complete', () => {
+    render(<FunnelCard data={COMPLETE} />);
+    expect(screen.getByTestId('funnel-margin')).toHaveTextContent('75.00 USD');
+  });
+
+  /** A margin from part of the costs is always too high, so it is withheld. */
+  it('withholds margin and says why while the record is incomplete', () => {
+    render(
+      <FunnelCard
+        data={{
+          ...COMPLETE,
+          costRecord: { ...COMPLETE.costRecord, complete: false, missingCategories: ['support'] },
+          grossMarginMinorByCurrency: null,
+          grossMarginUnavailableReason: 'the cost record is incomplete',
+        }}
+      />,
+    );
+    const margin = screen.getByTestId('funnel-margin');
+    expect(margin).toHaveTextContent('—');
+    expect(margin).toHaveTextContent('incomplete');
+    expect(margin).not.toHaveTextContent('75.00');
+  });
+
+  /** Nobody asked is not the same as indifferent. */
+  it('renders an unrecorded satisfaction as a gap, not a number', () => {
+    render(
+      <FunnelCard
+        data={{
+          ...COMPLETE,
+          costRecord: { ...COMPLETE.costRecord, satisfaction: null, satisfactionCount: 0 },
+        }}
+      />,
+    );
+    expect(screen.getByTestId('funnel-satisfaction')).toHaveTextContent('nobody has been asked');
+  });
+
+  it('offers no recording form without a client', () => {
+    render(<FunnelCard data={COMPLETE} />);
+    expect(screen.queryByTestId('record-cost')).toBeNull();
+  });
+
+  it('builds its category list from the API, not a hand-written one', () => {
+    render(
+      <FunnelCard
+        data={{ ...COMPLETE, costCategories: ['provider', 'labour'] }}
+        client={{} as never}
+        hasSpace
+      />,
+    );
+    const options = Array.from((screen.getByTestId('cost-category') as HTMLSelectElement).options)
+      .map((o) => o.value)
+      .filter(Boolean);
+    expect(options).toEqual(['provider', 'labour']);
+  });
+});
+
+describe('describeRecordOutcome', () => {
+  /** A 200 carrying recorded:false is a refusal and must read as one. */
+  it('reports a refusal with its code rather than as success', () => {
+    expect(
+      describeRecordOutcome({ recorded: false, code: 'money_and_time', note: 'not both' }),
+    ).toMatch(/Refused \(money_and_time\)/);
+  });
+
+  it('names a pending schema rather than failing quietly', () => {
+    expect(describeRecordOutcome({ status: 'schema_pending', note: '0012 not applied' })).toMatch(
+      /Nothing was recorded/,
+    );
+  });
+
+  it('confirms a recorded cost and a recorded outcome', () => {
+    expect(describeRecordOutcome({ recorded: true, entryId: 'e1', category: 'provider' })).toMatch(
+      /Recorded a provider cost/,
+    );
+    expect(describeRecordOutcome({ recorded: true, outcomeId: 'o1', satisfaction: 4 })).toMatch(
+      /satisfaction 4/,
+    );
   });
 });
