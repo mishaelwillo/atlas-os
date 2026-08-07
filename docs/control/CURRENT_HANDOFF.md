@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `fold-in-four-merges`
+**Handoff ID:** `roadmap-sequencing`
 **Status:** active
-**Started:** 2026-08-07T17:38:54.983Z
-**Updated:** 2026-08-07T17:38:54.983Z
+**Started:** 2026-08-07T18:49:51.795Z
+**Updated:** 2026-08-07T18:49:51.795Z
 **Actor:** Claude
-**Objective:** Make CURRENT_STATE describe the four merged changes and the current prospect scores
+**Objective:** Stop the roadmap duplicating phase status and going stale
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `docs/fold-in-four-merges`
+- Branch: `docs/roadmap-sequencing`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `8f8432955a2bf2d205b9cd3955bca32c807401f1`
+- Head commit: `31d02284e4b6682b596dfa0c3dc1fc5a5e09d2f7`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Added assess-form and contact-policy sections, extended the takeover section, corrected prospect scores, pruned the decision list
+- Rewrote Current sequencing as dependency reasoning
 
 ## Current working tree
 
@@ -25,7 +25,7 @@
 
 ## Verification evidence
 
-- Scores checked against the standing assessments read from production: Xpert 26/30, Patricks 25/30
+- Phase status read from WORK_QUEUE rather than restated
 
 ## Database actions
 
@@ -47,8 +47,8 @@
 
 ## Next exact action
 
-Close the location unknown on Xpert with one question on the phone call - where are they based - to reach qualified and unlock a demo slot
+Build the cost, support and outcome record P2C's exit criterion requires
 
 ## Definition of done
 
-CURRENT_STATE records all four merges, the standing scores match production, and the decision list holds only real decisions
+The roadmap carries dependency reasoning and points at WORK_QUEUE for status
