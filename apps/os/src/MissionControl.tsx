@@ -887,7 +887,15 @@ export function MissionControlLive() {
                 </React.Fragment>
               );
             case 'funnel':
-              return <FunnelCard key={card.id} data={card.data} />;
+              return (
+                <FunnelCard
+                  key={card.id}
+                  data={card.data}
+                  client={client}
+                  hasSpace={spaceId !== null}
+                  onRecorded={() => void refresh()}
+                />
+              );
             case 'prospects':
               return (
                 <ProspectsCard
