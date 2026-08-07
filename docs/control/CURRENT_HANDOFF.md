@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `contact-policy-settled-negative`
+**Handoff ID:** `fold-in-four-merges`
 **Status:** active
-**Started:** 2026-08-07T08:43:18.485Z
-**Updated:** 2026-08-07T08:43:18.485Z
+**Started:** 2026-08-07T17:38:54.983Z
+**Updated:** 2026-08-07T17:38:54.983Z
 **Actor:** Claude
-**Objective:** Let a contact-policy review record a prohibition instead of looking like no review
+**Objective:** Make CURRENT_STATE describe the four merged changes and the current prospect scores
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `feat/contact-policy-settled-negative`
+- Branch: `docs/fold-in-four-merges`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `0e8f127b3208ae5cc9d06d91d377c22f2de1f578`
+- Head commit: `8f8432955a2bf2d205b9cd3955bca32c807401f1`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Replaced contactPolicyReviewed with a three-state contactPolicy; prohibited is a blocker; vocabulary published to the card
+- Added assess-form and contact-policy sections, extended the takeover section, corrected prospect scores, pruned the decision list
 
 ## Current working tree
 
@@ -25,11 +25,11 @@
 
 ## Verification evidence
 
-- Three mutations fail including collapsing prohibited into the unknown; both production assessments replayed and reproduced their verdicts
+- Scores checked against the standing assessments read from production: Xpert 26/30, Patricks 25/30
 
 ## Database actions
 
-- Read-only replay of stored evidence; no schema change
+- None
 - Observed Supabase status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## Hosting actions
@@ -47,8 +47,8 @@
 
 ## Next exact action
 
-Close the location unknown on Xpert - one question on the call you are already making - to reach qualified and unlock a demo slot
+Close the location unknown on Xpert with one question on the phone call - where are they based - to reach qualified and unlock a demo slot
 
 ## Definition of done
 
-contactPolicy has three distinct outcomes, prohibited blocks, and stored assessments replay to their recorded verdicts
+CURRENT_STATE records all four merges, the standing scores match production, and the decision list holds only real decisions

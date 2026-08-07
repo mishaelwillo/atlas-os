@@ -1079,6 +1079,100 @@ next. `AGENTS.md` says that, with the reason.
 The steady state is an `unassigned-<date>` handoff naming the integration
 branch, which verifies clean.
 
+### And the finding itself no longer blocks when the work is merged
+
+Fixing the archive left the underlying nuisance: between a merge and the next
+session's archive, the integration branch still carried a handoff naming the
+merged branch, and that still blocked. `AGENTS.md` says to stop on blocking
+drift, so a session could open on a finding that meant nothing and had a
+one-command fix.
+
+`control.handoff_branch_mismatch` is now a **warning** in exactly one case, and
+the case is narrow: HEAD is on the declared integration branch, the recorded
+boundary exists, and it is already an ancestor of HEAD. That is the definition
+of merged work awaiting archival. Every other mismatch still blocks — a missing
+boundary, or one not yet merged, is when the handoff genuinely describes work
+somewhere else. The warning names the command that clears it.
+
+**A mutation caught the test that was supposed to protect this.** One of the
+three "stays blocking" cases asserted that *something* blocks. In the
+not-yet-merged case `handoff_commit_not_ancestor` blocks anyway, so the
+assertion passed while hiding a mismatch that had been wrongly downgraded —
+dropping the ancestor condition survived the whole suite. The tests now assert
+the severity of the mismatch finding itself, and all three conditions have a
+failing mutation.
+
+## The assess form replaced the record it looked like it was editing
+
+`prospecting.qualify` writes a whole evidence set, and the operator form reset
+to blank on every open. So re-assessing was a **create wearing an edit's
+clothes**: correcting one field silently dropped every other, and the rubric
+faithfully scored the emptier evidence.
+
+It happened twice in one session. Once a fact count reached the API as `0` and
+fired a spurious `insufficient_facts` unknown. Once the form reopened empty and
+would have wiped a documented weak-site problem — the only thing keeping that
+prospect out of a hard blocker — along with the identity verification and the
+fact count.
+
+Both were caught by reading back what was stored, which is the only thing that
+could have caught them. The form accepts the submission and the rubric scores
+whatever it was handed; nothing in between notices that a field never arrived.
+
+The card now publishes the standing assessment's evidence and the form loads
+it, so unchanged fields keep their values. `loadEvidence` is the inverse of
+`buildEvidence` and a test asserts the round trip loses nothing. A missing
+boolean loads as `unknown`, never `no` — the rubric sends an unknown to review
+and can disqualify on a settled false, so collapsing them would put a verdict
+on the record nobody decided.
+
+**Unreadable evidence becomes null, and the form says so.** A standing
+assessment whose evidence was lost produces the same empty fields as a first
+assessment, and only one of those quietly destroys work. The form states which
+of the three it is in. Verified in production on its first real use: reopening
+Patrick's assessment prefilled fourteen fields and took a two-field correction
+that had previously required re-entering all of them.
+
+## Two things that could not say what had been found
+
+Both are the same shape — a value whose vocabulary was too small for the truth —
+and both were found by trying to record something real.
+
+**`playbooks.author` blamed a credential it never reads.** Its comment said the
+specification's budgeted frontier session was skipped *because no model
+credential is configured*. There is no branch on one: it never reads
+`ATLAS_MODEL_API_KEY`, never touches `ctx.deps.router`, and returns a literal
+`frontierSession: false`. The comment read as a switch waiting to be flipped,
+and it worked — the model credential sat on the decision list below as though
+setting it would unblock something. It would have done nothing. The comment now
+states the session is unbuilt work rather than a disabled feature, and two
+tests hold it: the router is never invoked, and the flag stays false with a
+credential configured. Wiring the session up fails both.
+
+**A contact-policy review could not record a prohibition.**
+`contactPolicyReviewed` was a `boolean | null` in which `false` and `null`
+behaved identically — both produced the "not reviewed" unknown. An operator who
+read a directory's terms and found they *prohibit* commercial contact had
+nowhere to record it; having looked and found a prohibition was
+indistinguishable from never having looked. That is not hypothetical: FindYello
+prohibits commercial use and building a database from the site, and the only
+way to represent the review was to leave the field saying nobody had done one.
+The form made it worse by offering three options while the rubric collapsed two.
+
+The field name was the real problem — "reviewed: no" can only mean "not
+reviewed" — so it became
+`contactPolicy: 'unreviewed' | 'permitted' | 'prohibited'`. **`prohibited` is a
+blocker, not an unknown**: a source that forbids this use is a settled fact, and
+answering every other question does not make it permit contact it forbids. It
+earns no contactability credit either. The vocabulary is published on the rubric
+payload so the control is built from it rather than restating it.
+
+Backwards compatible and checked against real data: a stored
+`contactPolicyReviewed: true` reads as `permitted`, the legacy `false` reads as
+`unreviewed` rather than inventing a prohibition nobody recorded, and both
+production assessments replay through the new rubric to their stored verdicts
+exactly — 26/30 and 25/30.
+
 ## P2B is complete — the timed benchmark, 2026-08-06
 
 Run through Mission Control in a signed-in operator session, against a real
@@ -1159,14 +1253,21 @@ Three dropdowns answered "yes" would have produced `qualified`. They were left
 
 ### Then the second source was checked, and it downgraded the prospect
 
-The standing assessment is now **23/30**, still `eligibility_review`, with a
-third unknown.
+The verification downgraded it to 23/30 with a third unknown. Clearing the
+contact-policy question afterwards brought it back to **25/30**, still
+`eligibility_review`, still with the two unknowns the verification found.
 
-| | first | standing |
-| --- | --- | --- |
-| total | 25 / 30 | **23 / 30** — below the threshold |
-| risk | 5 | 3 |
-| unknowns | `identity_unverified`, `contact_policy_unreviewed` | + `operating_status_uncertain` |
+| | first | after verification | standing |
+| --- | --- | --- | --- |
+| total | 25 / 30 | 23 / 30 | **25 / 30** |
+| risk | 5 | 3 | 3 |
+| unknowns | identity, contact policy | + `operating_status_uncertain` | `operating_status_uncertain`, `identity_unverified` |
+
+The two totals of 25 are not the same 25: the first came from an unverified
+prospect scoring well on risk, the current one from a prospect whose risk score
+fell and whose contact policy was resolved. The score is a summary, and a stable
+number can hide two things moving in opposite directions — which is why the
+unknowns, not the total, are what decide the verdict.
 
 **Identity could not be verified, and the reason matters more than the
 failure.** Every trace of this business leads back to the one FindYello
@@ -1201,10 +1302,13 @@ construction.
 | --- | --- |
 | lead | Xpert Plumbing & Maintenance Services, Portmore / Kingston |
 | verdict | `eligibility_review` |
-| total | **24 / 30** — exactly at the threshold |
-| scores | fit 5, risk 5, evidence 4, demoEffort 4, urgency 3, contactability 3 |
+| total | **26 / 30** — above the qualifying threshold of 24 |
+| scores | fit 5, risk 5, evidence 4, demoEffort 4, contactability 5, urgency 3 |
 | blockers | none |
-| unknowns | `identity_unverified`, `contact_policy_unreviewed` |
+| unknowns | `identity_unverified` |
+
+It first scored 24/30 with the contact policy unreviewed; clearing that took
+contactability from 3 to 5. One unknown remains, and it is the location.
 
 **Identity is verified this time, and by a stronger test than agreement.** The
 Google Business Profile is owner-managed, carries 4.9 from 10 reviews and
@@ -1260,17 +1364,23 @@ The two pending approvals are the `factory.deploy_site` rows from 2026-08-03 and
 
 ### What closes the gap
 
-Both remaining unknowns on Xpert are decisions rather than research:
+**Contact policy is now closed** on both prospects. The terms were read
+2026-08-07: FindYello prohibits commercial use and building a database from the
+site, and Google prohibits bulk download. Both records carry that finding along
+with its resolution — cleared on the operator's legal advice that these terms
+do not bind on jurisdiction grounds, recorded explicitly as a legal
+determination rather than a finding that the terms permit this use. That review
+is what exposed the rubric's inability to record a prohibition at all, fixed
+above.
 
-1. **Location.** Either confirm the address, or decide that a service-area
-   trade with no fixed premises does not need one verified — in which case the
-   rubric's `identityVerified && locationVerified` pairing is the thing to
-   revisit, not the prospect.
-2. **Contact policy.** Review the directory's terms and the applicable contact
-   rules. This is the same licensing question the directory adapter turns on, so
-   answering it here answers part of that decision too.
+**Location is the one unknown left**, and it is a decision rather than research:
+either confirm the address, or decide that a service-area trade with no fixed
+premises does not need one verified — in which case the rubric's
+`identityVerified && locationVerified` pairing is what to revisit, not the
+prospect. Changing it while it blocks a wanted prospect is the wrong reason to
+change it; the phone call is cheaper and settles the question either way.
 
-Closing both should reach `qualified`, which unlocks a demo slot. The demo is
+Closing it should reach `qualified`, which unlocks a demo slot. The demo is
 roughly half an hour: every fact needed is already public on two sources.
 
 The pilot's exit criterion — one real hosting-paying customer — now waits on a
@@ -1281,30 +1391,49 @@ documented pilot workflow, and `leads.record`'s own description says so.
 
 None of these is blocked on code:
 
-- **A model credential.** Setting `ATLAS_MODEL_API_KEY` alone changes nothing
-  today: `playbooks.author` never reads it — it hardcodes `frontierSession:
-  false` — and the router's only consumers, `memory.answer` and
-  `memory.distill`, both throw `501`. The dispatcher's comment blames a missing
-  credential for behaviour that has no branch on one. Either the code should
-  branch or the comment should stop citing it.
 - **Promoting `agents.logs`** from candidate, which carries a recorded evidence
   gap: its source frames do not show a readable AI-agent sub-tab view, and the
   ledger records the observation at `confidence: low`.
 - **A directory adapter** for lead sourcing. It buys volume; it is no longer
-  what blocks the exit criterion.
-- **Whether `control.handoff_branch_mismatch` should stay blocking** on the
-  integration branch when the recorded boundary is already an ancestor of HEAD —
-  a state that is benign by construction and clears with one archive command.
+  what blocks the exit criterion. Note the licensing shape the terms review
+  established: a source whose terms forbid commercial use is now a *blocker*,
+  not a question, so an adapter needs a provider that permits this in writing.
+- **Whether a service-area trade needs its location verified at all.** The
+  rubric pairs `identityVerified && locationVerified`, and a mobile plumber has
+  no premises to verify — which is the only thing keeping Xpert out of
+  `qualified`. The rule may genuinely be wrong for that class of business, but
+  relaxing a verification rule while it is blocking a prospect you want is the
+  wrong reason to change it. If it changes, it should change on its own merits,
+  with its own test, after Xpert closes.
+
+**No longer open.** A model credential was listed here on the strength of
+`playbooks.author`'s comment; the comment was wrong and setting the credential
+would have changed nothing — see above. Whether a merged handoff should keep
+blocking was also listed; it is now a warning under three narrow conditions.
 
 ## Next exact action
 
-Close the two remaining unknowns on **Xpert Plumbing & Maintenance Services**,
-which is the stronger of the two prospects at 24/30 with identity verified
-across two genuinely independent sources. Both are decisions rather than
-research: whether a service-area trade needs its location verified at all, and
-whether the directory's terms permit contact. Closing them should reach
-`qualified` and unlock a demo slot.
+**Xpert Plumbing & Maintenance Services** stands at **26/30**,
+`eligibility_review`, with one unknown left: `identity_unverified`, which fires
+because its location is not verified. Identity is verified across two genuinely
+independent sources; the Google profile is a service-area listing with no
+address, so the address is single-sourced and a separate Google entry under a
+similar name shows a different one.
 
-Patrick's Plumbing Service stays at 23/30 pending confirmation that the
-business exists and is trading; a phone call to the listed number would settle
-it. Do not spend a demo slot there first.
+That closes with **one question on a phone call** — where are they based. The
+call is worth making anyway: their website is dead, which is the pitch. A
+`qualified` verdict unlocks a demo slot, and the demo is roughly half an hour
+because every fact is already public on two sources.
+
+**Patrick's Plumbing Service** stands at **25/30** with two unknowns, and the
+same call settles both: does the business exist and is it trading, and where is
+it. Nothing independent confirms it trades — no Google Business Profile, and
+every directory carrying it republishes one listing. Do not spend a demo slot
+there first.
+
+The contact-policy unknown is closed on both, recorded with its basis: which
+clauses prohibit the use, and that it was cleared on the operator's legal advice
+that they do not bind on jurisdiction grounds — noted as a legal determination,
+not a finding that the terms permit this use.
+
+Nothing has reached either business. `messages` is empty.
