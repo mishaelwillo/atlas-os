@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `unassigned-2026-08-07`
+**Handoff ID:** `playbooks-author-comment`
 **Status:** active
-**Started:** 2026-08-07T07:44:12.827Z
-**Updated:** 2026-08-07T07:44:12.827Z
-**Actor:** Unassigned
-**Objective:** Preserve a safe takeover point while no model is assigned.
+**Started:** 2026-08-07T07:45:01.802Z
+**Updated:** 2026-08-07T07:45:01.802Z
+**Actor:** Claude
+**Objective:** Make playbooks.author's comment describe what the code does, and pin it
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `main`
+- Branch: `fix/playbooks-author-comment`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `b5b973b3fcb75c1b325a362fd52b391416d1556a`
+- Head commit: `688d915058e944be1b9748ba14393fbb190a711c`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- The prior current handoff was archived byte-for-byte.
+- Rewrote the playbooks.author comment; added router-never-called and frontierSession-false tests
 
 ## Current working tree
 
@@ -25,19 +25,21 @@
 
 ## Verification evidence
 
-- The prior handoff was archived without altering its contents.
+- A mutation wiring the session up fails both tests; an earlier weaker version of one test was found by that same mutation and strengthened
 
 ## Database actions
 
-- No external action reported.
+- None
+- Observed Supabase status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## Hosting actions
 
 - No external action reported.
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## External side effects
 
-- Created an immutable repository-local handoff archive.
+- No external action reported.
 
 ## Blockers
 
@@ -45,8 +47,8 @@
 
 ## Next exact action
 
-select a ready work item from WORK_QUEUE.yaml.
+Close the location unknown on Xpert - one question on the call you are already making - to reach qualified and unlock a demo slot
 
 ## Definition of done
 
-A model claims the active work item and creates a new handoff.
+The comment states the session is unconditional, and two tests fail if anyone wires it up
