@@ -6,7 +6,7 @@ environments:
       branch: main
     supabase:
       project_ref: yyyspvralawnvhtmuyvg
-      expected_migration: 0011_deployment_withdrawal_verdict
+      expected_migration: 0012_pilot_cost_and_outcome
       required_tables:
         - spaces
         - api_tokens
@@ -34,6 +34,8 @@ environments:
         - offers
         - deal_decisions
         - hosting_entitlements
+        - pilot_cost_entries
+        - pilot_outcomes
     railway:
       api:
         public_url: https://api-production-78a5.up.railway.app
