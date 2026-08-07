@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `unassigned-2026-08-07`
+**Handoff ID:** `pilot-cost-outcome-record`
 **Status:** active
-**Started:** 2026-08-07T19:15:00.342Z
-**Updated:** 2026-08-07T19:15:00.342Z
-**Actor:** Unassigned
-**Objective:** Preserve a safe takeover point while no model is assigned.
+**Started:** 2026-08-07T19:15:04.358Z
+**Updated:** 2026-08-07T19:15:04.358Z
+**Actor:** Claude
+**Objective:** Build the cost, support and outcome record P2C's exit criterion requires
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `main`
+- Branch: `feat/pilot-cost-outcome-record`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `31d02284e4b6682b596dfa0c3dc1fc5a5e09d2f7`
+- Head commit: `726dc62dabedbe0573a7f1207ffa1d6c3e8d2fe2`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- The prior current handoff was archived byte-for-byte.
+- Migration 0012, pilot-record rules, two capabilities (36 to 38), funnel cost reporting and derived stage durations
 
 ## Current working tree
 
@@ -25,19 +25,21 @@
 
 ## Verification evidence
 
-- The prior handoff was archived without altering its contents.
+- Dry run against production applied the migration, exercised seven constraints in both directions and rolled back; 25 rule tests and 8 funnel tests
 
 ## Database actions
 
-- No external action reported.
+- Migration 0012 written for operator review; applied and rolled back in a dry run only
+- Observed Supabase status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## Hosting actions
 
 - No external action reported.
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## External side effects
 
-- Created an immutable repository-local handoff archive.
+- No external action reported.
 
 ## Blockers
 
@@ -45,8 +47,8 @@
 
 ## Next exact action
 
-select a ready work item from WORK_QUEUE.yaml.
+Apply migration 0012, then pin expected_migration and ATLAS_SCHEMA_VERSION and verify through control:status
 
 ## Definition of done
 
-A model claims the active work item and creates a new handoff.
+Costs and satisfaction are recordable, margin is withheld until the record is complete, and the unavailable list is derived from what is missing
