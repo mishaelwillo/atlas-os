@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `unassigned-2026-08-07`
+**Handoff ID:** `prospect-verification`
 **Status:** active
-**Started:** 2026-08-07T02:24:53.298Z
-**Updated:** 2026-08-07T02:24:53.298Z
-**Actor:** Unassigned
-**Objective:** Preserve a safe takeover point while no model is assigned.
+**Started:** 2026-08-07T02:28:02.177Z
+**Updated:** 2026-08-07T02:28:02.177Z
+**Actor:** Claude
+**Objective:** Record what second-source verification found for both pilot prospects
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `main`
+- Branch: `docs/prospect-verification`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `3d29430964e8f67990a8c3d0f5fce9503b2598bc`
+- Head commit: `41e394cc93f4af284b7be53e874e1b749ec50122`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- The prior current handoff was archived byte-for-byte.
+- Rewrote the prospect section for both leads; corrected Patrick's operating status; recorded the Xpert dead-site finding and a data-entry error
 
 ## Current working tree
 
@@ -25,19 +25,21 @@
 
 ## Verification evidence
 
-- The prior handoff was archived without altering its contents.
+- Standing verdicts read back from production: Xpert 24/30, Patricks 23/30, both eligibility_review, messages table empty
 
 ## Database actions
 
-- No external action reported.
+- Two assessments recorded through the product in the atlas space; nothing sent
+- Observed Supabase status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## Hosting actions
 
 - No external action reported.
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## External side effects
 
-- Created an immutable repository-local handoff archive.
+- No external action reported.
 
 ## Blockers
 
@@ -45,8 +47,8 @@
 
 ## Next exact action
 
-select a ready work item from WORK_QUEUE.yaml.
+Close Xpert's two unknowns - decide whether a service-area trade needs location verified, and review the directory's contact terms - then re-assess to unlock a demo slot
 
 ## Definition of done
 
-A model claims the active work item and creates a new handoff.
+CURRENT_STATE and WORK_QUEUE describe both prospects, their standing verdicts and the evidence behind each
