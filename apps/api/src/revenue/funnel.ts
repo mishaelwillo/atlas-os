@@ -41,12 +41,16 @@ export function percent(numerator: number, denominator: number): number | null {
   return value === null ? null : Math.round(value * 1000) / 10;
 }
 
+import { assessRecord, grossMargin, type RecordCompleteness } from './pilot-record.js';
+
 /**
- * Metrics the specification asks for that nothing in Atlas records.
+ * Every metric the specification asks for that Atlas once could not record.
  *
- * Named rather than omitted: a missing row on a dashboard reads as an oversight,
- * while a named gap reads as a decision — and these have to be closed before the
- * pilot can claim a complete cost record.
+ * Kept as the historical full set — `time_per_stage` is now derived from
+ * timestamps and the other five are recordable, so this is no longer what the
+ * report emits. The live list is derived from what is actually missing, because
+ * a fixed list would keep calling a metric unavailable after somebody had
+ * recorded it.
  */
 export const UNAVAILABLE_METRICS = [
   'provider_cost',
@@ -105,7 +109,28 @@ export interface FunnelReport {
     recurringMinorByCurrency: Record<string, number>;
     payingCustomers: number;
   };
-  /** Named gaps; see UNAVAILABLE_METRICS. */
+  /**
+   * The cost, support and outcome record P2C's exit criterion asks for.
+   *
+   * Money and minutes sit side by side and are never summed into one another:
+   * no hourly rate exists in Atlas, and inventing one would make the margin
+   * look complete while being made up.
+   */
+  costRecord: {
+    minorByCurrency: Record<string, number>;
+    minutesByCategory: Record<string, number>;
+    /** Mean satisfaction, or null when nobody has been asked. */
+    satisfaction: number | null;
+    satisfactionCount: number;
+    /** Derived, never declared: every category recorded, plus a satisfaction. */
+    complete: boolean;
+    missingCategories: string[];
+    satisfactionMissing: boolean;
+  };
+  /** Null until the cost record is complete; a partial margin is always too high. */
+  grossMarginMinorByCurrency: Record<string, number> | null;
+  grossMarginUnavailableReason: string | null;
+  /** Metrics that still have no source, derived from what is actually missing. */
   unavailable: string[];
   /** True when nothing has entered the funnel at all. */
   empty: boolean;
@@ -122,6 +147,8 @@ export function buildFunnel(args: {
   counts: StageCounts;
   /** Recurring price by currency, already filtered to served entitlements. */
   recurringMinorByCurrency?: Record<string, number>;
+  /** Recorded costs and outcomes; absent before migration 0012 is applied. */
+  cost?: CostRollup;
 }): FunnelReport {
   const c = args.counts;
 
@@ -225,16 +252,91 @@ export function buildFunnel(args: {
     endToEndRate: percent(c.entitlementsActive, c.sourced),
   };
 
+  const recurring = { ...(args.recurringMinorByCurrency ?? {}) };
+  const cost = args.cost ?? EMPTY_COST;
+  const completeness = assessRecord({
+    categoriesRecorded: cost.categoriesRecorded,
+    hasSatisfaction: cost.satisfactionCount > 0,
+  });
+  const margin = grossMargin({
+    recurringMinorByCurrency: recurring,
+    costMinorByCurrency: cost.minorByCurrency,
+    costRecordComplete: completeness.complete,
+  });
+
   return {
     stages,
     rates,
     revenue: {
-      recurringMinorByCurrency: { ...(args.recurringMinorByCurrency ?? {}) },
+      recurringMinorByCurrency: recurring,
       payingCustomers: c.entitlementsActive,
     },
-    unavailable: [...UNAVAILABLE_METRICS],
+    /*
+     * The cost, support and outcome record P2C's exit criterion asks for.
+     *
+     * Money and minutes are reported side by side and never summed: no hourly
+     * rate exists in Atlas, and inventing one to produce a single figure would
+     * make the margin look complete while being made up.
+     */
+    costRecord: {
+      minorByCurrency: cost.minorByCurrency,
+      minutesByCategory: cost.minutesByCategory,
+      satisfaction: cost.satisfactionAverage,
+      satisfactionCount: cost.satisfactionCount,
+      complete: completeness.complete,
+      missingCategories: completeness.missingCategories,
+      satisfactionMissing: completeness.satisfactionMissing,
+    },
+    grossMarginMinorByCurrency: margin.grossMarginMinorByCurrency,
+    grossMarginUnavailableReason: margin.unavailableReason,
+    /*
+     * What still has no source. Four of the original six now do; the list
+     * shrinks as the record fills rather than being deleted wholesale, so a
+     * partially-recorded pilot still says which parts are missing.
+     */
+    unavailable: completeness.complete ? [] : unavailableMetrics(completeness),
     empty: c.sourced === 0,
   };
+}
+
+/** No cost record at all — the state before migration 0012 is applied. */
+const EMPTY_COST: CostRollup = {
+  minorByCurrency: {},
+  minutesByCategory: {},
+  categoriesRecorded: [],
+  satisfactionAverage: null,
+  satisfactionCount: 0,
+};
+
+export interface CostRollup {
+  /** Recorded money, per currency. Never summed across currencies. */
+  minorByCurrency: Record<string, number>;
+  /** Recorded time, per category. Never converted to money. */
+  minutesByCategory: Record<string, number>;
+  /** Which cost categories have at least one entry. */
+  categoriesRecorded: string[];
+  /** Mean satisfaction, or null when nobody has been asked. */
+  satisfactionAverage: number | null;
+  satisfactionCount: number;
+}
+
+/**
+ * The metrics that still have no source, named individually.
+ *
+ * `UNAVAILABLE_METRICS` was a fixed list because nothing recorded any of them.
+ * Now that four are recordable, a fixed list would keep claiming they are
+ * unavailable after they had been recorded — the same shape of stale claim
+ * this codebase keeps finding. It is derived from what is actually missing.
+ */
+function unavailableMetrics(completeness: RecordCompleteness): string[] {
+  const byCategory: Record<string, string> = {
+    provider: 'provider_cost',
+    labour: 'labour_cost',
+    support: 'support_time',
+    demo: 'demo_cost',
+  };
+  const missing = completeness.missingCategories.map((c) => byCategory[c]);
+  return completeness.satisfactionMissing ? [...missing, 'satisfaction'] : missing;
 }
 
 export interface ChannelCount {

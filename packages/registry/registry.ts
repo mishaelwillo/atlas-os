@@ -294,6 +294,22 @@ export const registry = [
     taskClass: 'quick', requiresApproval: false, scopes: ['leads:write'], method: 'GET', execution: 'handler',
   },
   {
+    id: 'pilot.record_cost',
+    name: 'Record a pilot cost',
+    description: 'Record one cost the pilot incurred — a provider charge, operator labour, support time, or the cost of producing a demo. Operator-only. An entry carries either an amount with its currency or a number of minutes, never both and never neither: nothing in Atlas converts between them, and an invented hourly rate would produce a gross margin that looks authoritative and is made up. A note is required, because a figure nobody described cannot be audited later.',
+    input: { type: 'object', required: ['category', 'note', 'incurredOn'], properties: { category: { type: 'string' }, leadId: { type: 'string' }, amountMinor: { type: 'number' }, currency: { type: 'string' }, minutes: { type: 'number' }, incurredOn: { type: 'string' }, note: { type: 'string' } } },
+    output: { type: 'object', properties: { entryId: { type: 'string' }, category: { type: 'string' }, recorded: { type: 'boolean' }, code: { type: 'string' }, note: { type: 'string' }, status: { type: 'string' } } },
+    taskClass: 'quick', requiresApproval: false, scopes: [], method: 'POST', execution: 'handler',
+  },
+  {
+    id: 'pilot.record_outcome',
+    name: 'Record a pilot outcome',
+    description: 'Record an observed satisfaction score, one to five, for a customer the pilot served, with a note saying what it is based on. Operator-only. There is no default: an unrecorded satisfaction is a gap in the pilot record, and a middle value would turn "nobody asked" into "they were indifferent".',
+    input: { type: 'object', required: ['leadId', 'satisfaction', 'note', 'observedOn'], properties: { leadId: { type: 'string' }, satisfaction: { type: 'number' }, observedOn: { type: 'string' }, note: { type: 'string' } } },
+    output: { type: 'object', properties: { outcomeId: { type: 'string' }, satisfaction: { type: 'number' }, recorded: { type: 'boolean' }, code: { type: 'string' }, note: { type: 'string' }, status: { type: 'string' } } },
+    taskClass: 'quick', requiresApproval: false, scopes: [], method: 'POST', execution: 'handler',
+  },
+  {
     id: 'analytics.funnel',
     name: 'Revenue pilot funnel',
     description: 'Counts at every pilot stage with conversion between them, per-channel counts that attribute nothing, and revenue per currency. A rate with no denominator is reported as unknown, never as zero, and metrics nothing records are named rather than defaulted.',

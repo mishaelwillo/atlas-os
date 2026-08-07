@@ -192,6 +192,8 @@ does not replace ownership without an approved registry migration.
 | `hosting.cancel` | executable | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
 | `hosting.advance` | executable | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
 | `hosting.state` | executable | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
+| `pilot.record_cost` | executable | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
+| `pilot.record_outcome` | executable | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
 | `analytics.funnel` | executable | P2C | build now | `docs/specs/p2/revenue-pilot.md` | — |
 | `platform.dashboard` | candidate | P2A | build now | `docs/specs/p2/intelligence-foundation.md` | — |
 | `agents.logs` | candidate | P2A | build now | `docs/specs/p2/intelligence-foundation.md` | — |

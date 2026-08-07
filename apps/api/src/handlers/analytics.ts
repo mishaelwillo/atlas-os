@@ -18,6 +18,7 @@ import {
   buildFunnel,
   channelContribution,
   type ChannelCount,
+  type CostRollup,
   type StageCounts,
 } from '../revenue/funnel.js';
 
@@ -38,6 +39,14 @@ export interface FunnelData {
   recurringMinorByCurrency: Record<string, number>;
   /** Why prospects were not qualified, most common first. */
   topBlockers: Array<{ code: string; count: number }>;
+  /**
+   * Recorded costs and outcomes.
+   *
+   * Absent — not zero — when migration 0012 has not been applied. An empty
+   * rollup would report a complete-looking zero cost record; absence keeps the
+   * funnel saying the metrics have no source, which is the truth.
+   */
+  cost?: CostRollup;
 }
 
 /**
@@ -205,7 +214,65 @@ export async function readFunnel(q: Queryable, space: string | null): Promise<Fu
       revenue.rows.map((r) => [String(r.currency), n(r.minor)]),
     ),
     topBlockers: blockers.rows.map((r) => ({ code: String(r.code), count: n(r.n) })),
+    cost: await readCostRollup(q, space),
   };
+}
+
+/**
+ * Recorded costs and outcomes, or undefined when migration 0012 is not applied.
+ *
+ * Undefined rather than an empty rollup: an empty one would present as a
+ * complete zero-cost record, and the funnel would report a gross margin equal
+ * to revenue. Absence keeps it saying the metrics have no source.
+ */
+async function readCostRollup(q: Queryable, space: string | null): Promise<CostRollup | undefined> {
+  try {
+    const [money, minutes, satisfaction] = await Promise.all([
+      q.query(
+        `select currency, sum(amount_minor)::int as minor from pilot_cost_entries
+          where amount_minor is not null and ($1::uuid is null or space_id = $1::uuid)
+          group by currency`,
+        [space],
+      ),
+      q.query(
+        `select category, sum(minutes)::int as total, count(*)::int as entries
+           from pilot_cost_entries
+          where ($1::uuid is null or space_id = $1::uuid)
+          group by category`,
+        [space],
+      ),
+      q.query(
+        `select avg(satisfaction)::float as mean, count(*)::int as n from pilot_outcomes
+          where ($1::uuid is null or space_id = $1::uuid)`,
+        [space],
+      ),
+    ]);
+
+    const minutesByCategory: Record<string, number> = {};
+    const categoriesRecorded: string[] = [];
+    for (const row of minutes.rows) {
+      const category = String(row.category);
+      categoriesRecorded.push(category);
+      // Only categories that actually logged time get a minutes figure; a
+      // provider charge in money must not appear as zero minutes.
+      if (row.total !== null) minutesByCategory[category] = n(row.total);
+    }
+
+    const mean = satisfaction.rows[0]?.mean;
+    return {
+      minorByCurrency: Object.fromEntries(
+        money.rows.map((r) => [String(r.currency), n(r.minor)]),
+      ),
+      minutesByCategory,
+      categoriesRecorded,
+      satisfactionAverage:
+        typeof mean === 'number' && Number.isFinite(mean) ? Math.round(mean * 100) / 100 : null,
+      satisfactionCount: n(satisfaction.rows[0]?.n),
+    };
+  } catch (err) {
+    if (isMissingTable(err)) return undefined;
+    throw err;
+  }
 }
 
 /**
@@ -231,6 +298,7 @@ export const analyticsFunnel: CapabilityHandler = async (ctx) => {
   const report = buildFunnel({
     counts: data.counts,
     recurringMinorByCurrency: data.recurringMinorByCurrency,
+    cost: data.cost,
   });
 
   return {
