@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `roadmap-sequencing`
+**Handoff ID:** `pilot-cost-outcome-record`
 **Status:** active
-**Started:** 2026-08-07T18:49:51.795Z
-**Updated:** 2026-08-07T18:49:51.795Z
+**Started:** 2026-08-07T19:15:04.358Z
+**Updated:** 2026-08-07T19:15:04.358Z
 **Actor:** Claude
-**Objective:** Stop the roadmap duplicating phase status and going stale
+**Objective:** Build the cost, support and outcome record P2C's exit criterion requires
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `docs/roadmap-sequencing`
+- Branch: `feat/pilot-cost-outcome-record`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `31d02284e4b6682b596dfa0c3dc1fc5a5e09d2f7`
+- Head commit: `726dc62dabedbe0573a7f1207ffa1d6c3e8d2fe2`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Rewrote Current sequencing as dependency reasoning
+- Migration 0012, pilot-record rules, two capabilities (36 to 38), funnel cost reporting and derived stage durations
 
 ## Current working tree
 
@@ -25,11 +25,11 @@
 
 ## Verification evidence
 
-- Phase status read from WORK_QUEUE rather than restated
+- Dry run against production applied the migration, exercised seven constraints in both directions and rolled back; 25 rule tests and 8 funnel tests
 
 ## Database actions
 
-- None
+- Migration 0012 written for operator review; applied and rolled back in a dry run only
 - Observed Supabase status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## Hosting actions
@@ -47,8 +47,8 @@
 
 ## Next exact action
 
-Build the cost, support and outcome record P2C's exit criterion requires
+Apply migration 0012, then pin expected_migration and ATLAS_SCHEMA_VERSION and verify through control:status
 
 ## Definition of done
 
-The roadmap carries dependency reasoning and points at WORK_QUEUE for status
+Costs and satisfaction are recordable, margin is withheld until the record is complete, and the unavailable list is derived from what is missing

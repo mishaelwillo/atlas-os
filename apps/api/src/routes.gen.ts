@@ -36,6 +36,8 @@ export const GENERATED_CAPABILITY_IDS = [
   "hosting.cancel",
   "hosting.advance",
   "hosting.state",
+  "pilot.record_cost",
+  "pilot.record_outcome",
   "analytics.funnel",
   "factory.verify_live",
   "events.site",
@@ -1367,6 +1369,126 @@ export function registerGeneratedRoutes(app: FastifyInstance, deps: PipelineDeps
         },
         "entitlement": {
           "type": "object"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "execution": "handler"
+  } as const satisfies CapabilityRouteMeta, deps);
+  registerCapabilityRoute(app, {
+    "id": "pilot.record_cost",
+    "name": "Record a pilot cost",
+    "path": "/v1/pilot/record_cost",
+    "method": "POST",
+    "taskClass": "quick",
+    "requiresApproval": false,
+    "scopes": [],
+    "input": {
+      "type": "object",
+      "required": [
+        "category",
+        "note",
+        "incurredOn"
+      ],
+      "properties": {
+        "category": {
+          "type": "string"
+        },
+        "leadId": {
+          "type": "string"
+        },
+        "amountMinor": {
+          "type": "number"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "minutes": {
+          "type": "number"
+        },
+        "incurredOn": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "entryId": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "recorded": {
+          "type": "boolean"
+        },
+        "code": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "execution": "handler"
+  } as const satisfies CapabilityRouteMeta, deps);
+  registerCapabilityRoute(app, {
+    "id": "pilot.record_outcome",
+    "name": "Record a pilot outcome",
+    "path": "/v1/pilot/record_outcome",
+    "method": "POST",
+    "taskClass": "quick",
+    "requiresApproval": false,
+    "scopes": [],
+    "input": {
+      "type": "object",
+      "required": [
+        "leadId",
+        "satisfaction",
+        "note",
+        "observedOn"
+      ],
+      "properties": {
+        "leadId": {
+          "type": "string"
+        },
+        "satisfaction": {
+          "type": "number"
+        },
+        "observedOn": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "outcomeId": {
+          "type": "string"
+        },
+        "satisfaction": {
+          "type": "number"
+        },
+        "recorded": {
+          "type": "boolean"
+        },
+        "code": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
         },
         "status": {
           "type": "string"

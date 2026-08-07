@@ -21,6 +21,7 @@ import {
   offersPublish,
 } from './offers.js';
 import { automationSequence, sequenceAdvance, sequenceState } from './sequence.js';
+import { pilotRecordCost, pilotRecordOutcome } from './pilot.js';
 import { statusMissionControl } from './status.js';
 import { verifyLiveSites } from './verify-live.js';
 import {
@@ -56,6 +57,8 @@ export const handlers: Record<string, CapabilityHandler> = {
   'hosting.record_terms': hostingRecordTerms,
   'hosting.advance': hostingAdvance,
   'hosting.state': hostingState,
+  'pilot.record_cost': pilotRecordCost,
+  'pilot.record_outcome': pilotRecordOutcome,
   'analytics.funnel': analyticsFunnel,
   'factory.verify_live': verifyLiveSites,
   // typed TODO stubs

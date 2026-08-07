@@ -147,11 +147,11 @@ export function assertTraceabilityIntegrity(
   );
   // Pinned deliberately: adding an executable capability is a governance
   // event, so the count must be changed knowingly rather than drifting.
-  // 36 as of hosting.advance, which moves an entitlement through `onboarded`
-  // and `active` — two states the transition table declared and the funnel
-  // counted while no caller could reach either.
-  if (executable.size !== 36) {
-    throw new Error(`expected exactly 36 executable capabilities, found ${executable.size}`);
+  // 38 as of pilot.record_cost and pilot.record_outcome, which give the
+  // exit criterion's cost/support/outcome record somewhere to live; six
+  // metrics were reported as unavailable because nothing recorded them.
+  if (executable.size !== 38) {
+    throw new Error(`expected exactly 38 executable capabilities, found ${executable.size}`);
   }
   if (candidate.size !== 31) {
     throw new Error(`expected exactly 31 capability candidates, found ${candidate.size}`);

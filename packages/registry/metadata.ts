@@ -439,6 +439,33 @@ export const capabilityMetadata: Record<CapabilityId, CapabilityMetadata> = {
     evidenceIds: [],
     specification: P2_REVENUE_SPECIFICATION,
   },
+  'pilot.record_cost': {
+    stage: 'candidate',
+    phase: 'P2C',
+    menuGroup: 'Analytics',
+    regions: ['global'],
+    entitlements: ['website-hosting'],
+    monetization: 'hosting',
+    implementation: 'build',
+    // An operator records a figure they observed. Nothing here is inferable.
+    autonomy: 'manual',
+    // Derives from the specification's exit criterion and analytics list, not
+    // from the video.
+    evidenceIds: [],
+    specification: P2_REVENUE_SPECIFICATION,
+  },
+  'pilot.record_outcome': {
+    stage: 'candidate',
+    phase: 'P2C',
+    menuGroup: 'Analytics',
+    regions: ['global'],
+    entitlements: ['website-hosting'],
+    monetization: 'hosting',
+    implementation: 'build',
+    autonomy: 'manual',
+    evidenceIds: [],
+    specification: P2_REVENUE_SPECIFICATION,
+  },
   'analytics.funnel': {
     stage: 'candidate',
     phase: 'P2C',

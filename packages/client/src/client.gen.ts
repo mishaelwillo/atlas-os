@@ -374,6 +374,39 @@ export type HostingStateOutput = {
   status?: string;
 };
 
+export type PilotRecordCostInput = {
+  category: string;
+  leadId?: string;
+  amountMinor?: number;
+  currency?: string;
+  minutes?: number;
+  incurredOn: string;
+  note: string;
+};
+export type PilotRecordCostOutput = {
+  entryId?: string;
+  category?: string;
+  recorded?: boolean;
+  code?: string;
+  note?: string;
+  status?: string;
+};
+
+export type PilotRecordOutcomeInput = {
+  leadId: string;
+  satisfaction: number;
+  observedOn: string;
+  note: string;
+};
+export type PilotRecordOutcomeOutput = {
+  outcomeId?: string;
+  satisfaction?: number;
+  recorded?: boolean;
+  code?: string;
+  note?: string;
+  status?: string;
+};
+
 export type AnalyticsFunnelInput = Record<string, unknown>;
 export type AnalyticsFunnelOutput = {
   stages?: Array<unknown>;
@@ -613,6 +646,16 @@ export class AtlasGeneratedClient {
   /** Hosting state — GET /v1/hosting/state */
   hostingState(input: HostingStateInput): Promise<HostingStateOutput | ApprovalPending> {
     return this.request<HostingStateOutput>("GET", "/v1/hosting/state", input);
+  }
+
+  /** Record a pilot cost — POST /v1/pilot/record_cost */
+  pilotRecordCost(input: PilotRecordCostInput): Promise<PilotRecordCostOutput | ApprovalPending> {
+    return this.request<PilotRecordCostOutput>("POST", "/v1/pilot/record_cost", input);
+  }
+
+  /** Record a pilot outcome — POST /v1/pilot/record_outcome */
+  pilotRecordOutcome(input: PilotRecordOutcomeInput): Promise<PilotRecordOutcomeOutput | ApprovalPending> {
+    return this.request<PilotRecordOutcomeOutput>("POST", "/v1/pilot/record_outcome", input);
   }
 
   /** Revenue pilot funnel — GET /v1/analytics/funnel */

@@ -21,6 +21,38 @@ ledgers is not executable and does not appear here.
 - Scopes: `leads:write`
 - Description: Counts at every pilot stage with conversion between them, per\-channel counts that attribute nothing, and revenue per currency\. A rate with no denominator is reported as unknown, never as zero, and metrics nothing records are named rather than defaulted\.
 
+### `pilot.record_cost` — Record a pilot cost
+- Stage: candidate
+- Phase: P2C
+- Monetization: hosting
+- Autonomy: manual
+- Implementation: build
+- Regions: `global`
+- Entitlements: `website-hosting`
+- Evidence: none
+- Specification: `docs/specs/p2/revenue-pilot.md`
+- Method: POST
+- Task class: quick
+- Approval required: no
+- Scopes: none
+- Description: Record one cost the pilot incurred — a provider charge, operator labour, support time, or the cost of producing a demo\. Operator\-only\. An entry carries either an amount with its currency or a number of minutes, never both and never neither: nothing in Atlas converts between them, and an invented hourly rate would produce a gross margin that looks authoritative and is made up\. A note is required, because a figure nobody described cannot be audited later\.
+
+### `pilot.record_outcome` — Record a pilot outcome
+- Stage: candidate
+- Phase: P2C
+- Monetization: hosting
+- Autonomy: manual
+- Implementation: build
+- Regions: `global`
+- Entitlements: `website-hosting`
+- Evidence: none
+- Specification: `docs/specs/p2/revenue-pilot.md`
+- Method: POST
+- Task class: quick
+- Approval required: no
+- Scopes: none
+- Description: Record an observed satisfaction score, one to five, for a customer the pilot served, with a note saying what it is based on\. Operator\-only\. There is no default: an unrecorded satisfaction is a gap in the pilot record, and a middle value would turn "nobody asked" into "they were indifferent"\.
+
 ## Customer Engagement
 ### `events.site` — Site event webhook
 - Stage: candidate
