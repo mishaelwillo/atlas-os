@@ -28,7 +28,7 @@ const QUALIFYING = {
   locationVerified: true,
   publicFactCount: 5,
   contactSource: 'https://maps.example/acme',
-  contactPolicyReviewed: true,
+  contactPolicy: 'permitted',
   operatingStatus: 'open',
   demoEffortHours: 1,
   deceptiveDemoRisk: false,
@@ -103,7 +103,7 @@ describe('prospecting.qualify', () => {
 
   it('sends an incomplete prospect to eligibility review', async () => {
     const db = dbWithLead();
-    const { body } = await qualify(db, { ...QUALIFYING, contactPolicyReviewed: false });
+    const { body } = await qualify(db, { ...QUALIFYING, contactPolicy: 'unreviewed' });
 
     expect(body.verdict).toBe('eligibility_review');
     expect((body.unknowns as Array<{ code: string }>).map((u) => u.code)).toContain(
@@ -123,7 +123,7 @@ describe('prospecting.qualify', () => {
     await qualify(db);
     const insert = db.calls.find((c) => /insert into qualification_assessments/i.test(c.sql));
     expect(insert).toBeDefined();
-    expect(String(insert?.params?.[9])).toContain('contactPolicyReviewed');
+    expect(String(insert?.params?.[9])).toContain('contactPolicy');
   });
 
   it('audits the assessment', async () => {

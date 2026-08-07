@@ -103,7 +103,7 @@ describe('loadEvidence', () => {
       locationVerified: 'no' as const,
       publicFactCount: '7',
       contactSource: 'two independent sources',
-      contactPolicyReviewed: 'yes' as const,
+      contactPolicy: 'permitted' as const,
       duplicateOf: '',
       operatingStatus: 'open' as const,
       demoEffortHours: '0.5',
@@ -124,7 +124,7 @@ describe('loadEvidence', () => {
     expect(form.identityVerified).toBe('no');
     expect(form.activeProfile).toBe('unknown');
     expect(form.locationVerified).toBe('unknown');
-    expect(form.contactPolicyReviewed).toBe('unknown');
+    expect(form.contactPolicy).toBe('unreviewed');
   });
 
   /** A fact count that fails to load must not read as zero — zero blocks. */
@@ -221,7 +221,7 @@ describe('buildEvidence', () => {
       locationVerified: 'no',
       publicFactCount: '4',
       contactSource: '',
-      contactPolicyReviewed: 'unknown',
+      contactPolicy: 'unreviewed' as const,
       duplicateOf: '',
       operatingStatus: 'open',
       demoEffortHours: '2',

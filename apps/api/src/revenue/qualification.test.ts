@@ -8,6 +8,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+  CONTACT_POLICIES,
   MAX_DEMO_EFFORT_HOURS,
   MAX_SCORE,
   QUALIFYING_SCORE,
@@ -17,6 +18,7 @@ import {
   assessmentExpired,
   type QualificationEvidence,
 } from './qualification.js';
+import { readEvidence } from '../handlers/prospecting.js';
 
 const AT = new Date('2026-08-03T00:00:00.000Z');
 
@@ -34,7 +36,7 @@ function evidence(overrides: Partial<QualificationEvidence> = {}): Qualification
     locationVerified: true,
     publicFactCount: 5,
     contactSource: 'https://maps.example/acme',
-    contactPolicyReviewed: true,
+    contactPolicy: 'permitted',
     suppressed: false,
     duplicateOf: null,
     operatingStatus: 'open',
@@ -177,9 +179,63 @@ describe('open questions send a prospect to review', () => {
 
   /** The specification blocks on unresolved contact policy rather than proceeding. */
   it('reviews an unreviewed contact policy', () => {
-    const result = assessProspect(evidence({ contactPolicyReviewed: false }), AT);
+    const result = assessProspect(evidence({ contactPolicy: 'unreviewed' }), AT);
     expect(result.verdict).toBe('eligibility_review');
     expect(codes(result)).toContain('contact_policy_unreviewed');
+  });
+
+  /**
+   * "Reviewed, and the source prohibits this" used to be unrecordable.
+   *
+   * The field was a `boolean | null` where `false` and `null` both produced
+   * the unreviewed unknown, so an operator who read a directory's terms and
+   * found they forbid commercial contact had nowhere to put it — having
+   * looked and found a prohibition was indistinguishable from never looking.
+   * It came up for real against a directory whose terms prohibit commercial
+   * use and building a database from the site.
+   */
+  it('disqualifies when the reviewed policy prohibits contact', () => {
+    const result = assessProspect(evidence({ contactPolicy: 'prohibited' }), AT);
+    expect(result.verdict).toBe('disqualified');
+    expect(codes(result)).toContain('contact_policy_prohibits');
+  });
+
+  /** A settled prohibition is not an open question, and must not read as one. */
+  it('keeps a prohibition out of the unknowns', () => {
+    const result = assessProspect(evidence({ contactPolicy: 'prohibited' }), AT);
+    expect(result.unknowns.map((u) => u.code)).not.toContain('contact_policy_unreviewed');
+  });
+
+  /** Nor does a prohibition earn the contactability credit a permission earns. */
+  it('scores no contact-policy credit for a prohibition', () => {
+    const permitted = assessProspect(evidence({ contactPolicy: 'permitted' }), AT);
+    const prohibited = assessProspect(evidence({ contactPolicy: 'prohibited' }), AT);
+    expect(prohibited.scores.contactability).toBeLessThan(permitted.scores.contactability);
+  });
+
+  /** The three states must stay distinct; two of them collapsing is the defect. */
+  it('gives each contact-policy state a different outcome', () => {
+    const verdicts = CONTACT_POLICIES.map(
+      (contactPolicy) => assessProspect(evidence({ contactPolicy }), AT).verdict,
+    );
+    expect(verdicts).toEqual(['eligibility_review', 'qualified', 'disqualified']);
+  });
+
+  /**
+   * Assessments recorded before the three-state field carry the old boolean.
+   * `true` meant "reviewed, nothing stopping us" and loads as permitted; the
+   * legacy `false` meant the same as absent back then, so it must load as
+   * unreviewed rather than inventing a prohibition nobody recorded.
+   */
+  it.each([
+    [{ contactPolicyReviewed: true }, 'permitted'],
+    [{ contactPolicyReviewed: false }, 'unreviewed'],
+    [{}, 'unreviewed'],
+    [{ contactPolicy: 'prohibited' }, 'prohibited'],
+    // A value outside the vocabulary is not passed through.
+    [{ contactPolicy: 'maybe' }, 'unreviewed'],
+  ])('reads %o as %s', (raw, expected) => {
+    expect(readEvidence(raw).contactPolicy).toBe(expected);
   });
 
   it('reviews a prospect with too few sourced facts to build from', () => {
@@ -226,7 +282,7 @@ describe('open questions send a prospect to review', () => {
 describe('precedence', () => {
   it('reports disqualified when a prospect has both a blocker and an unknown', () => {
     const result = assessProspect(
-      evidence({ operatingStatus: 'closed', contactPolicyReviewed: false }),
+      evidence({ operatingStatus: 'closed', contactPolicy: 'unreviewed' }),
       AT,
     );
     expect(result.verdict).toBe('disqualified');

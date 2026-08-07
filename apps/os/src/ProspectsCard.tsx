@@ -67,6 +67,8 @@ export interface ProspectsData {
     maxScore: number;
     qualifyingScore: number;
     maxDemoEffortHours: number;
+    /** Derived from the rubric, so the control cannot drop a state. */
+    contactPolicies?: string[];
   };
   demoStates?: string[];
   items?: ProspectItem[];
@@ -74,6 +76,19 @@ export interface ProspectsData {
 
 /** Unanswered, or answered either way. Absent is a real third value. */
 type Tri = 'unknown' | 'yes' | 'no';
+
+/**
+ * The outcome of reviewing a source's terms. Mirrors the API's
+ * `CONTACT_POLICIES`; the option list itself comes from the rubric payload, so
+ * this only supplies the wording.
+ */
+export type ContactPolicy = 'unreviewed' | 'permitted' | 'prohibited';
+
+const CONTACT_POLICY_LABELS: Record<string, string> = {
+  unreviewed: 'not reviewed',
+  permitted: 'reviewed — permits contact',
+  prohibited: 'reviewed — prohibits contact',
+};
 
 interface EvidenceForm {
   region: string;
@@ -87,7 +102,7 @@ interface EvidenceForm {
   locationVerified: Tri;
   publicFactCount: string;
   contactSource: string;
-  contactPolicyReviewed: Tri;
+  contactPolicy: ContactPolicy;
   duplicateOf: string;
   operatingStatus: 'open' | 'closed' | 'uncertain';
   demoEffortHours: string;
@@ -107,7 +122,7 @@ const BLANK_EVIDENCE: EvidenceForm = {
   locationVerified: 'unknown',
   publicFactCount: '0',
   contactSource: '',
-  contactPolicyReviewed: 'unknown',
+  contactPolicy: 'unreviewed',
   duplicateOf: '',
   // The rubric's own default for an unestablished business, named rather than
   // implied: it is an unknown that sends the prospect to review.
@@ -153,6 +168,9 @@ export function buildEvidence(form: EvidenceForm): Record<string, unknown> {
     targetRegions: list(form.targetRegions),
     targetVerticals: list(form.targetVerticals),
     publicFactCount: num(form.publicFactCount),
+    // Always sent. Unlike the three-way booleans there is no "omit to mean
+    // unknown" here — `unreviewed` is itself one of the three states.
+    contactPolicy: form.contactPolicy,
     operatingStatus: form.operatingStatus,
     demoEffortHours: num(form.demoEffortHours),
     deceptiveDemoRisk: form.deceptiveDemoRisk,
@@ -161,7 +179,6 @@ export function buildEvidence(form: EvidenceForm): Record<string, unknown> {
     ['activeProfile', 'activeProfile'],
     ['identityVerified', 'identityVerified'],
     ['locationVerified', 'locationVerified'],
-    ['contactPolicyReviewed', 'contactPolicyReviewed'],
   ];
   for (const [key, field] of tri) {
     const value = form[key] as Tri;
@@ -228,7 +245,18 @@ export function loadEvidence(stored: Record<string, unknown>): EvidenceForm {
     locationVerified: tri('locationVerified'),
     publicFactCount: count('publicFactCount', BLANK_EVIDENCE.publicFactCount),
     contactSource: text('contactSource'),
-    contactPolicyReviewed: tri('contactPolicyReviewed'),
+    /*
+     * Accepts the boolean this field used to be. A stored
+     * `contactPolicyReviewed: true` meant "reviewed, nothing stopping us", so
+     * it loads as permitted; anything else loads as unreviewed, because back
+     * then `false` and absent were the same thing and reading it as prohibited
+     * would invent a finding nobody recorded.
+     */
+    contactPolicy: (() => {
+      const value = stored.contactPolicy;
+      if (value === 'unreviewed' || value === 'permitted' || value === 'prohibited') return value;
+      return stored.contactPolicyReviewed === true ? 'permitted' : 'unreviewed';
+    })(),
     duplicateOf: text('duplicateOf'),
     operatingStatus:
       status === 'open' || status === 'closed' || status === 'uncertain'
@@ -649,12 +677,30 @@ export function ProspectsCard({
             value={form.locationVerified}
             onChange={(v) => update({ locationVerified: v })}
           />
-          <TriField
-            label="Contact policy and provider terms reviewed"
-            testId="ev-policy"
-            value={form.contactPolicyReviewed}
-            onChange={(v) => update({ contactPolicyReviewed: v })}
-          />
+          {/*
+            Three outcomes, not a yes/no. "Reviewed and it prohibits this" used
+            to be unrecordable — `false` behaved exactly like "not checked" —
+            so a real prohibition looked identical to never having looked.
+            `prohibited` is a blocker, which is why it needs saying.
+          */}
+          <label className={styles.field}>
+            <span>Contact policy and provider terms</span>
+            <select
+              data-testid="ev-policy"
+              value={form.contactPolicy}
+              onChange={(e) => update({ contactPolicy: e.target.value as ContactPolicy })}
+            >
+              {(rubric?.contactPolicies ?? [form.contactPolicy]).map((policy) => (
+                <option key={policy} value={policy}>
+                  {CONTACT_POLICY_LABELS[policy] ?? policy}
+                </option>
+              ))}
+            </select>
+            <span className={styles.when}>
+              Prohibited is a settled fact and disqualifies; not reviewed is an open
+              question that sends the prospect to review.
+            </span>
+          </label>
 
           <label className={styles.field}>
             <span>Existing website (blank if none found)</span>

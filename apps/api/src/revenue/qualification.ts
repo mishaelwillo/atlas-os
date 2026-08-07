@@ -55,6 +55,18 @@ export const MAX_SCORE = SCORE_DIMENSIONS.length * 5;
  */
 export const QUALIFYING_SCORE = 24;
 
+/**
+ * The outcome of a contact-policy review, published so the operator surface
+ * builds its control from the vocabulary rather than restating it.
+ */
+export const CONTACT_POLICIES = ['unreviewed', 'permitted', 'prohibited'] as const;
+
+export type ContactPolicy = (typeof CONTACT_POLICIES)[number];
+
+export function isContactPolicy(value: unknown): value is ContactPolicy {
+  return (CONTACT_POLICIES as readonly unknown[]).includes(value);
+}
+
 export interface QualificationEvidence {
   /** Region and vertical this prospect was sourced for. */
   region: string;
@@ -74,8 +86,25 @@ export interface QualificationEvidence {
   publicFactCount: number;
   /** Where the contact detail came from; provenance is required. */
   contactSource: string | null;
-  /** Whether provider terms and contact policy have been reviewed. */
-  contactPolicyReviewed: boolean | null;
+  /**
+   * What reviewing the source's terms and the applicable contact policy found.
+   *
+   * This was a `contactPolicyReviewed: boolean | null`, and it could not say
+   * the one thing a review most needs to be able to say. `false` and `null`
+   * behaved identically — both produced the "not reviewed" unknown — so an
+   * operator who read a directory's terms and found they *prohibit* commercial
+   * contact had nowhere to record it. Having looked and found a prohibition
+   * was indistinguishable from never having looked.
+   *
+   * That happened: FindYello's terms prohibit commercial use and building a
+   * database from the site, and the only way to represent the review was to
+   * leave the field saying nobody had done one.
+   *
+   * Three states, each meaning exactly one thing. `prohibited` is a settled
+   * fact and therefore a blocker rather than an unknown — answering every
+   * other question does not make a source permit contact it forbids.
+   */
+  contactPolicy: ContactPolicy;
   /** Suppression is checked against the lead, never assumed. */
   suppressed: boolean;
   /** Set when this prospect duplicates one already in the pilot. */
@@ -151,7 +180,7 @@ function score(evidence: QualificationEvidence): Record<ScoreDimension, number> 
     // A reachable contact whose provenance and policy are settled.
     contactability: band(
       (evidence.contactSource !== null && evidence.contactSource.trim() !== '' ? 3 : 0) +
-        (evidence.contactPolicyReviewed === true ? 2 : 0),
+        (evidence.contactPolicy === 'permitted' ? 2 : 0),
     ),
     // Cheaper demos score higher; at the cap it scores nothing.
     demoEffort: band(5 - (evidence.demoEffortHours / MAX_DEMO_EFFORT_HOURS) * 5),
@@ -181,6 +210,20 @@ function blockersFor(evidence: QualificationEvidence): QualificationFinding[] {
   }
   if (evidence.activeProfile === false) {
     found.push(finding('inactive_profile', 'the directory profile is not active'));
+  }
+  /*
+   * A source that forbids this use is a settled fact, so it disqualifies
+   * rather than sending the prospect to review. The specification blocks on
+   * unresolved policy; a resolved policy that says no is stronger than
+   * unresolved, and must not be the weaker finding.
+   */
+  if (evidence.contactPolicy === 'prohibited') {
+    found.push(
+      finding(
+        'contact_policy_prohibits',
+        'the source’s terms or the applicable contact policy prohibit contacting this prospect',
+      ),
+    );
   }
   if (!evidence.targetRegions.includes(evidence.region)) {
     found.push(
@@ -226,8 +269,9 @@ function unknownsFor(evidence: QualificationEvidence): QualificationFinding[] {
   if (evidence.contactSource === null || evidence.contactSource.trim() === '') {
     found.push(finding('contact_provenance_missing', 'the contact detail has no recorded source'));
   }
-  if (evidence.contactPolicyReviewed !== true) {
+  if (evidence.contactPolicy === 'unreviewed') {
     // The specification blocks on unresolved policy rather than proceeding.
+    // `prohibited` is deliberately not here — it is settled, so it blocks.
     found.push(finding('contact_policy_unreviewed', 'provider terms and contact policy are not reviewed'));
   }
   if (evidence.publicFactCount < 3) {

@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `contact-policy-settled-negative`
+**Handoff ID:** `playbooks-author-comment`
 **Status:** active
-**Started:** 2026-08-07T08:43:18.485Z
-**Updated:** 2026-08-07T08:43:18.485Z
+**Started:** 2026-08-07T07:45:01.802Z
+**Updated:** 2026-08-07T07:45:01.802Z
 **Actor:** Claude
-**Objective:** Let a contact-policy review record a prohibition instead of looking like no review
+**Objective:** Make playbooks.author's comment describe what the code does, and pin it
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `feat/contact-policy-settled-negative`
+- Branch: `fix/playbooks-author-comment`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `0e8f127b3208ae5cc9d06d91d377c22f2de1f578`
+- Head commit: `688d915058e944be1b9748ba14393fbb190a711c`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Replaced contactPolicyReviewed with a three-state contactPolicy; prohibited is a blocker; vocabulary published to the card
+- Rewrote the playbooks.author comment; added router-never-called and frontierSession-false tests
 
 ## Current working tree
 
@@ -25,11 +25,11 @@
 
 ## Verification evidence
 
-- Three mutations fail including collapsing prohibited into the unknown; both production assessments replayed and reproduced their verdicts
+- A mutation wiring the session up fails both tests; an earlier weaker version of one test was found by that same mutation and strengthened
 
 ## Database actions
 
-- Read-only replay of stored evidence; no schema change
+- None
 - Observed Supabase status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## Hosting actions
@@ -51,4 +51,4 @@ Close the location unknown on Xpert - one question on the call you are already m
 
 ## Definition of done
 
-contactPolicy has three distinct outcomes, prohibited blocks, and stored assessments replay to their recorded verdicts
+The comment states the session is unconditional, and two tests fail if anyone wires it up
