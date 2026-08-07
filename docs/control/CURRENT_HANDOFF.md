@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `unassigned-2026-08-07`
+**Handoff ID:** `fold-in-four-merges`
 **Status:** active
-**Started:** 2026-08-07T17:34:14.905Z
-**Updated:** 2026-08-07T17:34:14.905Z
-**Actor:** Unassigned
-**Objective:** Preserve a safe takeover point while no model is assigned.
+**Started:** 2026-08-07T17:38:54.983Z
+**Updated:** 2026-08-07T17:38:54.983Z
+**Actor:** Claude
+**Objective:** Make CURRENT_STATE describe the four merged changes and the current prospect scores
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `main`
+- Branch: `docs/fold-in-four-merges`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `0e8f127b3208ae5cc9d06d91d377c22f2de1f578`
+- Head commit: `8f8432955a2bf2d205b9cd3955bca32c807401f1`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- The prior current handoff was archived byte-for-byte.
+- Added assess-form and contact-policy sections, extended the takeover section, corrected prospect scores, pruned the decision list
 
 ## Current working tree
 
@@ -25,19 +25,21 @@
 
 ## Verification evidence
 
-- The prior handoff was archived without altering its contents.
+- Scores checked against the standing assessments read from production: Xpert 26/30, Patricks 25/30
 
 ## Database actions
 
-- No external action reported.
+- None
+- Observed Supabase status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## Hosting actions
 
 - No external action reported.
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## External side effects
 
-- Created an immutable repository-local handoff archive.
+- No external action reported.
 
 ## Blockers
 
@@ -45,8 +47,8 @@
 
 ## Next exact action
 
-select a ready work item from WORK_QUEUE.yaml.
+Close the location unknown on Xpert with one question on the phone call - where are they based - to reach qualified and unlock a demo slot
 
 ## Definition of done
 
-A model claims the active work item and creates a new handoff.
+CURRENT_STATE records all four merges, the standing scores match production, and the decision list holds only real decisions
