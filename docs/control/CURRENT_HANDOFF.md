@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `unassigned-2026-08-07`
+**Handoff ID:** `cost-record-surface`
 **Status:** active
-**Started:** 2026-08-07T22:33:40.147Z
-**Updated:** 2026-08-07T22:33:40.147Z
-**Actor:** Unassigned
-**Objective:** Preserve a safe takeover point while no model is assigned.
+**Started:** 2026-08-07T22:33:44.859Z
+**Updated:** 2026-08-07T22:33:44.859Z
+**Actor:** Claude
+**Objective:** Give the cost and outcome record an operator surface so it gets filled while the pilot runs
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `main`
+- Branch: `feat/cost-record-operator-surface`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `7b541242a5a29ad601a337b481827d3ca73d716d`
+- Head commit: `9676f52a44ad890273230710e3bd6a25e7e60ff9`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- The prior current handoff was archived byte-for-byte.
+- Funnel card cost display and recording form; status.mission_control now passes cost; categories published
 
 ## Current working tree
 
@@ -25,19 +25,21 @@
 
 ## Verification evidence
 
-- The prior handoff was archived without altering its contents.
+- Mutation moving hooks after the early return fails a rerender test; 20 card tests
 
 ## Database actions
 
-- No external action reported.
+- None
+- Observed Supabase status: ok (live-read-only at 2026-08-07T20:46:19.807Z).
 
 ## Hosting actions
 
 - No external action reported.
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-07T20:46:19.807Z).
 
 ## External side effects
 
-- Created an immutable repository-local handoff archive.
+- No external action reported.
 
 ## Blockers
 
@@ -45,8 +47,8 @@
 
 ## Next exact action
 
-select a ready work item from WORK_QUEUE.yaml.
+Close the location unknown on Xpert, then log costs against the pilot as it runs
 
 ## Definition of done
 
-A model claims the active work item and creates a new handoff.
+The funnel card shows the cost record and records both costs and satisfaction, with margin withheld until complete
