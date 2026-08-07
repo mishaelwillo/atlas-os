@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `first-real-prospect`
+**Handoff ID:** `prospect-verification`
 **Status:** active
-**Started:** 2026-08-06T23:31:57.736Z
-**Updated:** 2026-08-06T23:31:57.736Z
+**Started:** 2026-08-07T02:28:02.177Z
+**Updated:** 2026-08-07T02:28:02.177Z
 **Actor:** Claude
-**Objective:** Record the pilot's first real prospect and its honest verdict in the control plane
+**Objective:** Record what second-source verification found for both pilot prospects
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `docs/first-real-prospect`
+- Branch: `docs/prospect-verification`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `3d29430964e8f67990a8c3d0f5fce9503b2598bc`
+- Head commit: `41e394cc93f4af284b7be53e874e1b749ec50122`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Recorded the prospect and its assessment in CURRENT_STATE; corrected the model-credential entry; updated the P2C next action
+- Rewrote the prospect section for both leads; corrected Patrick's operating status; recorded the Xpert dead-site finding and a data-entry error
 
 ## Current working tree
 
@@ -25,11 +25,11 @@
 
 ## Verification evidence
 
-- Lead row, assessment verdict and empty messages table read from production; no outreach exists
+- Standing verdicts read back from production: Xpert 24/30, Patricks 23/30, both eligibility_review, messages table empty
 
 ## Database actions
 
-- One lead and one assessment created in the atlas space through the product; nothing sent
+- Two assessments recorded through the product in the atlas space; nothing sent
 - Observed Supabase status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## Hosting actions
@@ -47,8 +47,8 @@
 
 ## Next exact action
 
-Close the two unknowns on Patrick's Plumbing Service - verify identity and location against a second source and review the directory's contact policy - then re-assess to unlock a demo slot
+Close Xpert's two unknowns - decide whether a service-area trade needs location verified, and review the directory's contact terms - then re-assess to unlock a demo slot
 
 ## Definition of done
 
-CURRENT_STATE and WORK_QUEUE describe the real prospect, its eligibility_review verdict and what closes the gap
+CURRENT_STATE and WORK_QUEUE describe both prospects, their standing verdicts and the evidence behind each

@@ -1137,11 +1137,11 @@ about this business exists anywhere public.
 
 ## The pilot has its first real prospect, 2026-08-06
 
-The `atlas` space holds one lead, and for the first time it is a real business
-rather than a fixture: **Patrick's Plumbing Service**, Kingston 11, Jamaica —
-lead `bc9794d6-6c83-4910-9ad7-d5036366ff45`, hand-sourced through
+The `atlas` space holds real businesses rather than fixtures for the first
+time. The first of them is **Patrick's Plumbing Service**, Kingston 11, Jamaica
+— lead `bc9794d6-6c83-4910-9ad7-d5036366ff45`, hand-sourced through
 `leads.record` from a FindYello directory listing, with the source URL recorded
-on the row and `handSourced: true`.
+on the row and `handSourced: true`. A second, stronger prospect follows below.
 
 It came out of the P2B benchmark. The business was found cold during that timed
 run, so the demo already exists as a preview in `studio` — built only from facts
@@ -1149,38 +1149,110 @@ on its own listing, every one source-linked.
 
 ### The rubric refused to call it qualified, and that is the point
 
+The first assessment scored **25/30** — above the qualifying threshold of 24,
+no blockers — and still returned `eligibility_review`, because two questions
+were open. That ordering is deliberate: an unknown is not a settled fact, and
+answering everything else does not make it one.
+
+Three dropdowns answered "yes" would have produced `qualified`. They were left
+"not checked" because nobody had checked them.
+
+### Then the second source was checked, and it downgraded the prospect
+
+The standing assessment is now **23/30**, still `eligibility_review`, with a
+third unknown.
+
+| | first | standing |
+| --- | --- | --- |
+| total | 25 / 30 | **23 / 30** — below the threshold |
+| risk | 5 | 3 |
+| unknowns | `identity_unverified`, `contact_policy_unreviewed` | + `operating_status_uncertain` |
+
+**Identity could not be verified, and the reason matters more than the
+failure.** Every trace of this business leads back to the one FindYello
+listing. Fiwibusiness carries a byte-identical description and the same ten
+services in the same order; ShowMeLocal repeats the same marketing copy. Three
+directories agreeing is one claim echoed three times, not three confirmations.
+There is **no Google Business Profile** — a Maps search for Kingston plumbers
+returns ten businesses and this is not among them — no social presence, and no
+independent trace of the phone or email beyond reverse-lookup pages that
+enumerate whole number ranges.
+
+**`operatingStatus` had been recorded as `trading`, and that was an
+overstatement.** It rested on a live opening-hours widget on a directory page,
+which is evidence about a page and not about a business. It was corrected to
+`uncertain` and the prospect re-assessed. History is append-only, so the 25/30
+is superseded rather than overwritten, and the contact-source field now records
+exactly what the second-source check found so nobody repeats it.
+
+This also means the prospect does not match the pilot's stated target. That
+target is an active Google Business Profile with no website; this business has
+no profile at all, and its only web presence is a listing that scrapers have
+copied. Confirm it exists and is trading — a phone call to the listed number
+would do it — before spending a demo slot.
+
+## A second prospect, and a better one: Xpert Plumbing, 2026-08-06
+
+Recorded after the Patrick's verification failed, chosen because it appeared in
+**both** the directory index and Google Maps, which makes it cross-verified by
+construction.
+
 | | |
 | --- | --- |
-| verdict | **`eligibility_review`** |
-| total | **25 / 30** — above the qualifying threshold of 24 |
-| scores | fit 5, risk 5, urgency 5, demoEffort 4, evidence 3, contactability 3 |
+| lead | Xpert Plumbing & Maintenance Services, Portmore / Kingston |
+| verdict | `eligibility_review` |
+| total | **24 / 30** — exactly at the threshold |
+| scores | fit 5, risk 5, evidence 4, demoEffort 4, urgency 3, contactability 3 |
 | blockers | none |
 | unknowns | `identity_unverified`, `contact_policy_unreviewed` |
-| expires | 2026-09-05 |
 
-A prospect that clears the threshold with no blockers still routes to a human
-because two questions are open. That ordering is deliberate — an unknown is not
-a settled fact, and answering everything else does not make it one.
+**Identity is verified this time, and by a stronger test than agreement.** The
+Google Business Profile is owner-managed, carries 4.9 from 10 reviews and
+advertises 24-hour service; FindYello carries the same name and the same
+`…-464-0652` number as a cellular, plus a second number, an email and an
+address. The two sources hold *different* information and agree where they
+overlap. That is corroboration; the Patrick's sources were copies.
 
-The unknowns are real, not procedural. Only one source was read: the business
-was not confirmed against a second, the Kingston 11 address was not
-independently checked, and **FindYello's terms and Jamaica's contact policy have
-not been reviewed**. Three dropdowns answered "yes" would have produced
-`qualified`; they were left "not checked" because nobody had checked them.
+**Location is recorded as `false`, not "unchecked", and the distinction is
+deliberate.** It was checked and could not be confirmed: the Google profile is
+a service-area listing with no address at all, so the Portmore address is
+single-sourced, and a separate Google entry under a similar name shows a
+different address entirely. `false` says someone looked and could not
+establish it; `null` would say nobody looked.
 
-That second unknown is worth more than it looks. Whether a business may be
-contacted from a directory listing, and on which channels, is the same
-licensing question the directory adapter turns on — so closing it here answers
-part of that decision too.
+### The finding that makes this a real pitch
+
+**Their website is dead.** The address on their own directory listing does not
+resolve, and neither does its parent domain — their web host appears to have
+gone. Verified against a working control, so it is not a local network fault.
+
+They already paid for a web presence and lost it. That is replacing something
+broken rather than selling the idea of a website, and it is why this prospect
+scores where it does. It is also load-bearing for the rubric: a recorded
+website with no documented weak-site problem is a **blocker**, so the finding is
+what keeps this prospect eligible at all rather than disqualifying it.
+
+### A data-entry error, caught and corrected
+
+The first Xpert assessment stored `publicFactCount: 0` and fired a spurious
+`insufficient_facts` unknown. The number typed into the form never reached the
+value — the same class of failure as the build form during the P2B benchmark,
+where values set through automation did not reach React state. It was re-entered
+with the field verified as reading `7` before submitting, which moved the total
+from 23 to 24. Both assessments are retained; the corrected one stands.
+
+Worth stating because the failure is silent in both directions: the form accepts
+the submission and the rubric faithfully scores whatever it was actually given.
+Nothing catches a number that never arrived except reading back what was stored.
 
 ### Funnel state
 
-Sourced 1 · assessed 1 · in review 1. Demo queue, sequences, touches, offers and
+Sourced 2 · assessed 2 · in review 2. Demo queue, sequences, touches, offers and
 entitlements are all zero, and `messages` is empty.
 
-**Nothing has reached this business.** No outreach was drafted, no sequence
-planned, nothing sent. `demos.enqueue` was not attempted: it refuses
-`not_qualified` while the verdict stands at review, which is correct, and
+**Nothing has reached either business.** No outreach drafted, no sequence
+planned, nothing sent. `demos.enqueue` was not attempted for either: it refuses
+`not_qualified` while a verdict stands at review, which is correct, and
 recording a refusal nobody needed would only add noise to the trail.
 
 The two pending approvals are the `factory.deploy_site` rows from 2026-08-03 and
@@ -1188,14 +1260,21 @@ The two pending approvals are the `factory.deploy_site` rows from 2026-08-03 and
 
 ### What closes the gap
 
-1. Verify identity and location against a second source.
-2. Review FindYello's terms and the applicable contact policy.
-3. Re-assess. With both unknowns answered the verdict should reach `qualified`,
-   which is what unlocks a demo slot.
-4. Rebuild the demo in `atlas` so it sits with the lead rather than in `studio`.
+Both remaining unknowns on Xpert are decisions rather than research:
 
-The pilot's exit criterion — one real hosting-paying customer — is now blocked
-on this prospect progressing, not on the directory adapter. Hand sourcing is the
+1. **Location.** Either confirm the address, or decide that a service-area
+   trade with no fixed premises does not need one verified — in which case the
+   rubric's `identityVerified && locationVerified` pairing is the thing to
+   revisit, not the prospect.
+2. **Contact policy.** Review the directory's terms and the applicable contact
+   rules. This is the same licensing question the directory adapter turns on, so
+   answering it here answers part of that decision too.
+
+Closing both should reach `qualified`, which unlocks a demo slot. The demo is
+roughly half an hour: every fact needed is already public on two sources.
+
+The pilot's exit criterion — one real hosting-paying customer — now waits on a
+prospect progressing, not on the directory adapter. Hand sourcing is the
 documented pilot workflow, and `leads.record`'s own description says so.
 
 ## Awaiting a decision
@@ -1219,7 +1298,13 @@ None of these is blocked on code:
 
 ## Next exact action
 
-Close the two unknowns on Patrick's Plumbing Service — verify identity and
-location against a second source, and review the directory's terms and the
-applicable contact policy — then re-assess. A `qualified` verdict unlocks the
-demo slot, and the demo already exists.
+Close the two remaining unknowns on **Xpert Plumbing & Maintenance Services**,
+which is the stronger of the two prospects at 24/30 with identity verified
+across two genuinely independent sources. Both are decisions rather than
+research: whether a service-area trade needs its location verified at all, and
+whether the directory's terms permit contact. Closing them should reach
+`qualified` and unlock a demo slot.
+
+Patrick's Plumbing Service stays at 23/30 pending confirmation that the
+business exists and is trading; a phone call to the listed number would settle
+it. Do not spend a demo slot there first.
