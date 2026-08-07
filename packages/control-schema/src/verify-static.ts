@@ -111,6 +111,15 @@ function blocking(code: string, path: string, message: string): Finding {
   };
 }
 
+function warning(code: string, path: string, message: string): Finding {
+  return {
+    severity: 'warning',
+    code,
+    path: redactSecrets(path),
+    message: redactSecrets(message),
+  };
+}
+
 function sortFindings(findings: Finding[]): Finding[] {
   return findings.sort(
     (left, right) =>
@@ -526,12 +535,40 @@ export async function verifyStatic(
       }
       const effectiveBranch = authorityBranch ?? git.branch;
       if (!integrationTransition && effectiveBranch !== recordedBranch) {
+        /*
+         * A merged handoff awaiting archival is not drift.
+         *
+         * After a merge the integration branch carries a handoff naming the
+         * branch the work was done on, and that fired blocking on every local
+         * run — while CI stayed green, because `integrationTransition` only
+         * clears when a trusted GitHub push event exists, which it never does
+         * locally. AGENTS.md tells every session to stop on blocking drift, so
+         * every session after a merge opened on a finding that meant nothing.
+         * A blocking finding that fires in a correct state is what teaches
+         * people to skip the check that would have caught a real one.
+         *
+         * The downgrade is deliberately narrow. All three must hold: HEAD is
+         * on the declared integration branch, the recorded boundary exists,
+         * and it is already an ancestor of HEAD. That is the definition of
+         * "this work is merged" — the handoff describes finished, integrated
+         * work and only needs archiving. Any other mismatch is still blocking,
+         * including a boundary that is missing or not yet merged, which is the
+         * case where the handoff genuinely describes work somewhere else.
+         */
+        const mergedAwaitingArchive =
+          integrationBranch !== undefined &&
+          effectiveBranch === integrationBranch &&
+          git.boundaryExists &&
+          git.boundaryIsAncestor;
+        const mismatch = `handoff branch ${recordedBranch} differs from authoritative branch ${effectiveBranch || 'unknown'}`;
         findings.push(
-          blocking(
-            'control.handoff_branch_mismatch',
-            relative(root, handoffPath),
-            `handoff branch ${recordedBranch} differs from authoritative branch ${effectiveBranch || 'unknown'}`,
-          ),
+          mergedAwaitingArchive
+            ? warning(
+                'control.handoff_branch_mismatch',
+                relative(root, handoffPath),
+                `${mismatch}; the recorded boundary is already merged, so this handoff needs archiving — run \`pnpm control:archive-handoff\``,
+              )
+            : blocking('control.handoff_branch_mismatch', relative(root, handoffPath), mismatch),
         );
       }
       if (!git.boundaryExists) {

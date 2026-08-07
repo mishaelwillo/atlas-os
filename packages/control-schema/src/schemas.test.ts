@@ -846,6 +846,90 @@ environments:
     );
   });
 
+  /**
+   * A merged handoff awaiting archival is not drift.
+   *
+   * After a merge the integration branch carries a handoff naming the branch
+   * the work was done on. That fired blocking on every local run while CI
+   * stayed green — `integrationTransition` only clears on a trusted GitHub
+   * push event, which never exists locally — so every session after a merge
+   * opened on a finding that meant nothing.
+   */
+  describe('a merged handoff awaiting archival', () => {
+    const mergedRoot = () =>
+      makeControlRoot({
+        handoff:
+          '# Current Handoff\n\n- Work item: `P2A-CONTROL-001`\n- Branch: `codex/test`\n- Head commit: `1111111111111111111111111111111111111111`\n',
+      });
+
+    /** On the integration branch, boundary merged: a warning naming the fix. */
+    test('warns rather than blocks, and says how to clear it', async () => {
+      const findings = await verifyWithGit(await mergedRoot(), {
+        branch: 'main',
+        headSha: '2222222222222222222222222222222222222222',
+        boundaryExists: true,
+        boundaryIsAncestor: true,
+        changedPaths: [],
+      });
+
+      const mismatch = findings.filter((f) => f.code === 'control.handoff_branch_mismatch');
+      expect(mismatch).toHaveLength(1);
+      expect(mismatch[0].severity).toBe('warning');
+      expect(mismatch[0].message).toContain('control:archive-handoff');
+      expect(findings.some((f) => f.severity === 'blocking')).toBe(false);
+    });
+
+    /**
+     * All three conditions are load-bearing. Drop any one and something must
+     * still block, because each describes a state where the handoff genuinely
+     * points somewhere other than the work in front of you.
+     */
+    test.each([
+      [
+        'not on the integration branch',
+        { branch: 'codex/other', boundaryExists: true, boundaryIsAncestor: true },
+      ],
+      [
+        'boundary not yet merged',
+        { branch: 'main', boundaryExists: true, boundaryIsAncestor: false },
+      ],
+      [
+        'boundary does not exist',
+        { branch: 'main', boundaryExists: false, boundaryIsAncestor: false },
+      ],
+    ])('stays blocking when %s', async (_name, git) => {
+      const findings = await verifyWithGit(await mergedRoot(), {
+        ...git,
+        headSha: '2222222222222222222222222222222222222222',
+        changedPaths: [],
+      });
+
+      /*
+       * The mismatch itself must block. Asserting only that *something* blocks
+       * passes for the wrong reason in the not-yet-merged case, where
+       * `handoff_commit_not_ancestor` blocks anyway and hides a mismatch that
+       * was wrongly downgraded — which is exactly what a mutation dropping the
+       * ancestor condition proved.
+       */
+      const mismatch = findings.filter((f) => f.code === 'control.handoff_branch_mismatch');
+      expect(mismatch).toHaveLength(1);
+      expect(mismatch[0].severity).toBe('blocking');
+    });
+
+    /** A matching branch produces no mismatch finding at all. */
+    test('says nothing when the recorded branch is the branch you are on', async () => {
+      const findings = await verifyWithGit(await mergedRoot(), {
+        branch: 'codex/test',
+        headSha: '2222222222222222222222222222222222222222',
+        boundaryExists: true,
+        boundaryIsAncestor: true,
+        changedPaths: [],
+      });
+
+      expect(findings.some((f) => f.code === 'control.handoff_branch_mismatch')).toBe(false);
+    });
+  });
+
   test('permits archived handoff Markdown as post-boundary metadata', async () => {
     const root = await makeControlRoot({
       handoff:

@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `assess-form-evidence`
+**Handoff ID:** `merged-handoff-warning`
 **Status:** active
-**Started:** 2026-08-07T05:56:40.088Z
-**Updated:** 2026-08-07T05:56:40.088Z
+**Started:** 2026-08-07T06:33:59.015Z
+**Updated:** 2026-08-07T06:33:59.015Z
 **Actor:** Claude
-**Objective:** Stop the assess form silently replacing recorded evidence with a blank set
+**Objective:** Stop a merged handoff awaiting archival from blocking verification
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `fix/assess-form-loses-evidence`
+- Branch: `fix/merged-handoff-is-a-warning`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `d6fa8db57f511f4266029c3b8c867885903d1a55`
+- Head commit: `b5b973b3fcb75c1b325a362fd52b391416d1556a`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Card publishes standing evidence; ProspectsCard loads it; round-trip and unreadable cases tested
+- handoff_branch_mismatch downgrades to warning only when on the integration branch with the boundary already an ancestor
 
 ## Current working tree
 
@@ -25,11 +25,11 @@
 
 ## Verification evidence
 
-- Mutation restoring the blanking fails the guarantee test; widened query dry-run against production
+- Three mutations each fail a test; one weak assertion found by mutation and strengthened; verified on the real repo
 
 ## Database actions
 
-- Read-only dry run inside a rolled-back transaction; no schema change
+- None
 - Observed Supabase status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## Hosting actions
@@ -47,8 +47,8 @@
 
 ## Next exact action
 
-Decide the location question for Xpert - verify it, amend the rubric for service-area trades, or sign off in review
+Close the location unknown on Xpert - one question on the call you are already making - to reach qualified and unlock a demo slot
 
 ## Definition of done
 
-Reopening an assessment prefills from what was recorded, and an unreadable evidence set is named rather than shown as empty fields
+A merged handoff on the integration branch warns and names the fix; every other mismatch still blocks, each condition mutation-tested
