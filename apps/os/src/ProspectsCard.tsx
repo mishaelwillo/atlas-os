@@ -28,6 +28,12 @@ export interface ProspectQualification {
   assessedAt: string;
   expiresAt: string;
   expired: boolean;
+  /**
+   * The evidence behind this verdict, so re-assessing edits it rather than
+   * replacing it with whatever a blank form happened to contain. Null when the
+   * row carries none the API could read.
+   */
+  evidence?: Record<string, unknown> | null;
 }
 
 export interface ProspectDemo {
@@ -173,6 +179,65 @@ export function buildEvidence(form: EvidenceForm): Record<string, unknown> {
     if (value !== '') evidence[field] = value;
   }
   return evidence;
+}
+
+/**
+ * Load a stored evidence object back into the form.
+ *
+ * The inverse of `buildEvidence`, and the reason re-assessing is now an edit
+ * rather than a create. The form used to reset to blank on every open, so an
+ * operator correcting one field silently dropped every other and the rubric
+ * faithfully scored the emptier evidence — twice in one session, once nearly
+ * losing the documented weak-site problem that was the only thing keeping a
+ * prospect out of a blocker.
+ *
+ * A missing boolean loads as `unknown`, not `no`. The rubric treats those
+ * differently — an unknown sends a prospect to review, a settled false can
+ * disqualify — so collapsing them here would put a verdict on the record that
+ * nobody decided.
+ */
+export function loadEvidence(stored: Record<string, unknown>): EvidenceForm {
+  const text = (key: string): string => {
+    const value = stored[key];
+    return typeof value === 'string' ? value : '';
+  };
+  const tri = (key: string): Tri => {
+    const value = stored[key];
+    if (value === true) return 'yes';
+    if (value === false) return 'no';
+    return 'unknown';
+  };
+  const csv = (key: string): string => {
+    const value = stored[key];
+    return Array.isArray(value) ? value.map((v) => String(v)).join(', ') : '';
+  };
+  const count = (key: string, fallback: string): string => {
+    const value = stored[key];
+    return typeof value === 'number' && Number.isFinite(value) ? String(value) : fallback;
+  };
+  const status = stored.operatingStatus;
+  return {
+    region: text('region'),
+    vertical: text('vertical'),
+    targetRegions: csv('targetRegions'),
+    targetVerticals: csv('targetVerticals'),
+    activeProfile: tri('activeProfile'),
+    websiteUrl: text('websiteUrl'),
+    weakSiteProblem: text('weakSiteProblem'),
+    identityVerified: tri('identityVerified'),
+    locationVerified: tri('locationVerified'),
+    publicFactCount: count('publicFactCount', BLANK_EVIDENCE.publicFactCount),
+    contactSource: text('contactSource'),
+    contactPolicyReviewed: tri('contactPolicyReviewed'),
+    duplicateOf: text('duplicateOf'),
+    operatingStatus:
+      status === 'open' || status === 'closed' || status === 'uncertain'
+        ? status
+        : BLANK_EVIDENCE.operatingStatus,
+    demoEffortHours: count('demoEffortHours', BLANK_EVIDENCE.demoEffortHours),
+    deceptiveDemoRisk: stored.deceptiveDemoRisk === true,
+    benefitRationale: text('benefitRationale'),
+  };
 }
 
 /** What the API actually did, including the refusals it reports with a 200. */
@@ -424,8 +489,17 @@ export function ProspectsCard({
                   type="button"
                   data-testid={`assess-${p.leadId}`}
                   onClick={() => {
-                    setOpenLead(openLead === p.leadId ? null : p.leadId);
-                    setForm({ ...BLANK_EVIDENCE });
+                    const opening = openLead !== p.leadId;
+                    setOpenLead(opening ? p.leadId : null);
+                    /*
+                     * Start from what was recorded, not from blank. Blank only
+                     * when there is nothing to start from — a first assessment,
+                     * or a standing one whose evidence could not be read, which
+                     * the form says out loud rather than silently showing an
+                     * empty set that looks identical to a lost one.
+                     */
+                    const stored = opening ? (p.qualification?.evidence ?? null) : null;
+                    setForm(stored === null ? { ...BLANK_EVIDENCE } : loadEvidence(stored));
                   }}
                 >
                   {openLead === p.leadId ? 'Close' : 'Assess'}
@@ -482,6 +556,40 @@ export function ProspectsCard({
 
       {openLead !== null && (
         <div className={styles.factRow} data-testid="qualify-form">
+          {/*
+            Which of the three states this form is in, said out loud. A blank
+            first assessment and a standing one whose evidence was lost look
+            identical once the fields are empty, and the second is the one that
+            quietly replaces a good record with a worse one.
+          */}
+          {(() => {
+            const standing = items.find((p) => p.leadId === openLead)?.qualification ?? null;
+            if (standing === null) {
+              return (
+                <p className={styles.when} data-testid="assess-mode">
+                  First assessment for this prospect.
+                </p>
+              );
+            }
+            if (standing.evidence === null || standing.evidence === undefined) {
+              return (
+                <p className={styles.error} data-testid="assess-mode">
+                  Editing the assessment recorded{' '}
+                  {new Date(standing.assessedAt).toLocaleDateString()} — but its evidence
+                  could not be read, so these fields start empty. Submitting will replace
+                  the recorded evidence with whatever is entered here.
+                </p>
+              );
+            }
+            return (
+              <p className={styles.when} data-testid="assess-mode">
+                Editing the assessment recorded{' '}
+                {new Date(standing.assessedAt).toLocaleDateString()} ({standing.verdict},{' '}
+                {standing.total}). Fields start from what was recorded; changing one keeps
+                the rest.
+              </p>
+            );
+          })()}
           <p className={styles.when}>
             The verdict is derived from this evidence, not chosen. A field left “not
             checked” is an open question that sends the prospect to review; answering it

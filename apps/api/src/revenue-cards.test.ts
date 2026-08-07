@@ -192,6 +192,86 @@ describe('sequences card', () => {
   });
 });
 
+/**
+ * The card must carry the evidence behind a standing verdict.
+ *
+ * Without it the assess form opened blank every time, so a re-assessment was a
+ * create wearing an edit's clothes and quietly replaced a good record with a
+ * thinner one.
+ */
+describe('standing assessment evidence', () => {
+  it('carries the evidence so re-assessing can edit rather than replace', async () => {
+    const db = pilotDb([
+      [
+        /from qualification_assessments/i,
+        [
+          {
+            lead_id: LEAD,
+            verdict: 'eligibility_review',
+            total: 26,
+            created_at: '2026-08-06T00:00:00.000Z',
+            expires_at: '2099-01-01T00:00:00.000Z',
+            evidence: { region: 'JM', publicFactCount: 7, identityVerified: true },
+          },
+        ],
+      ],
+    ]);
+    const data = (await cards(db)).prospects;
+    const [row] = data.items as Array<{ qualification: { evidence: Record<string, unknown> } }>;
+    expect(row.qualification.evidence).toMatchObject({ publicFactCount: 7, region: 'JM' });
+  });
+
+  /** jsonb sometimes arrives as text; the card must not hand back a string. */
+  it('parses evidence that arrives as a json string', async () => {
+    const db = pilotDb([
+      [
+        /from qualification_assessments/i,
+        [
+          {
+            lead_id: LEAD,
+            verdict: 'qualified',
+            total: 27,
+            created_at: '2026-08-06T00:00:00.000Z',
+            expires_at: '2099-01-01T00:00:00.000Z',
+            evidence: JSON.stringify({ publicFactCount: 5 }),
+          },
+        ],
+      ],
+    ]);
+    const data = (await cards(db)).prospects;
+    const [row] = data.items as Array<{ qualification: { evidence: Record<string, unknown> } }>;
+    expect(row.qualification.evidence).toEqual({ publicFactCount: 5 });
+  });
+
+  /**
+   * Unreadable becomes null, not a partial guess. A half-loaded form is the
+   * exact failure this field exists to prevent, and the card renders null as
+   * an explicit warning rather than as empty fields.
+   */
+  it('reports unreadable evidence as null rather than guessing', async () => {
+    for (const value of [null, 'not json', 42, ['a']]) {
+      const db = pilotDb([
+        [
+          /from qualification_assessments/i,
+          [
+            {
+              lead_id: LEAD,
+              verdict: 'qualified',
+              total: 27,
+              created_at: '2026-08-06T00:00:00.000Z',
+              expires_at: '2099-01-01T00:00:00.000Z',
+              evidence: value,
+            },
+          ],
+        ],
+      ]);
+      const data = (await cards(db)).prospects;
+      const [row] = data.items as Array<{ qualification: { evidence: unknown } }>;
+      expect(row.qualification.evidence, JSON.stringify(value)).toBeNull();
+    }
+  });
+});
+
 describe('revenue operations card', () => {
   it('carries the offer, the standing decision and the entitlement', async () => {
     const data = (await cards(pilotDb())).revenue_ops;
