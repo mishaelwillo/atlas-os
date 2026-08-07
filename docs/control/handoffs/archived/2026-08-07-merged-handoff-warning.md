@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `playbooks-author-comment`
+**Handoff ID:** `merged-handoff-warning`
 **Status:** active
-**Started:** 2026-08-07T07:45:01.802Z
-**Updated:** 2026-08-07T07:45:01.802Z
+**Started:** 2026-08-07T06:33:59.015Z
+**Updated:** 2026-08-07T06:33:59.015Z
 **Actor:** Claude
-**Objective:** Make playbooks.author's comment describe what the code does, and pin it
+**Objective:** Stop a merged handoff awaiting archival from blocking verification
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `fix/playbooks-author-comment`
+- Branch: `fix/merged-handoff-is-a-warning`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `688d915058e944be1b9748ba14393fbb190a711c`
+- Head commit: `b5b973b3fcb75c1b325a362fd52b391416d1556a`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Rewrote the playbooks.author comment; added router-never-called and frontierSession-false tests
+- handoff_branch_mismatch downgrades to warning only when on the integration branch with the boundary already an ancestor
 
 ## Current working tree
 
@@ -25,7 +25,7 @@
 
 ## Verification evidence
 
-- A mutation wiring the session up fails both tests; an earlier weaker version of one test was found by that same mutation and strengthened
+- Three mutations each fail a test; one weak assertion found by mutation and strengthened; verified on the real repo
 
 ## Database actions
 
@@ -51,4 +51,4 @@ Close the location unknown on Xpert - one question on the call you are already m
 
 ## Definition of done
 
-The comment states the session is unconditional, and two tests fail if anyone wires it up
+A merged handoff on the integration branch warns and names the fix; every other mismatch still blocks, each condition mutation-tested

@@ -398,11 +398,27 @@ export function playbookSlug(taskFamily: string): string {
 /**
  * playbooks.author — persists an approved playbook as a new immutable version.
  *
- * The spec's budgeted frontier session is NOT run here: no model credential is
- * configured, so calling one would fail at runtime. Rather than write an empty
- * record and call it authored, this stores the operator's brief as the body and
- * refuses when there is nothing to store. Rows are only ever inserted; a later
- * version supersedes an earlier one by ordering, never by mutation.
+ * **This never runs the specification's budgeted frontier session, and that is
+ * unconditional.** It does not read `ATLAS_MODEL_API_KEY`, it does not touch
+ * `ctx.deps.router`, and `frontierSession` is a literal `false` rather than a
+ * derived one. Configuring a credential changes nothing here; the session is
+ * unbuilt work, not a disabled feature.
+ *
+ * The comment above this used to say the session was skipped *because* no
+ * credential was configured. That read as a switch waiting to be flipped, and
+ * it sent at least one reader off to set an environment variable that could
+ * not have had any effect. A reason that names a condition the code never
+ * tests is worse than no reason.
+ *
+ * Two tests hold this down: one asserts the router is never invoked, the other
+ * that `frontierSession` stays false with a router present. Wiring the session
+ * up will fail both, which is the point — whoever does it has to come back
+ * here and rewrite this.
+ *
+ * What it does instead: stores the operator's brief as the body, and refuses
+ * when there is nothing to store rather than writing an empty record and
+ * calling it authored. Rows are only ever inserted; a later version supersedes
+ * an earlier one by ordering, never by mutation.
  */
 const playbooksAuthor: ApprovalDispatcher = async (ctx, payload) => {
   const input = (payload.input ?? {}) as Record<string, unknown>;
