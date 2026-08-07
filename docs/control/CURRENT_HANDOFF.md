@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `merged-handoff-warning`
+**Handoff ID:** `unassigned-2026-08-07`
 **Status:** active
-**Started:** 2026-08-07T06:33:59.015Z
-**Updated:** 2026-08-07T06:33:59.015Z
-**Actor:** Claude
-**Objective:** Stop a merged handoff awaiting archival from blocking verification
+**Started:** 2026-08-07T07:44:12.827Z
+**Updated:** 2026-08-07T07:44:12.827Z
+**Actor:** Unassigned
+**Objective:** Preserve a safe takeover point while no model is assigned.
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `fix/merged-handoff-is-a-warning`
+- Branch: `main`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
 - Head commit: `b5b973b3fcb75c1b325a362fd52b391416d1556a`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- handoff_branch_mismatch downgrades to warning only when on the integration branch with the boundary already an ancestor
+- The prior current handoff was archived byte-for-byte.
 
 ## Current working tree
 
@@ -25,21 +25,19 @@
 
 ## Verification evidence
 
-- Three mutations each fail a test; one weak assertion found by mutation and strengthened; verified on the real repo
+- The prior handoff was archived without altering its contents.
 
 ## Database actions
 
-- None
-- Observed Supabase status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
+- No external action reported.
 
 ## Hosting actions
 
 - No external action reported.
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## External side effects
 
-- No external action reported.
+- Created an immutable repository-local handoff archive.
 
 ## Blockers
 
@@ -47,8 +45,8 @@
 
 ## Next exact action
 
-Close the location unknown on Xpert - one question on the call you are already making - to reach qualified and unlock a demo slot
+select a ready work item from WORK_QUEUE.yaml.
 
 ## Definition of done
 
-A merged handoff on the integration branch warns and names the fix; every other mismatch still blocks, each condition mutation-tested
+A model claims the active work item and creates a new handoff.

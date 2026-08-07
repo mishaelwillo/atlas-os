@@ -6,7 +6,9 @@
 import { describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from './app.js';
+import type { AtlasRouter } from '@atlas/router';
 import { playbookSlug } from './dispatch.js';
+import { loadEnv } from './env.js';
 import { FakeDb, buildTestDeps, operatorJwt, testEnv } from './test/fakes.js';
 
 const SPACE = '11111111-2222-3333-4444-555555555555';
@@ -55,6 +57,92 @@ describe('playbook slug', () => {
 
   it('yields an empty slug when nothing usable remains', () => {
     expect(playbookSlug('///')).toBe('');
+  });
+});
+
+/**
+ * The frontier session is unbuilt, not disabled.
+ *
+ * The dispatcher's comment used to say the session was skipped *because* no
+ * model credential was configured. There is no branch on one: it never reads
+ * `ATLAS_MODEL_API_KEY`, never touches the router, and returns a literal
+ * `frontierSession: false`. The comment read as a switch waiting to be
+ * flipped, and sent a reader off to set an environment variable that could not
+ * have had any effect.
+ *
+ * These pin the unconditional behaviour, so wiring the session up fails here
+ * and whoever does it has to rewrite that comment.
+ */
+describe('the frontier session playbooks.author does not run', () => {
+  /**
+   * An environment where a session *could* run if anything were wired to a
+   * credential. Both tests below use it deliberately.
+   *
+   * An earlier version of the router test ran without a credential, so a
+   * mutation that called the router only when one was configured slipped past
+   * it — the test matched the code's current shape instead of checking the
+   * property. Configuring the credential is what makes the guard real.
+   */
+  function configuredEnv() {
+    const env = loadEnv({
+      OPERATOR_EMAIL: 'operator@test.local',
+      SUPABASE_JWT_SECRET: 'test-jwt-secret',
+      DATABASE_URL: 'postgres://unused',
+      ATLAS_MODEL_API_KEY: 'sk-configured-but-unused',
+    });
+    expect(env.modelApiKey).not.toBe('');
+    return env;
+  }
+
+  async function authorWith(db: FakeDb, router?: AtlasRouter) {
+    const env = configuredEnv();
+    const base = buildTestDeps(db, env);
+    const app = buildApp({ deps: router ? { ...base, router } : base });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/v1/approvals/decide',
+      headers: { authorization: `Bearer ${operatorJwt(env)}` },
+      payload: { approvalId: APPROVAL, decision: 'approved' },
+    });
+    return (res.json() as { dispatched: Record<string, unknown> }).dispatched;
+  }
+
+  it('never invokes the model router, even with a credential configured', async () => {
+    let calls = 0;
+    const refusing: AtlasRouter = {
+      async complete() {
+        calls += 1;
+        throw new Error('playbooks.author must not call the model router');
+      },
+    };
+    const db = dbWithPendingApproval({ taskFamily: 'listing-classify', brief: 'Classify.' });
+
+    const dispatched = await authorWith(db, refusing);
+
+    expect(dispatched.executed).toBe(true);
+    expect(calls).toBe(0);
+  });
+
+  /**
+   * `false` is a literal, not a reading of configuration. A credential being
+   * present must not change it — that is the claim the old comment made and
+   * the code never honoured.
+   */
+  it('reports frontierSession false with a model credential configured', async () => {
+    const db = dbWithPendingApproval({ taskFamily: 'listing-classify', brief: 'Classify.' });
+
+    const dispatched = await authorWith(db);
+
+    expect(dispatched.executed).toBe(true);
+    expect(dispatched.frontierSession).toBe(false);
+  });
+
+  /** The brief is stored verbatim — nothing generated stands in for it. */
+  it('stores the operator brief as the body rather than an authored one', async () => {
+    const db = dbWithPendingApproval({ taskFamily: 'listing-classify', brief: 'Classify listings.' });
+    await decide(db);
+
+    expect(playbookInsert(db)?.params).toContain('Classify listings.');
   });
 });
 
