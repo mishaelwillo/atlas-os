@@ -53,6 +53,29 @@ import {
 /** How many leads a card carries. The pilot runs one bounded cohort at a time. */
 const LEAD_LIMIT = 50;
 
+/**
+ * The stored evidence, or null when it cannot be read as an object.
+ *
+ * `jsonb` arrives as an object from the driver but as a string from some
+ * paths, and a row predating the column carries null. Anything that is not a
+ * plain object becomes null rather than a partial guess, because a half-loaded
+ * form is the exact failure this field exists to prevent.
+ */
+function readEvidence(value: unknown): Record<string, unknown> | null {
+  const parsed =
+    typeof value === 'string'
+      ? (() => {
+          try {
+            return JSON.parse(value) as unknown;
+          } catch {
+            return null;
+          }
+        })()
+      : value;
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+  return parsed as Record<string, unknown>;
+}
+
 export interface PipelineQualification {
   verdict: string;
   total: number;
@@ -60,6 +83,22 @@ export interface PipelineQualification {
   expiresAt: string;
   /** A stale verdict cannot take a demo slot, so it is shown as stale. */
   expired: boolean;
+  /**
+   * The evidence this verdict was derived from, so re-assessing can start from
+   * what was recorded rather than from an empty form.
+   *
+   * Without it the assess form opened blank every time, which made a
+   * re-assessment a *create* wearing an edit's clothes: an operator correcting
+   * one field silently dropped every other, and the rubric faithfully scored
+   * the emptier evidence. It happened twice in one session — once losing a
+   * fact count, once nearly losing a documented weak-site problem that was the
+   * only thing keeping a prospect out of a blocker.
+   *
+   * Null when the row carries no readable evidence. The card says so rather
+   * than showing a blank form, because a blank form and a lost one look
+   * identical to the person filling it in.
+   */
+  evidence: Record<string, unknown> | null;
 }
 
 export interface PipelineDemo {
@@ -180,7 +219,7 @@ export async function readPipeline(q: Queryable, space: string | null): Promise<
         [space],
       ),
       q.query(
-        `select distinct on (lead_id) lead_id, verdict, total, created_at, expires_at
+        `select distinct on (lead_id) lead_id, verdict, total, created_at, expires_at, evidence
            from qualification_assessments
           where ($1::uuid is null or space_id = $1::uuid)
           order by lead_id, created_at desc`,
@@ -250,6 +289,7 @@ export async function readPipeline(q: Queryable, space: string | null): Promise<
       assessedAt,
       expiresAt,
       expired: assessmentExpired(expiresAt, now),
+      evidence: readEvidence(r.evidence),
     });
   }
 

@@ -18,6 +18,7 @@ import {
   ProspectsCard,
   buildEvidence,
   describeOutcome,
+  loadEvidence,
   type ProspectsData,
 } from './ProspectsCard.js';
 import type { AtlasGeneratedClient } from '@atlas/client';
@@ -77,6 +78,133 @@ function setup(data: ProspectsData = DATA, result: Record<string, unknown> = {})
   render(<ProspectsCard data={data} client={client} hasSpace onChanged={onChanged} />);
   return { calls, onChanged };
 }
+
+/**
+ * Re-assessing must edit the recorded evidence, not replace it.
+ *
+ * The form used to reset to blank on every open, so correcting one field
+ * silently dropped every other and the rubric faithfully scored the emptier
+ * evidence. It happened twice in one session — once losing a fact count, once
+ * nearly losing the documented weak-site problem that was the only thing
+ * keeping a prospect out of a blocker.
+ */
+describe('loadEvidence', () => {
+  /** The property that matters: nothing is lost on a round trip. */
+  it('round-trips everything buildEvidence sends', () => {
+    const original = {
+      region: 'JM',
+      vertical: 'trades',
+      targetRegions: 'JM',
+      targetVerticals: 'trades',
+      activeProfile: 'yes' as const,
+      websiteUrl: 'http://example.invalid/',
+      weakSiteProblem: 'the listed site does not resolve',
+      identityVerified: 'yes' as const,
+      locationVerified: 'no' as const,
+      publicFactCount: '7',
+      contactSource: 'two independent sources',
+      contactPolicyReviewed: 'yes' as const,
+      duplicateOf: '',
+      operatingStatus: 'open' as const,
+      demoEffortHours: '0.5',
+      deceptiveDemoRisk: false,
+      benefitRationale: 'their site is gone',
+    };
+
+    expect(loadEvidence(buildEvidence(original))).toEqual(original);
+  });
+
+  /**
+   * Unknown is not false. The rubric sends an unknown to review and can
+   * disqualify on a settled false, so collapsing them would put a verdict on
+   * the record nobody decided.
+   */
+  it('loads a missing boolean as unchecked, never as no', () => {
+    const form = loadEvidence({ identityVerified: false });
+    expect(form.identityVerified).toBe('no');
+    expect(form.activeProfile).toBe('unknown');
+    expect(form.locationVerified).toBe('unknown');
+    expect(form.contactPolicyReviewed).toBe('unknown');
+  });
+
+  /** A fact count that fails to load must not read as zero — zero blocks. */
+  it('falls back rather than inventing a zero fact count', () => {
+    expect(loadEvidence({}).publicFactCount).toBe('0');
+    expect(loadEvidence({ publicFactCount: 7 }).publicFactCount).toBe('7');
+    // A non-numeric value is not silently coerced to 0 by Number().
+    expect(loadEvidence({ publicFactCount: 'seven' }).publicFactCount).toBe('0');
+  });
+
+  it('ignores an unrecognised operating status rather than passing it through', () => {
+    expect(loadEvidence({ operatingStatus: 'trading' }).operatingStatus).toBe('uncertain');
+    expect(loadEvidence({ operatingStatus: 'closed' }).operatingStatus).toBe('closed');
+  });
+});
+
+describe('opening the assess form', () => {
+  const LEAD = DATA.items![0].leadId;
+  const stored = {
+    region: 'JM',
+    vertical: 'trades',
+    targetRegions: ['JM'],
+    targetVerticals: ['trades'],
+    publicFactCount: 7,
+    websiteUrl: 'http://example.invalid/',
+    weakSiteProblem: 'the listed site does not resolve',
+    identityVerified: true,
+    locationVerified: false,
+    operatingStatus: 'open',
+    demoEffortHours: 0.5,
+    deceptiveDemoRisk: false,
+    benefitRationale: 'their site is gone',
+    contactSource: 'two independent sources',
+  };
+
+  function withEvidence(evidence: Record<string, unknown> | null | undefined): ProspectsData {
+    return {
+      ...DATA,
+      items: [
+        { ...DATA.items![0], qualification: { ...DATA.items![0].qualification!, evidence } },
+      ],
+    };
+  }
+
+  /** The defect: correcting one field used to silently drop every other. */
+  it('starts from the recorded evidence, not from blank', async () => {
+    setup(withEvidence(stored));
+    await userEvent.click(screen.getByTestId(`assess-${LEAD}`));
+
+    expect((screen.getByTestId('ev-facts') as HTMLInputElement).value).toBe('7');
+    expect((screen.getByTestId('ev-website') as HTMLInputElement).value).toBe(
+      'http://example.invalid/',
+    );
+    expect((screen.getByTestId('ev-weak-site') as HTMLInputElement).value).toContain(
+      'does not resolve',
+    );
+    expect(screen.getByTestId('assess-mode')).toHaveTextContent(/Editing the assessment/);
+  });
+
+  it('starts blank for a prospect with no standing assessment', async () => {
+    setup({ ...DATA, items: [{ ...DATA.items![0], qualification: null }] });
+    await userEvent.click(screen.getByTestId(`assess-${LEAD}`));
+
+    expect((screen.getByTestId('ev-website') as HTMLInputElement).value).toBe('');
+    expect(screen.getByTestId('assess-mode')).toHaveTextContent(/First assessment/);
+  });
+
+  /**
+   * A standing assessment whose evidence could not be read produces the same
+   * empty fields as a first assessment. Saying so is the difference between an
+   * operator knowing they are about to overwrite a record and not.
+   */
+  it('says so when a standing assessment has no readable evidence', async () => {
+    setup(withEvidence(null));
+    await userEvent.click(screen.getByTestId(`assess-${LEAD}`));
+
+    expect(screen.getByTestId('assess-mode')).toHaveTextContent(/could not be read/);
+    expect(screen.getByTestId('assess-mode')).toHaveTextContent(/will replace/);
+  });
+});
 
 describe('buildEvidence', () => {
   /** The distinction the rubric depends on. */
