@@ -43,6 +43,7 @@ import {
   permittedHostingMoves,
 } from '../revenue/hosting-activation.js';
 import {
+  CONTACT_POLICIES,
   MAX_DEMO_EFFORT_HOURS,
   QUALIFYING_SCORE,
   MAX_SCORE,
@@ -427,6 +428,12 @@ export const QUALIFICATION_RUBRIC = {
   maxScore: MAX_SCORE,
   qualifyingScore: QUALIFYING_SCORE,
   maxDemoEffortHours: MAX_DEMO_EFFORT_HOURS,
+  /**
+   * Published so the contact-policy control is built from the rubric's own
+   * vocabulary. A hand-written copy in the card is how the third state gets
+   * dropped again — which is the defect this field was added to fix.
+   */
+  contactPolicies: [...CONTACT_POLICIES],
 } as const;
 
 /** Vocabularies the prospecting card's controls are built from. */

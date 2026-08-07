@@ -11,6 +11,8 @@ import { CapabilityError, insertAudit, type CapabilityHandler, type HandlerCtx }
 import {
   assessProspect,
   assessmentExpired,
+  isContactPolicy,
+  type ContactPolicy,
   type QualificationEvidence,
 } from '../revenue/qualification.js';
 import {
@@ -71,6 +73,20 @@ function stringList(value: unknown): string[] {
  * reach the rubric as unknown, because the rubric's whole job is to tell an
  * unanswered question apart from a settled fact.
  */
+/**
+ * The contact-policy outcome, accepting the boolean this field used to be.
+ *
+ * Assessments recorded before the three-state field carry
+ * `contactPolicyReviewed: true`, which meant "reviewed, nothing stopping us" —
+ * so it maps to `permitted`. Anything else maps to `unreviewed`, including the
+ * legacy `false`, because back then `false` and absent were the same thing and
+ * reading it as `prohibited` now would invent a finding nobody recorded.
+ */
+function readContactPolicy(raw: Record<string, unknown>): ContactPolicy {
+  if (isContactPolicy(raw.contactPolicy)) return raw.contactPolicy;
+  return raw.contactPolicyReviewed === true ? 'permitted' : 'unreviewed';
+}
+
 export function readEvidence(raw: Record<string, unknown>): QualificationEvidence {
   const status = text(raw.operatingStatus);
   return {
@@ -85,7 +101,7 @@ export function readEvidence(raw: Record<string, unknown>): QualificationEvidenc
     locationVerified: bool(raw.locationVerified),
     publicFactCount: typeof raw.publicFactCount === 'number' ? raw.publicFactCount : 0,
     contactSource: text(raw.contactSource),
-    contactPolicyReviewed: bool(raw.contactPolicyReviewed),
+    contactPolicy: readContactPolicy(raw),
     // Suppression is a fact about the lead, resolved from the row rather than
     // taken from the request; the caller cannot assert its way past it.
     suppressed: false,

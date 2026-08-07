@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `playbooks-author-comment`
+**Handoff ID:** `unassigned-2026-08-07`
 **Status:** active
-**Started:** 2026-08-07T07:45:01.802Z
-**Updated:** 2026-08-07T07:45:01.802Z
-**Actor:** Claude
-**Objective:** Make playbooks.author's comment describe what the code does, and pin it
+**Started:** 2026-08-07T08:42:49.625Z
+**Updated:** 2026-08-07T08:42:49.625Z
+**Actor:** Unassigned
+**Objective:** Preserve a safe takeover point while no model is assigned.
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `fix/playbooks-author-comment`
+- Branch: `main`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
 - Head commit: `688d915058e944be1b9748ba14393fbb190a711c`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Rewrote the playbooks.author comment; added router-never-called and frontierSession-false tests
+- The prior current handoff was archived byte-for-byte.
 
 ## Current working tree
 
@@ -25,21 +25,19 @@
 
 ## Verification evidence
 
-- A mutation wiring the session up fails both tests; an earlier weaker version of one test was found by that same mutation and strengthened
+- The prior handoff was archived without altering its contents.
 
 ## Database actions
 
-- None
-- Observed Supabase status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
+- No external action reported.
 
 ## Hosting actions
 
 - No external action reported.
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## External side effects
 
-- No external action reported.
+- Created an immutable repository-local handoff archive.
 
 ## Blockers
 
@@ -47,8 +45,8 @@
 
 ## Next exact action
 
-Close the location unknown on Xpert - one question on the call you are already making - to reach qualified and unlock a demo slot
+select a ready work item from WORK_QUEUE.yaml.
 
 ## Definition of done
 
-The comment states the session is unconditional, and two tests fail if anyone wires it up
+A model claims the active work item and creates a new handoff.
