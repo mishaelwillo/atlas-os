@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `unassigned-2026-08-07`
+**Handoff ID:** `roadmap-sequencing`
 **Status:** active
-**Started:** 2026-08-07T18:49:03.436Z
-**Updated:** 2026-08-07T18:49:03.436Z
-**Actor:** Unassigned
-**Objective:** Preserve a safe takeover point while no model is assigned.
+**Started:** 2026-08-07T18:49:51.795Z
+**Updated:** 2026-08-07T18:49:51.795Z
+**Actor:** Claude
+**Objective:** Stop the roadmap duplicating phase status and going stale
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `main`
+- Branch: `docs/roadmap-sequencing`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `8f8432955a2bf2d205b9cd3955bca32c807401f1`
+- Head commit: `31d02284e4b6682b596dfa0c3dc1fc5a5e09d2f7`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- The prior current handoff was archived byte-for-byte.
+- Rewrote Current sequencing as dependency reasoning
 
 ## Current working tree
 
@@ -25,19 +25,21 @@
 
 ## Verification evidence
 
-- The prior handoff was archived without altering its contents.
+- Phase status read from WORK_QUEUE rather than restated
 
 ## Database actions
 
-- No external action reported.
+- None
+- Observed Supabase status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## Hosting actions
 
 - No external action reported.
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
 
 ## External side effects
 
-- Created an immutable repository-local handoff archive.
+- No external action reported.
 
 ## Blockers
 
@@ -45,8 +47,8 @@
 
 ## Next exact action
 
-select a ready work item from WORK_QUEUE.yaml.
+Build the cost, support and outcome record P2C's exit criterion requires
 
 ## Definition of done
 
-A model claims the active work item and creates a new handoff.
+The roadmap carries dependency reasoning and points at WORK_QUEUE for status
