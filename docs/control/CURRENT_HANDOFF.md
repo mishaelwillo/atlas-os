@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `pilot-cost-outcome-record`
+**Handoff ID:** `pin-0012`
 **Status:** active
-**Started:** 2026-08-07T19:15:04.358Z
-**Updated:** 2026-08-07T19:15:04.358Z
+**Started:** 2026-08-07T20:46:58.804Z
+**Updated:** 2026-08-07T20:46:58.804Z
 **Actor:** Claude
-**Objective:** Build the cost, support and outcome record P2C's exit criterion requires
+**Objective:** Pin the applied 0012 migration and correct the ledger name it recorded
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `feat/pilot-cost-outcome-record`
+- Branch: `fix/pin-0012-and-ledger-name`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `726dc62dabedbe0573a7f1207ffa1d6c3e8d2fe2`
+- Head commit: `7b541242a5a29ad601a337b481827d3ca73d716d`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Migration 0012, pilot-record rules, two capabilities (36 to 38), funnel cost reporting and derived stage durations
+- Pinned expected_migration and required_tables, set ATLAS_SCHEMA_VERSION on both services, corrected the 0012 ledger name
 
 ## Current working tree
 
@@ -25,17 +25,17 @@
 
 ## Verification evidence
 
-- Dry run against production applied the migration, exercised seven constraints in both directions and rolled back; 25 rule tests and 8 funnel tests
+- Ledger, tables and constraints read from production; control:status exits 0 with no findings
 
 ## Database actions
 
-- Migration 0012 written for operator review; applied and rolled back in a dry run only
-- Observed Supabase status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
+- Updated one supabase_migrations row from the prefixed name to the bare one, inside a transaction that verified the composed identity first
+- Observed Supabase status: ok (live-read-only at 2026-08-07T20:46:19.807Z).
 
 ## Hosting actions
 
 - No external action reported.
-- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-06T01:31:42.599Z).
+- Observed Railway API status: ok; OS status: ok (live-read-only at 2026-08-07T20:46:19.807Z).
 
 ## External side effects
 
@@ -47,8 +47,8 @@
 
 ## Next exact action
 
-Apply migration 0012, then pin expected_migration and ATLAS_SCHEMA_VERSION and verify through control:status
+Build the Mission Control surface for the cost and outcome record, which has capabilities but no operator screen
 
 ## Definition of done
 
-Costs and satisfaction are recordable, margin is withheld until the record is complete, and the unavailable list is derived from what is missing
+control:status reports no blocking or warning findings with 0012 pinned on both services

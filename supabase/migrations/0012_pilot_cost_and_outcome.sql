@@ -86,6 +86,13 @@ create index if not exists pilot_outcomes_lead_idx on pilot_outcomes (lead_id);
 -- The ledger insert is the final statement, so the migration self-records only
 -- if everything above succeeded. 0003 skipped this and the ledger drifted a
 -- version behind until someone noticed.
+--
+-- `name` carries NO version prefix. The collector composes the identity it
+-- compares against expected_migration as version + '_' + name, so a prefixed
+-- name yields `0012_0012_pilot_cost_and_outcome` and reports a mismatch
+-- against a migration that applied perfectly well. This file shipped with the
+-- prefix and the drift check caught it on the first live run — the dry run
+-- had confirmed the row existed without checking what identity it composed to.
 insert into supabase_migrations.schema_migrations (version, name)
-values ('0012', '0012_pilot_cost_and_outcome')
+values ('0012', 'pilot_cost_and_outcome')
 on conflict (version) do nothing;
