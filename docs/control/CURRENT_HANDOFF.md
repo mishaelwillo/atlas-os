@@ -1,23 +1,23 @@
 # Current Handoff
 
-**Handoff ID:** `cost-record-surface`
+**Handoff ID:** `refresh-continuation-prompt`
 **Status:** active
-**Started:** 2026-08-07T22:33:44.859Z
-**Updated:** 2026-08-07T22:33:44.859Z
+**Started:** 2026-08-08T23:22:58.038Z
+**Updated:** 2026-08-08T23:22:58.038Z
 **Actor:** Claude
-**Objective:** Give the cost and outcome record an operator surface so it gets filled while the pilot runs
+**Objective:** Leave an accurate continuation prompt for a new session
 
 ## Active work
 
 - Work item: `P2C-REVENUE-001`
-- Branch: `feat/cost-record-operator-surface`
+- Branch: `docs/refresh-continuation-prompt`
 - Base commit: `e98e40298a12becf19bff58d7226e567e315da53`
-- Head commit: `9676f52a44ad890273230710e3bd6a25e7e60ff9`
+- Head commit: `e27e169c5a277c18311958f01c234be1845c686d`
 - Review status: pending independent review
 
 ## Task change evidence
 
-- Funnel card cost display and recording form; status.mission_control now passes cost; categories published
+- Rewrote where-the-build-stands, known gaps, verification discipline and the tooling constraints
 
 ## Current working tree
 
@@ -25,11 +25,11 @@
 
 ## Verification evidence
 
-- Mutation moving hooks after the early return fails a rerender test; 20 card tests
+- Repo facts read from git and the registry; pilot state read from production
 
 ## Database actions
 
-- None
+- Read-only
 - Observed Supabase status: ok (live-read-only at 2026-08-07T20:46:19.807Z).
 
 ## Hosting actions
@@ -47,8 +47,8 @@
 
 ## Next exact action
 
-Close the location unknown on Xpert, then log costs against the pilot as it runs
+Call Xpert Plumbing to confirm their location, reach qualified, and run the pilot chain while logging costs against it
 
 ## Definition of done
 
-The funnel card shows the cost record and records both costs and satisfaction, with margin withheld until complete
+NEW_SESSION_PROMPT reflects main, the migration pin, the phase statuses and the live pilot state

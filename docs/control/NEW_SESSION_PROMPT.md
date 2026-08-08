@@ -25,51 +25,77 @@ via npm (corepack fails with EPERM on this machine — do not try to enable it).
 
 ## Where the build stands
 
-Main is `fb450a80fe8e6e30fe38e8a07e19d1fe68b4c0a1` with Build & Test green on
-that exact SHA. Both services deploy from main. Migrations `0001`–`0011` are
-applied and pinned (`expected_migration: 0011_deployment_withdrawal_verdict`,
-matched by `ATLAS_SCHEMA_VERSION` on both services). **35 executable
-capabilities, 31 candidates**, registry version 3.
+Main is `d2f52a1ad415438bed1211d7e681acf1e2299188` with Build & Test green on
+that exact SHA. Both services deploy from main. Migrations `0001`–`0012` are
+applied and pinned (`expected_migration: 0012_pilot_cost_and_outcome`, matched
+by `ATLAS_SCHEMA_VERSION` on both services). **38 executable capabilities, 31
+candidates**, registry version 3. `control:status` reports no blocking and no
+warning findings.
 
 - **P1 production** — done and verified live.
 - **P2A Intelligence Bank** — build-now scope done.
-- **P2B Website Factory** — `review`. The full loop is proven end to end against
-  production. The remaining acceptance is the timed benchmark run through
-  Mission Control, which needs an operator session.
-- **P2C Revenue pilot** — `in_progress`. Every capability is built and has an
-  operator surface, and the whole chain has been driven in a browser.
+- **P2B Website Factory** — **done**. The timed benchmark ran on 2026-08-06
+  against a real, previously unseen business: 9m16s of a 30-minute budget from
+  first opening a directory to an accessible preview, QA passing 28 checks with
+  zero unsourced facts.
+- **P2C Revenue pilot** — `in_progress`, and **everything it needs is built**.
+  What remains is not code.
 
-### What was proven against production
+### The exit criterion has two halves, and both are now reachable
 
-The full factory loop: publish → revise → publish v2 → roll back → withdraw,
-with the address confirmed gone afterwards. And the full pilot, driven in
-Mission Control by a signed-in operator: record a prospect → qualify → demo slot
-→ sequence → offer → deal decision → record terms → approved activation. The
-funnel reads one paying customer.
+"One paying customer **and complete cost/support/outcome record**." The second
+half had no implementation until 2026-08-07 — `funnel.ts` named six metrics as
+unavailable because nothing recorded them, which meant even a paying customer
+could not have closed the phase.
 
-### Fixture data is live and should be cleaned up
+Migration `0012` adds `pilot_cost_entries` and `pilot_outcomes`;
+`pilot.record_cost` and `pilot.record_outcome` write them; the funnel card
+displays the record and carries the form. `time_per_stage` and days-to-activation
+are derived from timestamps rather than recorded.
 
-The `atlas` space holds `Atlas Pilot Fixture Plumbing` (lead `1be4b379…`) with
-an assessment, a demo slot, a sequence, offer v1 and v2, an accepted deal and an
-**active hosting entitlement**. It is counted in the funnel as a paying
-customer, so it will flatter any reading of the pilot until removed. Direct
-database access is refused by the permission layer, so removal needs either an
-operator-run script or a capability.
+### Live pilot state, read from production
+
+Two real hand-sourced prospects in the `atlas` space, both `eligibility_review`:
+
+| prospect | total | remaining unknowns |
+| --- | --- | --- |
+| Xpert Plumbing & Maintenance Services | 26/30 | location |
+| Patrick's Plumbing Service | 25/30 | operating status, location |
+
+Demo queue, sequences, offers, entitlements, cost entries and outcomes are all
+zero. **`messages` is empty — nothing has reached either business.** Eleven
+sites exist from factory runs; no live deployment remains.
+
+The old `Atlas Pilot Fixture Plumbing` fixture was removed on 2026-08-06 with an
+audited script; its 16 audit rows and 2 approvals were deliberately kept.
 
 ## Known gaps and open decisions
 
-- **A directory adapter for lead sourcing.** `leads.find` is a typed stub that
-  throws. `leads.record` covers hand sourcing in the meantime. The adapter is an
-  integration decision (provider terms, data licensing), not code, and it is what
-  blocks the pilot's exit criterion of one *real* hosting-paying customer.
-- **A model credential** for `playbooks.author`, without which it records the
-  operator's brief rather than running a frontier session.
-- **Promoting `agents.logs`** from candidate — evidence-gated.
-- **P2B's timed acceptance** needs an operator session.
-- **Cleaning up the pilot fixture** (above).
-- **`onboarded` and `active`** are reachable hosting states with no capability
-  that moves an entitlement into them; `hosting.activate` stops at
-  `entitlement_active`. Worth checking before claiming the chain is complete.
+Nothing on this list blocks on code you would write first.
+
+- **Xpert needs one question answered on a phone call:** where are they based.
+  That closes `identity_unverified` and takes it to `qualified`, which unlocks a
+  demo slot. Its website is dead — the host's whole domain no longer resolves —
+  so the call has its own reason to happen.
+- **Patrick's needs the same call** to establish whether the business is
+  trading. Every directory carrying it republishes one listing, and it has no
+  Google Business Profile. Do not spend a demo slot there first.
+- **A directory adapter** for `leads.find`, which is still a typed stub that
+  throws. It buys volume; hand sourcing through `leads.record` is the documented
+  pilot workflow and is what the two prospects came through. Note the licensing
+  shape the terms review established: a source whose terms forbid commercial use
+  is now a *blocker* in the rubric, not a question.
+- **Promoting `agents.logs`** from candidate — evidence-gated, and the weakest
+  evidence on the board (`confidence: low`, frames do not show the sub-tab).
+- **Whether a service-area trade needs a verified location at all.** The rubric
+  pairs `identityVerified && locationVerified` and a mobile plumber has no
+  premises. The rule may be wrong for that class, but relaxing it while it
+  blocks a wanted prospect is the wrong reason to change it.
+- **Four capabilities still throw:** `memory.answer`, `memory.distill` (the
+  token ladder, deferred from P1), `leads.find`, and `bench.run` — whose stub
+  says "lands in P2". `memory.answer` and `memory.distill` are the only two
+  `execution: 'model'` capabilities, so the model router currently has no
+  working consumer. Setting `ATLAS_MODEL_API_KEY` alone changes nothing.
 
 ## Architecture you must respect
 
@@ -161,7 +187,21 @@ for database credentials), `pnpm control:handoff -- --id <slug> --actor Claude
   passing tests confirmed only that the author's misunderstanding was
   self-consistent. No site had ever published.
 - **Mutation-test every guard you add.** Break it deliberately, confirm tests
-  fail, restore. A guard with no failing mutation is decoration.
+  fail, restore. A guard with no failing mutation is decoration. On 2026-08-07
+  this caught three of the author's own tests in one session: one asserting
+  "something blocks" where a different finding was blocking anyway, one
+  exercising a router guard in conditions where the router would not have been
+  called, and a dry run that checked a ledger row existed without checking the
+  identity it composed to. All three passed while proving nothing.
+- **Verify a form submission by reading back what was stored.** The assess form
+  twice accepted values that never reached the API — once a fact count arrived
+  as `0` and fired a spurious unknown, once a whole evidence set would have been
+  wiped. The form accepts the submission and the rubric scores whatever it was
+  actually handed; nothing in between notices a field that never arrived.
+- **Do not suppress a lint that is right.** A `rules-of-hooks` suppression was
+  added and then removed the same day: React counts hooks per render, so hooks
+  after an early return are a real bug. The fix is moving them, plus a test that
+  rerenders across both branches.
 - **Anything crossing a CDN must settle before you believe it** — in both
   directions. A withdrawal kept serving for 20–40 seconds after it committed.
 - **Deployed is not the same as seen.** Mission Control polls every 5s, so a
@@ -212,15 +252,22 @@ fingerprints cannot go permanently stale.
 ## What you cannot do, and what to do instead
 
 - **Mission Control's password is not available to you.** The operator signs in
-  themselves. Once they have, you can drive the page through the Claude in Chrome
-  tools — `read_page`, `find` and ref-based clicking all work off the DOM, and
-  the pane does not need to be visible for those. React state must be updated
-  through real events (the native value setter plus an `input`/`change` event),
-  never by assigning `.value`.
-- **Direct database access may be refused** by the permission layer. Migrations
-  are written for review, the operator applies them, and you then pin
-  `expected_migration` plus `ATLAS_SCHEMA_VERSION` and verify through
-  `control:status`.
+  themselves. Once they have, navigating a tab in the same Chrome profile picks
+  the session up. Drive it through the Claude in Chrome tools — but **the
+  `form_input` tool does not reach React state for text inputs**: values set
+  that way vanish on the next 5-second poll and the submit silently sends
+  nothing. Click the field and use `computer` `type` instead, and screenshot to
+  confirm before submitting. `form_input` does work for `<select>`.
+- **Direct database access works through `railway run --service api`**, which
+  injects `DATABASE_URL`. Scripts must live under `apps/api` for `pg` to
+  resolve — pnpm does not hoist. Migrations are still written for operator
+  review; after they apply one you pin `expected_migration`, add any new tables
+  to `required_tables`, set `ATLAS_SCHEMA_VERSION` on both services, redeploy so
+  the value takes effect, and verify through `control:status`.
+- **A migration's ledger `name` carries no version prefix.** The collector
+  composes identity as `version + '_' + name`, so `0012` writing
+  `'0012_pilot_cost_and_outcome'` produced `0012_0012_…` and blocking drift
+  against a migration that had applied perfectly well.
 - **The Cloudflare API token is Pages-scoped.** It cannot read or write zone
   settings (`403` / `10000`), and no API token can reach bot management on this
   free-plan zone. Zone changes need the dashboard.
